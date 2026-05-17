@@ -165,7 +165,7 @@ function submitForm() {
   records.unshift(record);
   try { localStorage.setItem(STORAGE_KEY_REC, JSON.stringify(records)); } catch (e) {}
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbwr2o0j-xcsFHO7CaPTWomMkWshBQ39G3aRB25bPRN1DD-VCDq89_e971JnYLrrNPmUgQ/exec';
-  if (GAS_URL) fetch(GAS_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body: JSON.stringify(record) }).catch(() => {});
+  if (GAS_URL) fetch(GAS_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({action:'record', ...record}) }).catch(() => {});
   document.getElementById('form-area').style.display = 'none';
   document.getElementById('success-screen').classList.add('show');
   document.getElementById('success-time').textContent = ts;
