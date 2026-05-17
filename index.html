@@ -267,24 +267,12 @@
 
 <!-- QR 碼產生 -->
 <div id="page-qr" class="page">
-  <div class="page-title">QR 碼產生器</div>
-  <p style="font-size:13px;color:var(--text-2);margin-bottom:1.5rem">選擇料號 → 產生 QR 碼 → 右鍵另存圖片或點列印，貼到料箱 / 棚架上。</p>
-
-  <div class="qr-grid" id="qr-grid"></div>
-
-  <div class="card" id="qr-detail-card" style="display:none;margin-top:1rem">
-    <div class="card-title">QR 碼詳細</div>
-    <div class="qr-detail">
-      <div class="qr-canvas-wrap">
-        <canvas id="qr-canvas"></canvas>
-        <div style="font-size:11px;color:var(--text-3);margin-top:4px">右鍵 → 另存圖片</div>
-        <div class="btn-row" style="justify-content:center;margin-top:8px">
-          <button class="btn btn-primary" onclick="printQR()">列印貼紙</button>
-        </div>
-      </div>
-      <div class="qr-info" id="qr-info-content"></div>
-    </div>
+  <div class="page-title">QR 碼總覽</div>
+  <p style="font-size:13px;color:var(--text-2);margin-bottom:1.5rem">每個料號的 QR 碼直接顯示，可單張列印或一次全部列印。</p>
+  <div class="btn-row" style="margin-bottom:1.25rem">
+    <button class="btn btn-primary" onclick="printAllQR()">列印全部 QR 碼</button>
   </div>
+  <div id="qr-all-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px"></div>
 </div>
 
 <!-- 領用紀錄 -->
@@ -355,7 +343,6 @@ let materials = JSON.parse(localStorage.getItem(STORAGE_KEY_MAT) || 'null') || [
 let records = JSON.parse(localStorage.getItem(STORAGE_KEY_REC) || '[]');
 let nextNum = materials.reduce((m,x)=>Math.max(m,parseInt(x.id.slice(1))),0)+1;
 let filterCat = '';
-let selectedQRId = null;
 
 function save() {
   localStorage.setItem(STORAGE_KEY_MAT, JSON.stringify(materials));
@@ -375,7 +362,7 @@ function showPage(name, el) {
   document.querySelectorAll('header nav a').forEach(a=>a.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   if(el) el.classList.add('active');
-  if(name==='qr') renderQRGrid();
+  if(name==='qr') renderAllQR();
   if(name==='records') { renderRecords(); updateStats(); }
 }
 
@@ -433,58 +420,92 @@ function renderTable() {
   </tr>`).join('');
 }
 
-function renderQRGrid() {
-  const grid = document.getElementById('qr-grid');
-  grid.innerHTML = materials.map(m=>`
-    <div class="qr-card${selectedQRId===m.id?' selected':''}" onclick="selectQR('${m.id}')">
-      <div class="qr-card-id">${m.id}</div>
-      <div class="qr-card-brand">${m.brand||m.model.substring(0,8)}</div>
-      <div class="qr-card-model">${m.model.substring(0,24)}${m.model.length>24?'…':''}</div>
-    </div>`).join('');
-  if (selectedQRId) selectQR(selectedQRId);
+function renderAllQR() {
+  const grid = document.getElementById('qr-all-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  materials.forEach(m => {
+    const url = `${BASE_URL}?id=${encodeURIComponent(m.id)}&brand=${encodeURIComponent(m.brand)}&model=${encodeURIComponent(m.model)}&unit=${encodeURIComponent(m.unit)}&price=${m.price}`;
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.cssText = 'text-align:center;padding:1.25rem 1rem';
+    card.innerHTML = `
+      <canvas id="qrc-${m.id}" style="display:block;margin:0 auto 10px"></canvas>
+      <div style="font-size:11px;color:var(--text-3);margin-bottom:2px">${m.id}</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px">${m.brand||'—'}</div>
+      <div style="font-size:11px;color:var(--text-2);margin-bottom:6px;min-height:28px;line-height:1.5">${m.model}</div>
+      <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">$${m.price.toLocaleString()} / ${m.unit}</div>
+      <button class="btn" style="width:100%;justify-content:center;font-size:12px" onclick="printOneQR('${m.id}')">列印這張</button>
+    `;
+    grid.appendChild(card);
+    QRCode.toCanvas(
+      document.getElementById('qrc-'+m.id),
+      url,
+      {width:150, margin:1, color:{dark:'#1a1916', light:'#ffffff'}},
+      err => { if(err) console.error('QR error', m.id, err); }
+    );
+  });
 }
 
-function selectQR(id) {
-  selectedQRId = id;
-  renderQRGrid();
+function printOneQR(id) {
   const m = materials.find(x=>x.id===id);
   if (!m) return;
-  const url = `${BASE_URL}?id=${m.id}&brand=${encodeURIComponent(m.brand)}&model=${encodeURIComponent(m.model)}&unit=${encodeURIComponent(m.unit)}&price=${m.price}`;
-  document.getElementById('qr-detail-card').style.display='block';
-  QRCode.toCanvas(document.getElementById('qr-canvas'), url, {width:160, margin:1, color:{dark:'#1a1916',light:'#ffffff'}});
-  document.getElementById('qr-info-content').innerHTML = `
-    <div class="info-row"><span class="info-key">料號</span><span><b>${m.id}</b></span></div>
-    <div class="info-row"><span class="info-key">廠牌</span><span>${m.brand||'—'}</span></div>
-    <div class="info-row"><span class="info-key">規格型號</span><span style="font-size:12px">${m.model}</span></div>
-    <div class="info-row"><span class="info-key">類別</span><span>${m.cat}</span></div>
-    <div class="info-row"><span class="info-key">單位</span><span>${m.unit}</span></div>
-    <div class="info-row"><span class="info-key">單價</span><span style="font-weight:600">$${m.price.toLocaleString()}</span></div>
-    <div class="info-row"><span class="info-key">掃碼網址</span><span style="font-size:10px;color:var(--text-3);word-break:break-all">${url}</span></div>
-  `;
-}
-
-function printQR() {
-  const m = materials.find(x=>x.id===selectedQRId);
-  if (!m) return;
-  const canvas = document.getElementById('qr-canvas');
+  const canvas = document.getElementById('qrc-'+id);
+  if (!canvas) return;
+  const img = canvas.toDataURL();
   const win = window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head><title>QR 貼紙 - ${m.id}</title>
-  <style>body{font-family:Arial,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;background:#fff}
-  .box{border:2px solid #000;padding:16px;text-align:center;width:200px}
-  img{display:block;margin:0 auto 8px}
-  .id{font-size:11px;color:#666;margin-bottom:2px}
-  .brand{font-size:16px;font-weight:bold;margin-bottom:4px}
-  .model{font-size:11px;color:#333}
-  .price{font-size:13px;margin-top:6px;font-weight:600}
-  @media print{body{height:auto}}</style></head><body>
+  win.document.write(`<!DOCTYPE html><html><head><title>QR 貼紙 ${m.id}</title>
+  <style>
+    body{font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#fff}
+    .box{border:2px solid #1a1916;border-radius:8px;padding:16px;text-align:center;width:180px}
+    img{display:block;margin:0 auto 8px}
+    .mid{font-size:11px;color:#666;margin-bottom:3px}
+    .name{font-size:15px;font-weight:700;margin-bottom:3px}
+    .spec{font-size:10px;color:#444;line-height:1.4;margin-bottom:6px}
+    .price{font-size:13px;font-weight:600;color:#1a6b4a}
+    @media print{body{min-height:auto}}
+  </style></head><body>
   <div class="box">
-    <img src="${canvas.toDataURL()}" width="160" height="160">
-    <div class="id">${m.id}</div>
-    <div class="brand">${m.brand||m.model.substring(0,12)}</div>
-    <div class="model">${m.model}</div>
+    <img src="${img}" width="150" height="150">
+    <div class="mid">${m.id} · ${m.cat}</div>
+    <div class="name">${m.brand||m.model.substring(0,10)}</div>
+    <div class="spec">${m.model}</div>
     <div class="price">$${m.price.toLocaleString()} / ${m.unit}</div>
   </div>
-  <script>window.onload=()=>{window.print();}<\/script>
+  <script>window.onload=()=>window.print()<\/script>
+  </body></html>`);
+  win.document.close();
+}
+
+function printAllQR() {
+  const canvases = materials.map(m => {
+    const c = document.getElementById('qrc-'+m.id);
+    return c ? {m, img: c.toDataURL()} : null;
+  }).filter(Boolean);
+  if (!canvases.length) { toast('請先切換到 QR 碼頁面再操作'); return; }
+  const win = window.open('','_blank');
+  const items = canvases.map(({m, img}) => `
+    <div class="box">
+      <img src="${img}" width="130" height="130">
+      <div class="mid">${m.id} · ${m.cat}</div>
+      <div class="name">${m.brand||m.model.substring(0,10)}</div>
+      <div class="spec">${m.model}</div>
+      <div class="price">$${m.price.toLocaleString()} / ${m.unit}</div>
+    </div>`).join('');
+  win.document.write(`<!DOCTYPE html><html><head><title>QR 貼紙全部列印</title>
+  <style>
+    body{font-family:Arial,sans-serif;margin:16px;background:#fff}
+    .grid{display:flex;flex-wrap:wrap;gap:12px}
+    .box{border:2px solid #1a1916;border-radius:8px;padding:12px;text-align:center;width:160px;page-break-inside:avoid}
+    img{display:block;margin:0 auto 6px}
+    .mid{font-size:10px;color:#666;margin-bottom:2px}
+    .name{font-size:13px;font-weight:700;margin-bottom:2px}
+    .spec{font-size:9px;color:#444;line-height:1.4;margin-bottom:4px}
+    .price{font-size:11px;font-weight:600;color:#1a6b4a}
+    @media print{body{margin:8px}}
+  </style></head><body>
+  <div class="grid">${items}</div>
+  <script>window.onload=()=>window.print()<\/script>
   </body></html>`);
   win.document.close();
 }
