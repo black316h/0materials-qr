@@ -164,7 +164,7 @@ function submitForm() {
   try { records = JSON.parse(localStorage.getItem(STORAGE_KEY_REC) || '[]'); } catch (e) {}
   records.unshift(record);
   try { localStorage.setItem(STORAGE_KEY_REC, JSON.stringify(records)); } catch (e) {}
-  const GAS_URL = ''; // 填入 Google Apps Script 網址後自動同步 Google Sheets
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwr2o0j-xcsFHO7CaPTWomMkWshBQ39G3aRB25bPRN1DD-VCDq89_e971JnYLrrNPmUgQ/exec';
   if (GAS_URL) fetch(GAS_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body: JSON.stringify(record) }).catch(() => {});
   document.getElementById('form-area').style.display = 'none';
   document.getElementById('success-screen').classList.add('show');
