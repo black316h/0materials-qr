@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>材料卡管理系統</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --border: #e2e0d8;
+    --border-dark: #c8c5bc;
+    --text: #1a1916;
+    --text-2: #6b6a65;
+    --text-3: #9b9a95;
+    --accent: #1a6b4a;
+    --accent-light: #e8f5ee;
+    --accent-text: #0f4a32;
+    --blue: #1a4a8a;
+    --blue-light: #e8f0fb;
+    --blue-text: #0f2f5a;
+    --red: #c0392b;
+    --red-light: #fdecea;
+    --font-head: 'Georgia', serif;
+    --font-body: 'Helvetica Neue', Arial, sans-serif;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); font-family: var(--font-body); color: var(--text); min-height: 100vh; }
+
+  header {
+    background: var(--text);
+    color: #fff;
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header h1 { font-family: var(--font-head); font-size: 16px; font-weight: normal; letter-spacing: 0.04em; }
+  header nav { display: flex; gap: 2px; }
+  header nav a {
+    color: rgba(255,255,255,0.65);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: var(--radius);
+    transition: all 0.15s;
+  }
+  header nav a:hover, header nav a.active { color: #fff; background: rgba(255,255,255,0.12); }
+
+  .main { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .page-title { font-family: var(--font-head); font-size: 22px; font-weight: normal; margin-bottom: 1.5rem; color: var(--text); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1rem; }
+
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group label { font-size: 12px; color: var(--text-2); font-weight: 500; }
+  input, select, textarea {
+    font-family: var(--font-body);
+    font-size: 13px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text);
+    width: 100%;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+  input[readonly] { color: var(--text-3); cursor: not-allowed; }
+
+  .btn {
+    font-family: var(--font-body);
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-dark);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:hover { background: var(--bg); }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent-text); }
+  .btn-danger { color: var(--red); border-color: transparent; background: none; padding: 4px 8px; }
+  .btn-danger:hover { background: var(--red-light); }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+
+  .table-wrap { border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+  th { background: var(--bg); padding: 9px 12px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg); }
+
+  .badge {
+    display: inline-block; font-size: 11px; padding: 2px 8px;
+    border-radius: 99px; font-weight: 500;
+  }
+  .badge-green { background: var(--accent-light); color: var(--accent-text); }
+  .badge-blue { background: var(--blue-light); color: var(--blue-text); }
+
+  .search-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .search-row input { max-width: 280px; }
+  .search-row span { font-size: 12px; color: var(--text-3); margin-left: auto; }
+
+  .qr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .qr-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .qr-card:hover { border-color: var(--accent); }
+  .qr-card.selected { border-color: var(--accent); border-width: 2px; background: var(--accent-light); }
+  .qr-card-id { font-size: 11px; color: var(--text-3); margin-bottom: 2px; }
+  .qr-card-brand { font-size: 14px; font-weight: 600; color: var(--text); }
+  .qr-card-model { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+
+  .qr-detail { display: flex; gap: 2rem; align-items: flex-start; flex-wrap: wrap; }
+  .qr-canvas-wrap { text-align: center; }
+  .qr-canvas-wrap canvas { display: block; margin: 0 auto 8px; }
+  .qr-info { flex: 1; min-width: 220px; }
+  .info-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .info-row:last-child { border-bottom: none; }
+  .info-key { color: var(--text-2); }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; text-align: center; }
+  .stat-label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .stat-val { font-size: 28px; font-family: var(--font-head); color: var(--text); }
+
+  .empty-state { text-align: center; padding: 3rem; color: var(--text-3); font-size: 13px; }
+
+  .toast {
+    position: fixed; bottom: 2rem; right: 2rem;
+    background: var(--text); color: #fff;
+    padding: 10px 18px; border-radius: var(--radius);
+    font-size: 13px; opacity: 0; transform: translateY(8px);
+    transition: all 0.2s; pointer-events: none; z-index: 999;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  .filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .filter-btn { font-size: 12px; padding: 4px 12px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); cursor: pointer; transition: all 0.15s; }
+  .filter-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
+
+  @media (max-width: 600px) {
+    header { padding: 0 1rem; }
+    .main { padding: 1rem; }
+    .stat-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>材料卡管理系統</h1>
+  <nav>
+    <a href="#" class="active" onclick="showPage('master',this)">材料主檔</a>
+    <a href="#" onclick="showPage('qr',this)">QR 碼</a>
+    <a href="#" onclick="showPage('records',this)">領用紀錄</a>
+  </nav>
+</header>
+
+<div class="main">
+
+<!-- 材料主檔 -->
+<div id="page-master" class="page active">
+  <div class="page-title">材料主檔管理</div>
+
+  <div class="card">
+    <div class="card-title">新增材料</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>料號（自動）</label>
+        <input id="f-id" readonly>
+      </div>
+      <div class="form-group">
+        <label>廠牌 *</label>
+        <input id="f-brand" placeholder="例：士林">
+      </div>
+      <div class="form-group" style="grid-column: span 2">
+        <label>型號 / 規格 *</label>
+        <input id="f-model" placeholder="例：MS0-P30T HP 220V">
+      </div>
+      <div class="form-group">
+        <label>類別</label>
+        <select id="f-cat">
+          <option>斷路器</option><option>電磁開關</option><option>計時器</option>
+          <option>繼電器</option><option>保險絲</option><option>端子台</option>
+          <option>指示燈</option><option>按鈕開關</option><option>控制箱</option><option>其他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>單位</label>
+        <select id="f-unit">
+          <option>只</option><option>支</option><option>條</option><option>片</option>
+          <option>組</option><option>個</option><option>捲</option><option>台</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>單價（元）</label>
+        <input id="f-price" type="number" placeholder="0" min="0">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="addMaterial()">＋ 新增</button>
+      <button class="btn" onclick="clearForm()">清除</button>
+    </div>
+  </div>
+
+  <div class="search-row">
+    <input id="search" placeholder="搜尋廠牌、型號、料號…" oninput="renderTable()">
+    <div class="filter-row" style="margin:0">
+      <button class="filter-btn active" onclick="setFilter('',this)">全部</button>
+      <button class="filter-btn" onclick="setFilter('斷路器',this)">斷路器</button>
+      <button class="filter-btn" onclick="setFilter('電磁開關',this)">電磁開關</button>
+      <button class="filter-btn" onclick="setFilter('繼電器',this)">繼電器</button>
+      <button class="filter-btn" onclick="setFilter('指示燈',this)">指示燈</button>
+    </div>
+    <span id="mat-count"></span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:70px">料號</th>
+          <th style="width:70px">廠牌</th>
+          <th>型號 / 規格</th>
+          <th style="width:70px">類別</th>
+          <th style="width:50px">單位</th>
+          <th style="width:70px">單價</th>
+          <th style="width:50px"></th>
+        </tr>
+      </thead>
+      <tbody id="mat-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- QR 碼產生 -->
+<div id="page-qr" class="page">
+  <div class="page-title">QR 碼產生器</div>
+  <p style="font-size:13px;color:var(--text-2);margin-bottom:1.5rem">選擇料號 → 產生 QR 碼 → 右鍵另存圖片或點列印，貼到料箱 / 棚架上。</p>
+
+  <div class="qr-grid" id="qr-grid"></div>
+
+  <div class="card" id="qr-detail-card" style="display:none;margin-top:1rem">
+    <div class="card-title">QR 碼詳細</div>
+    <div class="qr-detail">
+      <div class="qr-canvas-wrap">
+        <canvas id="qr-canvas"></canvas>
+        <div style="font-size:11px;color:var(--text-3);margin-top:4px">右鍵 → 另存圖片</div>
+        <div class="btn-row" style="justify-content:center;margin-top:8px">
+          <button class="btn btn-primary" onclick="printQR()">列印貼紙</button>
+        </div>
+      </div>
+      <div class="qr-info" id="qr-info-content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 領用紀錄 -->
+<div id="page-records" class="page">
+  <div class="page-title">領用紀錄</div>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">總筆數</div>
+      <div class="stat-val" id="stat-count">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">累計金額</div>
+      <div class="stat-val" id="stat-total">$0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">工程數</div>
+      <div class="stat-val" id="stat-jobs">0</div>
+    </div>
+  </div>
+
+  <div class="search-row">
+    <input id="rec-search" placeholder="搜尋工程編號…" oninput="renderRecords()">
+    <div class="btn-row" style="margin:0;margin-left:auto">
+      <button class="btn" onclick="exportCSV()">↓ 匯出 CSV</button>
+      <button class="btn" onclick="clearRecords()" style="color:var(--red)">清除紀錄</button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:110px">時間</th>
+          <th style="width:110px">工程編號</th>
+          <th style="width:60px">料號</th>
+          <th>廠牌 / 型號</th>
+          <th style="width:50px">數量</th>
+          <th style="width:55px">單位</th>
+          <th style="width:70px">金額</th>
+          <th style="width:80px">備註</th>
+        </tr>
+      </thead>
+      <tbody id="rec-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY_MAT = 'mat_master_v1';
+const STORAGE_KEY_REC = 'mat_records_v1';
+const BASE_URL = window.location.origin + window.location.pathname.replace('index.html','') + 'scan.html';
+
+let materials = JSON.parse(localStorage.getItem(STORAGE_KEY_MAT) || 'null') || [
+  {id:'M001',brand:'雙梅',model:'金庫型 350×280×180 橫',unit:'只',price:770,cat:'控制箱'},
+  {id:'M002',brand:'東文',model:'QCE 2P 50A',unit:'只',price:150,cat:'斷路器'},
+  {id:'M003',brand:'士林',model:'MS0-P30T HP 220V',unit:'只',price:715,cat:'電磁開關'},
+  {id:'M004',brand:'仕通',model:'SH3-3-30S 220V + 座',unit:'只',price:260,cat:'計時器'},
+  {id:'M005',brand:'知果',model:'RU2S-C 220V + 座',unit:'只',price:140,cat:'繼電器'},
+  {id:'M006',brand:'',model:'Fuse 座 + 3A + 上蓋',unit:'只',price:2,cat:'保險絲'},
+  {id:'M007',brand:'',model:'10A 22P 端子台',unit:'支',price:150,cat:'端子台'},
+  {id:'M008',brand:'',model:'30Φ 傳統指示燈 220V WW',unit:'只',price:100,cat:'指示燈'},
+];
+let records = JSON.parse(localStorage.getItem(STORAGE_KEY_REC) || '[]');
+let nextNum = materials.reduce((m,x)=>Math.max(m,parseInt(x.id.slice(1))),0)+1;
+let filterCat = '';
+let selectedQRId = null;
+
+function save() {
+  localStorage.setItem(STORAGE_KEY_MAT, JSON.stringify(materials));
+  localStorage.setItem(STORAGE_KEY_REC, JSON.stringify(records));
+}
+
+function pad(n){ return String(n).padStart(3,'0'); }
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2000);
+}
+
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('header nav a').forEach(a=>a.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(el) el.classList.add('active');
+  if(name==='qr') renderQRGrid();
+  if(name==='records') { renderRecords(); updateStats(); }
+}
+
+function setFilter(cat, btn) {
+  filterCat = cat;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable();
+}
+
+function addMaterial() {
+  const brand = document.getElementById('f-brand').value.trim();
+  const model = document.getElementById('f-model').value.trim();
+  if (!model) { toast('請填寫型號 / 規格'); return; }
+  const price = parseFloat(document.getElementById('f-price').value) || 0;
+  const unit = document.getElementById('f-unit').value;
+  const cat = document.getElementById('f-cat').value;
+  const id = 'M' + pad(nextNum++);
+  materials.push({id, brand, model, unit, price, cat});
+  save(); renderTable(); clearForm(); toast('已新增 ' + id);
+}
+
+function clearForm() {
+  ['f-brand','f-model','f-price'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('f-id').value = 'M' + pad(nextNum);
+}
+
+function deleteMat(id) {
+  if (!confirm('確定刪除 '+id+'？')) return;
+  materials = materials.filter(m=>m.id!==id);
+  save(); renderTable(); toast('已刪除 '+id);
+}
+
+function renderTable() {
+  const q = (document.getElementById('search').value||'').toLowerCase();
+  const rows = materials.filter(m=>{
+    const matchQ = !q || m.brand.toLowerCase().includes(q) || m.model.toLowerCase().includes(q) || m.id.toLowerCase().includes(q);
+    const matchCat = !filterCat || m.cat===filterCat;
+    return matchQ && matchCat;
+  });
+  document.getElementById('mat-count').textContent = `共 ${rows.length} 筆`;
+  const tbody = document.getElementById('mat-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">沒有符合的材料</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(m=>`<tr>
+    <td><span class="badge badge-blue">${m.id}</span></td>
+    <td>${m.brand||'—'}</td>
+    <td style="font-size:12px">${m.model}</td>
+    <td><span class="badge badge-green">${m.cat}</span></td>
+    <td>${m.unit}</td>
+    <td style="font-weight:500">$${m.price.toLocaleString()}</td>
+    <td><button class="btn btn-danger" onclick="deleteMat('${m.id}')">刪除</button></td>
+  </tr>`).join('');
+}
+
+function renderQRGrid() {
+  const grid = document.getElementById('qr-grid');
+  grid.innerHTML = materials.map(m=>`
+    <div class="qr-card${selectedQRId===m.id?' selected':''}" onclick="selectQR('${m.id}')">
+      <div class="qr-card-id">${m.id}</div>
+      <div class="qr-card-brand">${m.brand||m.model.substring(0,8)}</div>
+      <div class="qr-card-model">${m.model.substring(0,24)}${m.model.length>24?'…':''}</div>
+    </div>`).join('');
+  if (selectedQRId) selectQR(selectedQRId);
+}
+
+function selectQR(id) {
+  selectedQRId = id;
+  renderQRGrid();
+  const m = materials.find(x=>x.id===id);
+  if (!m) return;
+  const url = `${BASE_URL}?id=${m.id}&brand=${encodeURIComponent(m.brand)}&model=${encodeURIComponent(m.model)}&unit=${encodeURIComponent(m.unit)}&price=${m.price}`;
+  document.getElementById('qr-detail-card').style.display='block';
+  QRCode.toCanvas(document.getElementById('qr-canvas'), url, {width:160, margin:1, color:{dark:'#1a1916',light:'#ffffff'}});
+  document.getElementById('qr-info-content').innerHTML = `
+    <div class="info-row"><span class="info-key">料號</span><span><b>${m.id}</b></span></div>
+    <div class="info-row"><span class="info-key">廠牌</span><span>${m.brand||'—'}</span></div>
+    <div class="info-row"><span class="info-key">規格型號</span><span style="font-size:12px">${m.model}</span></div>
+    <div class="info-row"><span class="info-key">類別</span><span>${m.cat}</span></div>
+    <div class="info-row"><span class="info-key">單位</span><span>${m.unit}</span></div>
+    <div class="info-row"><span class="info-key">單價</span><span style="font-weight:600">$${m.price.toLocaleString()}</span></div>
+    <div class="info-row"><span class="info-key">掃碼網址</span><span style="font-size:10px;color:var(--text-3);word-break:break-all">${url}</span></div>
+  `;
+}
+
+function printQR() {
+  const m = materials.find(x=>x.id===selectedQRId);
+  if (!m) return;
+  const canvas = document.getElementById('qr-canvas');
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>QR 貼紙 - ${m.id}</title>
+  <style>body{font-family:Arial,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;background:#fff}
+  .box{border:2px solid #000;padding:16px;text-align:center;width:200px}
+  img{display:block;margin:0 auto 8px}
+  .id{font-size:11px;color:#666;margin-bottom:2px}
+  .brand{font-size:16px;font-weight:bold;margin-bottom:4px}
+  .model{font-size:11px;color:#333}
+  .price{font-size:13px;margin-top:6px;font-weight:600}
+  @media print{body{height:auto}}</style></head><body>
+  <div class="box">
+    <img src="${canvas.toDataURL()}" width="160" height="160">
+    <div class="id">${m.id}</div>
+    <div class="brand">${m.brand||m.model.substring(0,12)}</div>
+    <div class="model">${m.model}</div>
+    <div class="price">$${m.price.toLocaleString()} / ${m.unit}</div>
+  </div>
+  <script>window.onload=()=>{window.print();}<\/script>
+  </body></html>`);
+  win.document.close();
+}
+
+function updateStats() {
+  document.getElementById('stat-count').textContent = records.length;
+  const total = records.reduce((s,r)=>s+r.total,0);
+  document.getElementById('stat-total').textContent = '$'+total.toLocaleString();
+  document.getElementById('stat-jobs').textContent = new Set(records.map(r=>r.job)).size;
+}
+
+function renderRecords() {
+  const q = (document.getElementById('rec-search').value||'').toLowerCase();
+  const rows = records.filter(r=>!q||r.job.toLowerCase().includes(q)||r.id.toLowerCase().includes(q));
+  const tbody = document.getElementById('rec-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">尚無領用紀錄<br>師傅掃 QR 碼填單後資料會出現在這裡</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r=>`<tr>
+    <td style="font-size:12px;color:var(--text-2)">${r.ts}</td>
+    <td style="font-size:12px">${r.job}</td>
+    <td><span class="badge badge-blue">${r.id}</span></td>
+    <td style="font-size:12px">${r.brand} ${r.model.substring(0,18)}${r.model.length>18?'…':''}</td>
+    <td style="text-align:right">${r.qty}</td>
+    <td>${r.unit}</td>
+    <td style="text-align:right;font-weight:600">$${r.total.toLocaleString()}</td>
+    <td style="font-size:11px;color:var(--text-3)">${r.note||'—'}</td>
+  </tr>`).join('');
+}
+
+function exportCSV() {
+  if (!records.length) { toast('尚無紀錄可匯出'); return; }
+  const header = '時間,工程編號,料號,廠牌,型號,數量,單位,單價,金額,備註\n';
+  const rows = records.map(r=>[
+    r.ts, r.job, r.id, r.brand,
+    `"${r.model}"`, r.qty, r.unit, r.price, r.total, r.note||''
+  ].join(',')).join('\n');
+  const blob = new Blob(['\uFEFF'+header+rows], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `材料卡_${new Date().toLocaleDateString('zh-TW').replace(/\//g,'-')}.csv`;
+  a.click();
+  toast('已匯出 CSV');
+}
+
+function clearRecords() {
+  if (!confirm('確定清除所有領用紀錄？')) return;
+  records = []; save(); renderRecords(); updateStats(); toast('已清除');
+}
+
+// Listen for records added by scan.html via localStorage events
+window.addEventListener('storage', e => {
+  if (e.key === STORAGE_KEY_REC) {
+    records = JSON.parse(e.newValue || '[]');
+    renderRecords(); updateStats();
+  }
+});
+
+clearForm();
+renderTable();
+</script>
+</body>
+</html>
