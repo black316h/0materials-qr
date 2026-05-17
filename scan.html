@@ -6,239 +6,99 @@
 <title>材料領用填單</title>
 <style>
   :root {
-    --bg: #f5f4f0;
-    --surface: #ffffff;
-    --border: #e2e0d8;
-    --text: #1a1916;
-    --text-2: #6b6a65;
-    --text-3: #9b9a95;
-    --accent: #1a6b4a;
-    --accent-light: #e8f5ee;
-    --accent-text: #0f4a32;
-    --red: #c0392b;
-    --font-body: 'Helvetica Neue', Arial, sans-serif;
-    --radius: 10px;
+    --bg: #f5f4f0; --surface: #ffffff; --border: #e2e0d8;
+    --text: #1a1916; --text-2: #6b6a65; --text-3: #9b9a95;
+    --accent: #1a6b4a; --accent-light: #e8f5ee; --accent-text: #0f4a32;
+    --red: #c0392b; --font-body: 'Helvetica Neue', Arial, sans-serif; --radius: 10px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    font-family: var(--font-body);
-    color: var(--text);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .top-bar {
-    background: #1a1916;
-    color: #fff;
-    padding: 14px 16px;
-    font-size: 14px;
-    font-weight: 500;
-    letter-spacing: 0.02em;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .top-bar .dot {
-    width: 8px; height: 8px;
-    background: #1a6b4a;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
+  body { background: var(--bg); font-family: var(--font-body); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+  .top-bar { background: #1a1916; color: #fff; padding: 14px 16px; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+  .top-bar .dot { width: 8px; height: 8px; background: #1a6b4a; border-radius: 50%; }
   .content { flex: 1; padding: 1rem; max-width: 480px; margin: 0 auto; width: 100%; }
-
-  .mat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1rem 1.25rem;
-    margin-bottom: 1rem;
-  }
+  .mat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1rem; }
   .mat-card-label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
   .mat-id { display: inline-block; font-size: 12px; font-weight: 600; color: var(--accent-text); background: var(--accent-light); padding: 3px 10px; border-radius: 99px; margin-bottom: 6px; }
   .mat-brand { font-size: 16px; font-weight: 600; margin-bottom: 2px; }
   .mat-model { font-size: 13px; color: var(--text-2); }
   .mat-price { margin-top: 8px; font-size: 12px; color: var(--text-3); }
   .mat-price b { color: var(--text); font-size: 14px; }
-
   .form-section { margin-bottom: 1rem; }
-  .form-label {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-2);
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
+  .form-label { font-size: 13px; font-weight: 500; color: var(--text-2); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
   .required { color: var(--red); }
-
-  input[type=text], input[type=number], textarea, select {
-    font-family: var(--font-body);
-    width: 100%;
-    padding: 14px;
-    font-size: 16px;
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--surface);
-    color: var(--text);
-    transition: border-color 0.15s;
-    -webkit-appearance: none;
+  input[type=text], input[type=number] {
+    font-family: var(--font-body); width: 100%; padding: 14px; font-size: 16px;
+    border: 1.5px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); color: var(--text); -webkit-appearance: none;
   }
-  input:focus, select:focus, textarea:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
+  input:focus { outline: none; border-color: var(--accent); }
   input[type=number] { font-size: 24px; font-weight: 600; text-align: center; }
-
   .qty-row { display: flex; align-items: center; gap: 10px; }
-  .qty-btn {
-    width: 48px; height: 56px;
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--surface);
-    font-size: 24px;
-    color: var(--text-2);
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: all 0.1s;
-    display: flex; align-items: center; justify-content: center;
-  }
+  .qty-btn { width: 48px; height: 56px; border: 1.5px solid var(--border); border-radius: var(--radius); background: var(--surface); font-size: 24px; color: var(--text-2); cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
   .qty-btn:active { background: var(--bg); transform: scale(0.96); }
-
-  .subtotal-bar {
-    background: var(--accent-light);
-    border: 1px solid #b2dcc8;
-    border-radius: var(--radius);
-    padding: 12px 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-  }
+  .subtotal-bar { background: var(--accent-light); border: 1px solid #b2dcc8; border-radius: var(--radius); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
   .subtotal-label { font-size: 13px; color: var(--accent-text); }
   .subtotal-val { font-size: 22px; font-weight: 700; color: var(--accent-text); }
-
-  .submit-btn {
-    width: 100%;
-    padding: 16px;
-    font-size: 16px;
-    font-weight: 600;
-    font-family: var(--font-body);
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: var(--radius);
-    cursor: pointer;
-    transition: all 0.15s;
-    letter-spacing: 0.02em;
-  }
-  .submit-btn:active { background: var(--accent-text); transform: scale(0.99); }
-  .submit-btn:disabled { background: var(--text-3); cursor: not-allowed; }
-
+  .submit-btn { width: 100%; padding: 16px; font-size: 16px; font-weight: 600; font-family: var(--font-body); background: var(--accent); color: #fff; border: none; border-radius: var(--radius); cursor: pointer; }
+  .submit-btn:active { background: var(--accent-text); }
   .error { font-size: 12px; color: var(--red); margin-top: 5px; min-height: 16px; }
-
-  .success-screen {
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 3rem 2rem;
-    min-height: 60vh;
-  }
+  .success-screen { display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 3rem 2rem; min-height: 60vh; }
   .success-screen.show { display: flex; }
-  .check-circle {
-    width: 72px; height: 72px;
-    background: var(--accent);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    margin-bottom: 1.5rem;
-  }
-  .check-circle svg { width: 36px; height: 36px; }
+  .check-circle { width: 72px; height: 72px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; }
   .success-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
   .success-sub { font-size: 14px; color: var(--text-2); margin-bottom: 2rem; }
   .success-detail { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; width: 100%; text-align: left; margin-bottom: 1.5rem; }
   .detail-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
   .detail-row:last-child { border-bottom: none; font-weight: 700; }
-  .again-btn {
-    font-family: var(--font-body);
-    font-size: 14px; padding: 12px 24px;
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--surface);
-    color: var(--text);
-    cursor: pointer;
-  }
-
-  .no-mat {
-    text-align: center; padding: 3rem 1rem;
-  }
+  .again-btn { font-family: var(--font-body); font-size: 14px; padding: 12px 24px; border: 1.5px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); cursor: pointer; }
+  .no-mat { text-align: center; padding: 3rem 1rem; }
   .no-mat h2 { font-size: 18px; margin-bottom: 8px; }
   .no-mat p { font-size: 13px; color: var(--text-2); }
 </style>
 </head>
 <body>
-
-<div class="top-bar">
-  <div class="dot"></div>
-  材料領用填單
-</div>
-
+<div class="top-bar"><div class="dot"></div>材料領用填單</div>
 <div class="content">
-
-  <!-- No material found -->
   <div id="no-mat" class="no-mat" style="display:none">
     <h2>找不到料號</h2>
     <p>請確認 QR 碼正確，或洽辦公室重新產生。</p>
   </div>
-
-  <!-- Form -->
   <div id="form-area">
-    <div class="mat-card" id="mat-info">
+    <div class="mat-card">
       <div class="mat-card-label">掃碼材料資訊</div>
-      <div class="mat-id" id="d-id">—</div>
+      <div class="mat-id"  id="d-id">—</div>
       <div class="mat-brand" id="d-brand">—</div>
       <div class="mat-model" id="d-model">—</div>
-      <div class="mat-price">單價：<b id="d-price">—</b> 元 / <span id="d-unit">只</span></div>
+      <div class="mat-price">單價：<b id="d-price">—</b> 元</div>
     </div>
-
     <div class="form-section">
       <div class="form-label">工程編號 <span class="required">*</span></div>
-      <input type="text" id="f-job" placeholder="例：20240829A" autocomplete="off" oninput="validate()">
+      <input type="text" id="f-job" placeholder="例：20240829A" autocomplete="off">
       <div class="error" id="err-job"></div>
     </div>
-
     <div class="form-section">
       <div class="form-label">數量 <span class="required">*</span></div>
       <div class="qty-row">
         <button class="qty-btn" onclick="changeQty(-1)">−</button>
-        <input type="number" id="f-qty" placeholder="0" min="1" step="1" oninput="calcSubtotal();validate()">
+        <input type="number" id="f-qty" placeholder="0" min="1" step="1" oninput="calcSubtotal()">
         <button class="qty-btn" onclick="changeQty(1)">＋</button>
       </div>
       <div class="error" id="err-qty"></div>
     </div>
-
     <div class="subtotal-bar" id="subtotal-bar" style="display:none">
       <span class="subtotal-label">本筆小計</span>
       <span class="subtotal-val" id="subtotal-val">$0</span>
     </div>
-
     <div class="form-section">
       <div class="form-label">備註（選填）</div>
       <input type="text" id="f-note" placeholder="工程說明、位置等…">
     </div>
-
-    <button class="submit-btn" id="submit-btn" onclick="submitForm()">送出領用記錄</button>
+    <button class="submit-btn" onclick="submitForm()">送出領用記錄</button>
     <div style="font-size:11px;color:var(--text-3);text-align:center;margin-top:10px">資料將儲存至系統紀錄</div>
   </div>
-
-  <!-- Success -->
   <div id="success-screen" class="success-screen">
     <div class="check-circle">
-      <svg viewBox="0 0 36 36" fill="none">
+      <svg viewBox="0 0 36 36" fill="none" width="36" height="36">
         <path d="M8 18L15 25L28 11" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </div>
@@ -247,26 +107,21 @@
     <div class="success-detail" id="success-detail"></div>
     <button class="again-btn" onclick="resetForm()">繼續填下一筆</button>
   </div>
-
 </div>
-
 <script>
-const STORAGE_KEY_MAT = 'mat_master_v1';
-const STORAGE_KEY_REC = 'mat_records_v1';
-
-// ── Read URL params ──
-const params = new URLSearchParams(location.search);
+const STORAGE_KEY_MAT = 'mat_master_v2';
+const STORAGE_KEY_REC = 'mat_records_v2';
+const params   = new URLSearchParams(location.search);
 const matId    = params.get('id')    || '';
 const matBrand = params.get('brand') || '';
 const matModel = params.get('model') || '';
-const matUnit  = params.get('unit')  || '只';
 const matPrice = parseFloat(params.get('price') || '0');
 
-// ── Also try localStorage (same domain) ──
-let materials = JSON.parse(localStorage.getItem(STORAGE_KEY_MAT) || '[]');
-let matFromStorage = materials.find(m => m.id === matId);
-
-const mat = matFromStorage || (matId ? {id:matId, brand:matBrand, model:matModel, unit:matUnit, price:matPrice} : null);
+// 優先用 localStorage 最新資料，fallback 到 URL 參數（跨裝置掃碼時）
+let materials = [];
+try { materials = JSON.parse(localStorage.getItem(STORAGE_KEY_MAT) || '[]'); } catch (e) {}
+const matFromStorage = materials.find(m => m.id === matId);
+const mat = matFromStorage || (matId ? { id: matId, brand: matBrand, model: matModel, price: matPrice } : null);
 
 if (!mat) {
   document.getElementById('no-mat').style.display = 'block';
@@ -275,17 +130,14 @@ if (!mat) {
   document.getElementById('d-id').textContent    = mat.id;
   document.getElementById('d-brand').textContent = mat.brand || '—';
   document.getElementById('d-model').textContent = mat.model;
-  document.getElementById('d-price').textContent = mat.price.toLocaleString();
-  document.getElementById('d-unit').textContent  = mat.unit;
+  document.getElementById('d-price').textContent = (mat.price || 0).toLocaleString();
 }
 
 function changeQty(delta) {
   const inp = document.getElementById('f-qty');
-  const cur = parseInt(inp.value) || 0;
-  inp.value = Math.max(1, cur + delta);
-  calcSubtotal(); validate();
+  inp.value = Math.max(1, (parseInt(inp.value) || 0) + delta);
+  calcSubtotal();
 }
-
 function calcSubtotal() {
   const qty = parseFloat(document.getElementById('f-qty').value) || 0;
   const bar = document.getElementById('subtotal-bar');
@@ -296,57 +148,24 @@ function calcSubtotal() {
     bar.style.display = 'none';
   }
 }
-
-function validate() {
-  const job = document.getElementById('f-job').value.trim();
-  const qty = parseFloat(document.getElementById('f-qty').value);
-  let ok = true;
-  document.getElementById('err-job').textContent = job ? '' : '';
-  document.getElementById('err-qty').textContent = '';
-  return ok;
-}
-
 function submitForm() {
+  document.getElementById('err-job').textContent = '';
+  document.getElementById('err-qty').textContent = '';
   const job  = document.getElementById('f-job').value.trim();
   const qty  = parseFloat(document.getElementById('f-qty').value);
   const note = document.getElementById('f-note').value.trim();
-
   if (!job) { document.getElementById('err-job').textContent = '請輸入工程編號'; return; }
   if (!qty || qty <= 0) { document.getElementById('err-qty').textContent = '請輸入有效數量'; return; }
-
-  const now = new Date();
-  const ts  = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const now   = new Date();
+  const ts    = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   const total = Math.round(qty * mat.price);
-
-  const record = {
-    ts, job,
-    id:    mat.id,
-    brand: mat.brand,
-    model: mat.model,
-    qty,
-    unit:  mat.unit,
-    price: mat.price,
-    total,
-    note
-  };
-
-  // Save to localStorage
-  let records = JSON.parse(localStorage.getItem(STORAGE_KEY_REC) || '[]');
+  const record = { ts, job, id: mat.id, brand: mat.brand, model: mat.model, qty, price: mat.price, total, note };
+  let records = [];
+  try { records = JSON.parse(localStorage.getItem(STORAGE_KEY_REC) || '[]'); } catch (e) {}
   records.unshift(record);
-  localStorage.setItem(STORAGE_KEY_REC, JSON.stringify(records));
-
-  // ── Also POST to Google Apps Script if URL is configured ──
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwr2o0j-xcsFHO7CaPTWomMkWshBQ39G3aRB25bPRN1DD-VCDq89_e971JnYLrrNPmUgQ/exec'; // 填入您的 Google Apps Script 網址
-  if (GAS_URL) {
-    fetch(GAS_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(record)
-    }).catch(()=>{});
-  }
-
-  // Show success
+  try { localStorage.setItem(STORAGE_KEY_REC, JSON.stringify(records)); } catch (e) {}
+  const GAS_URL = ''; // 填入 Google Apps Script 網址後自動同步 Google Sheets
+  if (GAS_URL) fetch(GAS_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body: JSON.stringify(record) }).catch(() => {});
   document.getElementById('form-area').style.display = 'none';
   document.getElementById('success-screen').classList.add('show');
   document.getElementById('success-time').textContent = ts;
@@ -354,18 +173,13 @@ function submitForm() {
     <div class="detail-row"><span style="color:var(--text-2)">工程編號</span><span>${job}</span></div>
     <div class="detail-row"><span style="color:var(--text-2)">料號</span><span>${mat.id}</span></div>
     <div class="detail-row"><span style="color:var(--text-2)">材料</span><span style="font-size:12px">${mat.brand} ${mat.model}</span></div>
-    <div class="detail-row"><span style="color:var(--text-2)">數量</span><span>${qty} ${mat.unit}</span></div>
-    <div class="detail-row"><span>本筆金額</span><span style="color:var(--accent)">$${total.toLocaleString()}</span></div>
-  `;
+    <div class="detail-row"><span style="color:var(--text-2)">數量</span><span>${qty}</span></div>
+    <div class="detail-row"><span>本筆金額</span><span style="color:var(--accent)">$${total.toLocaleString()}</span></div>`;
 }
-
 function resetForm() {
-  document.getElementById('f-job').value  = '';
-  document.getElementById('f-qty').value  = '';
-  document.getElementById('f-note').value = '';
+  ['f-job','f-qty','f-note'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('subtotal-bar').style.display = 'none';
-  document.getElementById('err-job').textContent = '';
-  document.getElementById('err-qty').textContent = '';
+  ['err-job','err-qty'].forEach(id => document.getElementById(id).textContent = '');
   document.getElementById('success-screen').classList.remove('show');
   document.getElementById('form-area').style.display = 'block';
 }
