@@ -336,7 +336,7 @@ function submitForm() {
   localStorage.setItem(STORAGE_KEY_REC, JSON.stringify(records));
 
   // ── Also POST to Google Apps Script if URL is configured ──
-  const GAS_URL = ''; // 填入您的 Google Apps Script 網址
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwr2o0j-xcsFHO7CaPTWomMkWshBQ39G3aRB25bPRN1DD-VCDq89_e971JnYLrrNPmUgQ/exec'; // 填入您的 Google Apps Script 網址
   if (GAS_URL) {
     fetch(GAS_URL, {
       method: 'POST',
