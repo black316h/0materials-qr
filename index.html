@@ -267,6 +267,7 @@
 const STORAGE_KEY_MAT    = 'mat_master_v2';
 const STORAGE_KEY_BRANDS = 'mat_brands_v1';
 const STORAGE_KEY_CATS   = 'mat_cats_v1';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwr2o0j-xcsFHO7CaPTWomMkWshBQ39G3aRB25bPRN1DD-VCDq89_e971JnYLrrNPmUgQ/exec';
 
 function getScanBaseURL() {
   if (location.protocol === 'file:') return 'scan.html';
@@ -302,6 +303,41 @@ function save() {
   localStorage.setItem(STORAGE_KEY_MAT,    JSON.stringify(materials));
   localStorage.setItem(STORAGE_KEY_BRANDS, JSON.stringify(brands));
   localStorage.setItem(STORAGE_KEY_CATS,   JSON.stringify(cats));
+  syncToCloud();
+}
+// 同步到 Google Sheets（背景執行，不阻塞 UI）
+function syncToCloud() {
+  if (!GAS_URL) return;
+  fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'sync', materials, brands, cats })
+  }).catch(() => {});
+}
+// 從 Google Sheets 載入資料（頁面開啟時呼叫）
+async function loadFromCloud() {
+  if (!GAS_URL) return;
+  try {
+    const resp = await fetch(GAS_URL);
+    const data = await resp.json();
+    if (data.materials && data.materials.length) {
+      materials = data.materials;
+      brands    = data.brands && data.brands.length ? data.brands : brands;
+      cats      = data.cats   && data.cats.length   ? data.cats   : cats;
+      localStorage.setItem(STORAGE_KEY_MAT,    JSON.stringify(materials));
+      localStorage.setItem(STORAGE_KEY_BRANDS, JSON.stringify(brands));
+      localStorage.setItem(STORAGE_KEY_CATS,   JSON.stringify(cats));
+      nextNum = materials.reduce((m,x) => Math.max(m, parseInt(x.id.slice(1))), 0) + 1;
+      clearForm();
+      renderFilterBtns();
+      renderTable();
+      toast('已從雲端載入資料');
+    } else {
+      syncToCloud();
+    }
+  } catch (err) {
+    console.warn('雲端載入失敗，使用本機資料:', err);
+  }
 }
 function pad(n) { return String(n).padStart(5, '0'); }
 function esc(s) {
@@ -668,6 +704,7 @@ function printAllQR() {
 clearForm();
 renderFilterBtns();
 renderTable();
+loadFromCloud();
 </script>
 </body>
 </html>
