@@ -306,17 +306,18 @@
       <thead>
         <tr>
           <th style="width:46px">序號</th>
-          <th style="width:100px">廠牌</th>
+          <th style="width:90px">廠牌</th>
           <th>型號</th>
-          <th style="width:70px">數量</th>
-          <th style="width:90px">金額</th>
+          <th style="width:75px">類別</th>
+          <th style="width:65px">數量</th>
+          <th style="width:85px">金額</th>
           <th style="width:32px"></th>
         </tr>
       </thead>
       <tbody id="card-tbody"></tbody>
       <tfoot>
         <tr style="background:var(--bg)">
-          <td colspan="4" style="text-align:right;font-weight:700;border-bottom:none">合計</td>
+          <td colspan="5" style="text-align:right;font-weight:700;border-bottom:none">合計</td>
           <td style="font-weight:700;text-align:right;border-bottom:none" id="card-total-cell">$0</td>
           <td style="border-bottom:none"></td>
         </tr>
@@ -326,6 +327,7 @@
 </div>
 
 </div><!-- /.main -->
+<datalist id="model-list"></datalist>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -407,6 +409,7 @@ async function loadFromCloud() {
       clearForm();
       renderFilterBtns();
       renderTable();
+      buildModelList();
       toast('已從雲端載入資料');
     } else {
       syncToCloud();
@@ -648,7 +651,8 @@ function buildScanURL(m) {
   return `${SCAN_BASE}?id=${encodeURIComponent(m.id)}`
        + `&brand=${encodeURIComponent(m.brand || '')}`
        + `&model=${encodeURIComponent(m.model)}`
-       + `&price=${m.price}`;
+       + `&price=${m.price}`
+       + `&cat=${encodeURIComponent(m.cat || '')}`;
 }
 
 function waitForQRCode(maxMs = 3000) {
@@ -778,13 +782,19 @@ function printAllQR() {
 }
 
 // ── 材料卡 ──────────────────────────────────────────────
+function buildModelList() {
+  const dl = document.getElementById('model-list');
+  if (!dl) return;
+  dl.innerHTML = materials.map(m => `<option value="${esc(m.model)}" label="${esc(m.brand)} ${esc(m.model)}">`).join('');
+}
+
 const MIN_CARD_ROWS = 20;
 let cardItems = [];
 
 function initCardItems() {
   cardItems = [];
   for (let i = 0; i < MIN_CARD_ROWS; i++)
-    cardItems.push({ brand: '', model: '', qty: '', amount: '' });
+    cardItems.push({ brand: '', model: '', cat: '', qty: '', amount: '' });
 }
 
 function renderCardTable() {
@@ -794,7 +804,8 @@ function renderCardTable() {
     <tr>
       <td style="text-align:center;color:var(--text-3);font-size:12px">${i + 1}</td>
       <td><input class="card-inp" value="${esc(item.brand)}" oninput="cardItems[${i}].brand=this.value"></td>
-      <td><input class="card-inp" value="${esc(item.model)}" oninput="cardItems[${i}].model=this.value"></td>
+      <td><input class="card-inp" value="${esc(item.model)}" oninput="cardItems[${i}].model=this.value" list="model-list"></td>
+      <td><input class="card-inp" value="${esc(item.cat)}" oninput="cardItems[${i}].cat=this.value"></td>
       <td><input class="card-inp" type="number" value="${item.qty}" oninput="cardItems[${i}].qty=this.value;calcCardTotal()"></td>
       <td><input class="card-inp" type="number" value="${item.amount}" oninput="cardItems[${i}].amount=this.value;calcCardTotal()"></td>
       <td style="text-align:center"><button onclick="removeCardRow(${i})" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;opacity:0.4" title="清除此行">×</button></td>
@@ -808,13 +819,13 @@ function calcCardTotal() {
 }
 
 function addCardRow() {
-  cardItems.push({ brand: '', model: '', qty: '', amount: '' });
+  cardItems.push({ brand: '', model: '', cat: '', qty: '', amount: '' });
   renderCardTable();
 }
 
 function removeCardRow(i) {
   if (cardItems.length <= MIN_CARD_ROWS) {
-    cardItems[i] = { brand: '', model: '', qty: '', amount: '' };
+    cardItems[i] = { brand: '', model: '', cat: '', qty: '', amount: '' };
   } else {
     cardItems.splice(i, 1);
   }
@@ -844,10 +855,10 @@ async function loadQueuedItems() {
   if (localQueue.length) localStorage.removeItem(QUEUE_KEY);
   if (!queue.length) { renderCardTable(); return; }
 
-  let insertIdx = cardItems.findIndex(item => !item.brand && !item.model && !item.qty && !item.amount);
+  let insertIdx = cardItems.findIndex(item => !item.brand && !item.model && !item.cat && !item.qty && !item.amount);
   if (insertIdx < 0) insertIdx = cardItems.length;
   queue.forEach((item, i) => {
-    const row = { brand: item.brand || '', model: item.model || '', qty: item.qty || '', amount: item.amount || '' };
+    const row = { brand: item.brand || '', model: item.model || '', cat: item.cat || '', qty: item.qty || '', amount: item.amount || '' };
     const idx = insertIdx + i;
     if (idx < cardItems.length) cardItems[idx] = row;
     else cardItems.push(row);
@@ -877,7 +888,7 @@ async function createCardSheet() {
   const date     = document.getElementById('card-date').value;
   if (!customer) { toast('請填寫客戶名稱'); return; }
   if (!project)  { toast('請填寫案件名稱'); return; }
-  const items = cardItems.filter(item => item.brand || item.model || item.qty || item.amount);
+  const items = cardItems.filter(item => item.brand || item.model || item.cat || item.qty || item.amount);
   if (!items.length) { toast('請至少填寫一筆項目'); return; }
   const sheetName = date + '_' + customer + '_' + project;
   const total = items.reduce((s, item) => s + (Number(item.amount) || 0), 0);
@@ -888,7 +899,7 @@ async function createCardSheet() {
       method: 'POST', headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
         action: 'createSheet', sheetName, customer, cardNo, project, date, total,
-        items: items.map((item, i) => ({ seq: i + 1, brand: item.brand, model: item.model, qty: Number(item.qty) || 0, amount: Number(item.amount) || 0 }))
+        items: items.map((item, i) => ({ seq: i + 1, brand: item.brand, model: item.model, cat: item.cat, qty: Number(item.qty) || 0, amount: Number(item.amount) || 0 }))
       })
     });
     const result = await resp.json();
@@ -915,6 +926,7 @@ async function createCardSheet() {
 clearForm();
 renderFilterBtns();
 renderTable();
+buildModelList();
 initCardItems();
 document.getElementById('card-date').value = new Date().toISOString().slice(0, 10);
 loadFromCloud();
