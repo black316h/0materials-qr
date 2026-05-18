@@ -279,7 +279,7 @@
     <div class="form-grid">
       <div class="form-group">
         <label>客戶名稱 <span style="color:var(--red)">*</span></label>
-        <input id="card-customer" placeholder="客戶名稱">
+        <select id="card-customer"><option value="">選擇客戶</option></select>
       </div>
       <div class="form-group">
         <label>編號</label>
@@ -287,7 +287,7 @@
       </div>
       <div class="form-group" style="grid-column:span 2">
         <label>案件名稱 <span style="color:var(--red)">*</span></label>
-        <input id="card-project" placeholder="案件名稱">
+        <select id="card-project"><option value="">選擇案件</option></select>
       </div>
       <div class="form-group">
         <label>日期</label>
@@ -302,6 +302,37 @@
       <span id="card-status" style="font-size:12px;color:var(--text-3);align-self:center;margin-left:auto"></span>
     </div>
   </div>
+
+  <!-- 客戶管理（可收合） -->
+  <div class="card" style="margin-top:1rem">
+    <div class="brand-card-title card-title" onclick="toggleCustMgmt()" style="margin-bottom:0">
+      <span>客戶管理</span>
+      <span id="cust-arrow" style="font-size:14px;font-weight:normal">▸</span>
+    </div>
+    <div id="cust-mgmt-body" style="display:none;margin-top:1rem">
+      <div id="cust-chips"></div>
+      <div class="brand-add-row">
+        <input id="f-new-cust" placeholder="輸入新客戶名稱">
+        <button class="btn btn-primary btn-sm" onclick="addCustomer()">＋ 新增客戶</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 案件管理（可收合） -->
+  <div class="card" style="margin-top:1rem">
+    <div class="brand-card-title card-title" onclick="toggleProjMgmt()" style="margin-bottom:0">
+      <span>案件管理</span>
+      <span id="proj-arrow" style="font-size:14px;font-weight:normal">▸</span>
+    </div>
+    <div id="proj-mgmt-body" style="display:none;margin-top:1rem">
+      <div id="proj-chips"></div>
+      <div class="brand-add-row">
+        <input id="f-new-proj" placeholder="輸入新案件名稱">
+        <button class="btn btn-primary btn-sm" onclick="addProject()">＋ 新增案件</button>
+      </div>
+    </div>
+  </div>
+
   <div class="table-wrap" style="margin-top:1rem">
     <table>
       <thead>
@@ -336,6 +367,8 @@
 const STORAGE_KEY_MAT    = 'mat_master_v2';
 const STORAGE_KEY_BRANDS = 'mat_brands_v1';
 const STORAGE_KEY_CATS   = 'mat_cats_v1';
+const STORAGE_KEY_CUSTS  = 'mat_customers_v1';
+const STORAGE_KEY_PROJS  = 'mat_projects_v1';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwr2o0j-xcsFHO7CaPTWomMkWshBQ39G3aRB25bPRN1DD-VCDq89_e971JnYLrrNPmUgQ/exec';
 
 function getScanBaseURL() {
@@ -362,6 +395,9 @@ let brands = JSON.parse(localStorage.getItem(STORAGE_KEY_BRANDS) || 'null')
 let cats = JSON.parse(localStorage.getItem(STORAGE_KEY_CATS) || 'null')
   || ['斷路器','電磁開關','計時器','繼電器','保險絲','端子台','指示燈','按鈕開關','控制箱','其他'];
 
+let customers = JSON.parse(localStorage.getItem(STORAGE_KEY_CUSTS) || 'null') || [];
+let projects  = JSON.parse(localStorage.getItem(STORAGE_KEY_PROJS) || 'null') || [];
+
 let materials = (JSON.parse(localStorage.getItem(STORAGE_KEY_MAT) || 'null') || [
   {id:'M00001',brand:'雙梅',   model:'金庫型 350×280×180 橫',  price:770, cat:'控制箱'},
   {id:'M00002',brand:'東文',   model:'QCE 2P 50A',             price:150, cat:'斷路器'},
@@ -382,6 +418,8 @@ function save() {
   localStorage.setItem(STORAGE_KEY_MAT,    JSON.stringify(materials));
   localStorage.setItem(STORAGE_KEY_BRANDS, JSON.stringify(brands));
   localStorage.setItem(STORAGE_KEY_CATS,   JSON.stringify(cats));
+  localStorage.setItem(STORAGE_KEY_CUSTS,  JSON.stringify(customers));
+  localStorage.setItem(STORAGE_KEY_PROJS,  JSON.stringify(projects));
   syncToCloud();
 }
 // 同步到 Google Sheets（背景執行，不阻塞 UI）
@@ -390,7 +428,7 @@ function syncToCloud() {
   fetch(GAS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ action: 'sync', materials, brands, cats })
+    body: JSON.stringify({ action: 'sync', materials, brands, cats, customers, projects })
   }).catch(() => {});
 }
 // 從 Google Sheets 載入資料（頁面開啟時呼叫）
@@ -401,16 +439,22 @@ async function loadFromCloud() {
     const data = await resp.json();
     if (data.materials && data.materials.length) {
       materials = data.materials.map(normalizeMat);
-      brands    = data.brands && data.brands.length ? data.brands : brands;
-      cats      = data.cats   && data.cats.length   ? data.cats   : cats;
+      brands    = data.brands    && data.brands.length    ? data.brands    : brands;
+      cats      = data.cats      && data.cats.length      ? data.cats      : cats;
+      customers = data.customers && data.customers.length ? data.customers : customers;
+      projects  = data.projects  && data.projects.length  ? data.projects  : projects;
       localStorage.setItem(STORAGE_KEY_MAT,    JSON.stringify(materials));
       localStorage.setItem(STORAGE_KEY_BRANDS, JSON.stringify(brands));
       localStorage.setItem(STORAGE_KEY_CATS,   JSON.stringify(cats));
+      localStorage.setItem(STORAGE_KEY_CUSTS,  JSON.stringify(customers));
+      localStorage.setItem(STORAGE_KEY_PROJS,  JSON.stringify(projects));
       nextNum = materials.reduce((m,x) => Math.max(m, parseInt(x.id.slice(1))), 0) + 1;
       clearForm();
       renderFilterBtns();
       renderTable();
       buildModelList();
+      renderCustOptions();
+      renderProjOptions();
       toast('已從雲端載入資料');
     } else {
       syncToCloud();
@@ -545,6 +589,92 @@ function deleteCat(idx) {
   renderFilterBtns();
   renderTable();
   toast('已刪除類別：' + name);
+}
+
+// ── 客戶管理 ──────────────────────────────────────────
+function renderCustOptions() {
+  const sel = document.getElementById('card-customer');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">選擇客戶</option>' + customers.map(c => `<option value="${esc(c)}"${c === cur ? ' selected' : ''}>${esc(c)}</option>`).join('');
+}
+function renderCustChips() {
+  document.getElementById('cust-chips').innerHTML =
+    customers.length
+      ? customers.map((c, i) => `
+          <span class="brand-chip">
+            ${esc(c)}
+            <button class="chip-del" title="刪除" onclick="deleteCustomer(${i})">×</button>
+          </span>`).join('')
+      : '<span style="font-size:12px;color:var(--text-3)">尚無客戶，請新增</span>';
+  renderCustOptions();
+}
+function toggleCustMgmt() {
+  const body  = document.getElementById('cust-mgmt-body');
+  const arrow = document.getElementById('cust-arrow');
+  const open  = body.style.display === 'block';
+  body.style.display = open ? 'none' : 'block';
+  arrow.textContent  = open ? '▸' : '▾';
+  if (!open) renderCustChips();
+}
+function addCustomer() {
+  const name = document.getElementById('f-new-cust').value.trim();
+  if (!name) { toast('請輸入客戶名稱'); return; }
+  if (customers.includes(name)) { toast('客戶已存在'); return; }
+  customers.push(name);
+  save();
+  renderCustChips();
+  document.getElementById('f-new-cust').value = '';
+  toast('已新增客戶：' + name);
+}
+function deleteCustomer(idx) {
+  const name = customers[idx];
+  customers.splice(idx, 1);
+  save();
+  renderCustChips();
+  toast('已刪除客戶：' + name);
+}
+
+// ── 案件管理 ──────────────────────────────────────────
+function renderProjOptions() {
+  const sel = document.getElementById('card-project');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">選擇案件</option>' + projects.map(p => `<option value="${esc(p)}"${p === cur ? ' selected' : ''}>${esc(p)}</option>`).join('');
+}
+function renderProjChips() {
+  document.getElementById('proj-chips').innerHTML =
+    projects.length
+      ? projects.map((p, i) => `
+          <span class="brand-chip" style="background:var(--accent-light);color:var(--accent-text)">
+            ${esc(p)}
+            <button class="chip-del" style="color:var(--accent-text)" title="刪除" onclick="deleteProject(${i})">×</button>
+          </span>`).join('')
+      : '<span style="font-size:12px;color:var(--text-3)">尚無案件，請新增</span>';
+  renderProjOptions();
+}
+function toggleProjMgmt() {
+  const body  = document.getElementById('proj-mgmt-body');
+  const arrow = document.getElementById('proj-arrow');
+  const open  = body.style.display === 'block';
+  body.style.display = open ? 'none' : 'block';
+  arrow.textContent  = open ? '▸' : '▾';
+  if (!open) renderProjChips();
+}
+function addProject() {
+  const name = document.getElementById('f-new-proj').value.trim();
+  if (!name) { toast('請輸入案件名稱'); return; }
+  if (projects.includes(name)) { toast('案件已存在'); return; }
+  projects.push(name);
+  save();
+  renderProjChips();
+  document.getElementById('f-new-proj').value = '';
+  toast('已新增案件：' + name);
+}
+function deleteProject(idx) {
+  const name = projects[idx];
+  projects.splice(idx, 1);
+  save();
+  renderProjChips();
+  toast('已刪除案件：' + name);
 }
 
 // ── 篩選按鈕（依類別動態產生）─────────────────────────
@@ -888,20 +1018,21 @@ function clearCard() {
   renderCardTable();
   calcCardTotal();
   document.getElementById('card-customer').value = '';
-  document.getElementById('card-no').value = '';
+  const t = new Date();
+  document.getElementById('card-no').value = t.getFullYear() + String(t.getMonth()+1).padStart(2,'0') + String(t.getDate()).padStart(2,'0') + 'A';
   document.getElementById('card-project').value = '';
-  document.getElementById('card-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('card-date').value = t.toISOString().slice(0, 10);
   document.getElementById('card-status').textContent = '';
   toast('已清空');
 }
 
 async function createCardSheet() {
-  const customer = document.getElementById('card-customer').value.trim();
+  const customer = document.getElementById('card-customer').value;
   const cardNo   = document.getElementById('card-no').value.trim();
-  const project  = document.getElementById('card-project').value.trim();
+  const project  = document.getElementById('card-project').value;
   const date     = document.getElementById('card-date').value;
-  if (!customer) { toast('請填寫客戶名稱'); return; }
-  if (!project)  { toast('請填寫案件名稱'); return; }
+  if (!customer) { toast('請選擇客戶名稱'); return; }
+  if (!project)  { toast('請選擇案件名稱'); return; }
   const items = cardItems.filter(item => item.brand || item.model || item.cat || item.qty || item.amount);
   if (!items.length) { toast('請至少填寫一筆項目'); return; }
   const sheetName = date + '_' + customer + '_' + project;
@@ -942,7 +1073,12 @@ renderFilterBtns();
 renderTable();
 buildModelList();
 initCardItems();
-document.getElementById('card-date').value = new Date().toISOString().slice(0, 10);
+renderCustOptions();
+renderProjOptions();
+const today = new Date();
+const todayStr = today.getFullYear() + String(today.getMonth()+1).padStart(2,'0') + String(today.getDate()).padStart(2,'0');
+document.getElementById('card-date').value = today.toISOString().slice(0, 10);
+document.getElementById('card-no').value = todayStr + 'A';
 loadFromCloud();
 loadQueuedItems();
 
