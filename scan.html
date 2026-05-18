@@ -124,6 +124,7 @@
 <script>
 var QUEUE_KEY = 'mat_card_queue';
 var STORAGE_KEY_MAT = 'mat_master_v2';
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbwr2o0j-xcsFHO7CaPTWomMkWshBQ39G3aRB25bPRN1DD-VCDq89_e971JnYLrrNPmUgQ/exec';
 var params   = new URLSearchParams(location.search);
 var matId    = params.get('id')    || '';
 var matBrand = params.get('brand') || '';
@@ -169,16 +170,31 @@ function addToCard() {
   var note = document.getElementById('f-note').value.trim();
   if (!qty || qty <= 0) { document.getElementById('err-qty').textContent = '請輸入有效數量'; return; }
   var amount = Math.round(qty * mat.price);
-  var item = { brand: mat.brand, model: mat.model, qty: qty, price: mat.price, amount: amount, note: note };
+  var item = { id: mat.id, brand: mat.brand, model: mat.model, qty: qty, price: mat.price, amount: amount, note: note };
 
-  var queue = [];
-  try { queue = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); } catch(e) {}
-  queue.push(item);
-  localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+  var btn = document.querySelector('.submit-btn');
+  btn.textContent = '傳送中…';
+  btn.disabled = true;
 
+  fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'queueAdd', item: item })
+  }).then(function(resp) { return resp.json(); })
+  .then(function(data) {
+    showSuccess(data.queueCount || 1, qty, amount);
+  }).catch(function() {
+    var queue = [];
+    try { queue = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); } catch(e) {}
+    queue.push(item);
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+    showSuccess(queue.length, qty, amount);
+  });
+}
+function showSuccess(count, qty, amount) {
   document.getElementById('form-area').style.display = 'none';
   document.getElementById('success-screen').classList.add('show');
-  document.getElementById('success-sub').textContent = '目前材料卡共 ' + queue.length + ' 筆待建立';
+  document.getElementById('success-sub').textContent = '目前材料卡共 ' + count + ' 筆待建立';
   document.getElementById('success-detail').innerHTML =
     '<div class="detail-row"><span style="color:var(--text-2)">料號</span><span>'+mat.id+'</span></div>'+
     '<div class="detail-row"><span style="color:var(--text-2)">材料</span><span style="font-size:12px">'+mat.brand+' '+mat.model+'</span></div>'+
