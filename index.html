@@ -304,13 +304,23 @@ function getScanBaseURL() {
 const SCAN_BASE = getScanBaseURL();
 
 // ── 資料 ──────────────────────────────────────────────
+function normalizeMat(m) {
+  return {
+    id:    m.id    || m['料號'] || '',
+    brand: m.brand || m['廠牌'] || '',
+    model: m.model || m['型號'] || '',
+    price: Number(m.price ?? m['單價'] ?? 0),
+    cat:   m.cat   || m['類別'] || ''
+  };
+}
+
 let brands = JSON.parse(localStorage.getItem(STORAGE_KEY_BRANDS) || 'null')
   || ['雙梅','東文','士林','仕通','知果','（無廠牌）'];
 
 let cats = JSON.parse(localStorage.getItem(STORAGE_KEY_CATS) || 'null')
   || ['斷路器','電磁開關','計時器','繼電器','保險絲','端子台','指示燈','按鈕開關','控制箱','其他'];
 
-let materials = JSON.parse(localStorage.getItem(STORAGE_KEY_MAT) || 'null') || [
+let materials = (JSON.parse(localStorage.getItem(STORAGE_KEY_MAT) || 'null') || [
   {id:'M00001',brand:'雙梅',   model:'金庫型 350×280×180 橫',  price:770, cat:'控制箱'},
   {id:'M00002',brand:'東文',   model:'QCE 2P 50A',             price:150, cat:'斷路器'},
   {id:'M00003',brand:'士林',   model:'MS0-P30T HP 220V',       price:715, cat:'電磁開關'},
@@ -319,7 +329,7 @@ let materials = JSON.parse(localStorage.getItem(STORAGE_KEY_MAT) || 'null') || [
   {id:'M00006',brand:'（無廠牌）',model:'Fuse 座 + 3A + 上蓋', price:2,   cat:'保險絲'},
   {id:'M00007',brand:'（無廠牌）',model:'10A 22P 端子台',       price:150, cat:'端子台'},
   {id:'M00008',brand:'（無廠牌）',model:'30Φ 傳統指示燈 220V WW',price:100,cat:'指示燈'},
-];
+]).map(normalizeMat);
 let nextNum    = materials.reduce((m,x) => Math.max(m, parseInt(x.id.slice(1))), 0) + 1;
 let filterCat  = '';
 let editingId  = null;
@@ -348,7 +358,7 @@ async function loadFromCloud() {
     const resp = await fetch(GAS_URL);
     const data = await resp.json();
     if (data.materials && data.materials.length) {
-      materials = data.materials;
+      materials = data.materials.map(normalizeMat);
       brands    = data.brands && data.brands.length ? data.brands : brands;
       cats      = data.cats   && data.cats.length   ? data.cats   : cats;
       localStorage.setItem(STORAGE_KEY_MAT,    JSON.stringify(materials));
