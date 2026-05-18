@@ -384,11 +384,10 @@
     <div style="font-size:14px;color:var(--text-2)">辨識中，請稍候…</div>
   </div>
   <div class="card">
-    <div class="card-title">基本資訊</div>
-    <div class="form-grid">
+    <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr">
       <div class="form-group">
-        <label>供應商</label>
-        <input id="inv-supplier" placeholder="供應商名稱">
+        <label>台照（客戶）</label>
+        <input id="inv-customer" placeholder="客戶名稱">
       </div>
       <div class="form-group">
         <label>出貨單號</label>
@@ -398,10 +397,6 @@
         <label>日期</label>
         <input id="inv-date" type="date">
       </div>
-      <div class="form-group">
-        <label>客戶（台照）</label>
-        <input id="inv-customer" placeholder="客戶名稱">
-      </div>
     </div>
   </div>
   <div class="card" style="margin-top:1rem">
@@ -410,21 +405,21 @@
       <table>
         <thead>
           <tr>
-            <th style="width:36px">序</th>
+            <th style="width:36px">項次</th>
             <th>品名規格</th>
             <th style="width:55px">數量</th>
-            <th style="width:45px">單位</th>
             <th style="width:70px">單價</th>
             <th style="width:80px">金額</th>
+            <th>備註</th>
             <th style="width:30px"></th>
           </tr>
         </thead>
         <tbody id="inv-items-tbody"></tbody>
         <tfoot>
           <tr style="background:var(--bg)">
-            <td colspan="5" style="text-align:right;font-weight:700;border-bottom:none">合計</td>
+            <td colspan="4" style="text-align:right;font-weight:700;border-bottom:none">合計</td>
             <td style="font-weight:700;text-align:right;border-bottom:none" id="inv-total-cell">$0</td>
-            <td style="border-bottom:none"></td>
+            <td colspan="2" style="border-bottom:none"></td>
           </tr>
         </tfoot>
       </table>
@@ -453,7 +448,7 @@
 <div id="page-sales" class="page">
   <div class="page-title">銷貨紀錄</div>
   <div class="search-row">
-    <input id="sales-search" placeholder="搜尋供應商、客戶、單號…" oninput="renderSalesTable()">
+    <input id="sales-search" placeholder="搜尋客戶、單號…" oninput="renderSalesTable()">
     <div class="filter-row" id="sales-filter-row">
       <button class="filter-btn active" onclick="setSalesFilter('all',this)">全部</button>
       <button class="filter-btn" onclick="setSalesFilter('month',this)">本月</button>
@@ -470,10 +465,9 @@
         <tr>
           <th style="width:90px">紀錄ID</th>
           <th style="width:90px">日期</th>
-          <th>供應商</th>
-          <th>客戶</th>
-          <th style="width:80px">單號</th>
-          <th style="width:80px">合計</th>
+          <th>台照</th>
+          <th style="width:90px">單號</th>
+          <th style="width:90px">合計</th>
           <th style="width:50px">來源</th>
           <th style="width:50px"></th>
         </tr>
@@ -1243,7 +1237,6 @@ function newInvoice() {
   invoiceSource = 'manual';
   invoiceOcrText = '';
   invoiceImageUrl = '';
-  document.getElementById('inv-supplier').value = '';
   document.getElementById('inv-no').value = '';
   document.getElementById('inv-date').value = new Date().toISOString().slice(0, 10);
   document.getElementById('inv-customer').value = '';
@@ -1252,7 +1245,7 @@ function newInvoice() {
   document.getElementById('ocr-text-card').style.display = 'none';
   document.getElementById('invoice-status').textContent = '';
   invoiceItems = [];
-  for (let i = 0; i < INV_EMPTY_ROWS; i++) invoiceItems.push({ seq: i+1, name: '', qty: '', unit: '', price: '', amount: '' });
+  for (let i = 0; i < INV_EMPTY_ROWS; i++) invoiceItems.push({ seq: i+1, name: '', qty: '', price: '', amount: '', note: '' });
   renderInvItems();
   calcInvTotal();
   toast('已清空，可開始填寫新出貨單');
@@ -1265,9 +1258,9 @@ function renderInvItems() {
       <td style="text-align:center;color:var(--text-3);font-size:12px">${i + 1}</td>
       <td><input class="card-inp" value="${esc(item.name || '')}" oninput="invoiceItems[${i}].name=this.value"></td>
       <td><input class="card-inp" type="number" value="${item.qty || ''}" oninput="invoiceItems[${i}].qty=this.value;calcItemAmount(${i})" style="text-align:center"></td>
-      <td><input class="card-inp" value="${esc(item.unit || '')}" oninput="invoiceItems[${i}].unit=this.value" style="text-align:center"></td>
       <td><input class="card-inp" type="number" value="${item.price || ''}" oninput="invoiceItems[${i}].price=this.value;calcItemAmount(${i})" style="text-align:right"></td>
       <td><input class="card-inp" type="number" value="${item.amount || ''}" oninput="invoiceItems[${i}].amount=this.value;calcInvTotal()" style="text-align:right"></td>
+      <td><input class="card-inp" value="${esc(item.note || '')}" oninput="invoiceItems[${i}].note=this.value"></td>
       <td style="text-align:center"><button onclick="removeInvItem(${i})" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;opacity:0.4">×</button></td>
     </tr>`).join('');
 }
@@ -1287,12 +1280,12 @@ function calcInvTotal() {
 }
 
 function addInvItem() {
-  invoiceItems.push({ seq: invoiceItems.length + 1, name: '', qty: '', unit: '', price: '', amount: '' });
+  invoiceItems.push({ seq: invoiceItems.length + 1, name: '', qty: '', price: '', amount: '', note: '' });
   renderInvItems();
 }
 
 function removeInvItem(i) {
-  if (invoiceItems.length <= 1) { invoiceItems[0] = { seq:1, name:'', qty:'', unit:'', price:'', amount:'' }; }
+  if (invoiceItems.length <= 1) { invoiceItems[0] = { seq:1, name:'', qty:'', price:'', amount:'', note:'' }; }
   else invoiceItems.splice(i, 1);
   renderInvItems();
   calcInvTotal();
@@ -1326,7 +1319,6 @@ function handleInvoiceUpload(input) {
       document.getElementById('invoice-loading').style.display = 'none';
       if (data.ok) {
         const p = data.parsed || {};
-        document.getElementById('inv-supplier').value = p.supplier || '';
         document.getElementById('inv-no').value = p.invoiceNo || '';
         document.getElementById('inv-customer').value = p.customer || '';
         if (p.date) {
@@ -1340,7 +1332,7 @@ function handleInvoiceUpload(input) {
         document.getElementById('ocr-text-card').style.display = 'block';
         if (p.items && p.items.length) {
           invoiceItems = p.items.map((it, idx) => ({
-            seq: idx + 1, name: it.name || '', qty: it.qty || '', unit: it.unit || '', price: it.price || '', amount: it.amount || ''
+            seq: idx + 1, name: it.name || '', qty: it.qty || '', price: it.price || '', amount: it.amount || '', note: ''
           }));
         }
         renderInvItems();
@@ -1360,7 +1352,6 @@ function handleInvoiceUpload(input) {
 }
 
 async function saveInvoice() {
-  const supplier = document.getElementById('inv-supplier').value.trim();
   const invoiceNo = document.getElementById('inv-no').value.trim();
   const date = document.getElementById('inv-date').value;
   const customer = document.getElementById('inv-customer').value.trim();
@@ -1374,8 +1365,8 @@ async function saveInvoice() {
       method: 'POST', headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
         action: 'saveInvoice', recordId: currentInvoiceId,
-        supplier, invoiceNo, date, customer,
-        items: items.map((it, i) => ({ seq: i+1, name: it.name, qty: Number(it.qty)||0, unit: it.unit||'', price: Number(it.price)||0, amount: Number(it.amount)||0 })),
+        supplier: '', invoiceNo, date, customer,
+        items: items.map((it, i) => ({ seq: i+1, name: it.name, qty: Number(it.qty)||0, price: Number(it.price)||0, amount: Number(it.amount)||0, note: it.note||'' })),
         totalAmount, source: invoiceSource, ocrText: invoiceOcrText, imageUrl: invoiceImageUrl
       })
     });
@@ -1422,7 +1413,7 @@ function pickMaterial(matId) {
   if (!m) return;
   let idx = invoiceItems.findIndex(it => !it.name && !it.qty && !it.price);
   if (idx < 0) { idx = invoiceItems.length; invoiceItems.push({}); }
-  invoiceItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, unit: '', price: m.price || 0, amount: m.price || 0 };
+  invoiceItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, price: m.price || 0, amount: m.price || 0, note: '' };
   renderInvItems();
   calcInvTotal();
   toast('已加入：' + m.brand + ' ' + m.model);
@@ -1457,7 +1448,7 @@ function renderSalesTable() {
   const now = new Date();
   const rows = salesRecords.filter(r => {
     if (q) {
-      const match = (r['供應商']||'').toLowerCase().includes(q) || (r['客戶']||'').toLowerCase().includes(q) || (r['出貨單號']||'').toLowerCase().includes(q) || (r['紀錄ID']||'').toLowerCase().includes(q);
+      const match = (r['客戶']||'').toLowerCase().includes(q) || (r['出貨單號']||'').toLowerCase().includes(q) || (r['紀錄ID']||'').toLowerCase().includes(q);
       if (!match) return false;
     }
     if (salesFilterPeriod !== 'all' && r['日期']) {
@@ -1470,14 +1461,13 @@ function renderSalesTable() {
   document.getElementById('sales-count').textContent = '共 ' + rows.length + ' 筆';
   const tbody = document.getElementById('sales-tbody');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">沒有符合的紀錄</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">沒有符合的紀錄</div></td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(r => `
     <tr>
       <td><span class="badge badge-blue">${esc(r['紀錄ID']||'')}</span></td>
       <td>${fmtDate(r['日期'])}</td>
-      <td>${esc(r['供應商']||'')}</td>
       <td>${esc(r['客戶']||'')}</td>
       <td>${esc(r['出貨單號']||'')}</td>
       <td style="text-align:right;font-weight:500">$${(Number(r['合計金額'])||0).toLocaleString()}</td>
@@ -1500,26 +1490,25 @@ function viewSalesDetail(recordId) {
   try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
   const content = document.getElementById('sales-detail-content');
   content.innerHTML = `
-    <div class="form-grid" style="margin-bottom:1rem">
-      <div class="form-group"><label>供應商</label><div style="padding:8px 0;font-weight:500">${esc(r['供應商']||'—')}</div></div>
+    <div class="form-grid" style="margin-bottom:1rem;grid-template-columns:1fr 1fr 1fr">
+      <div class="form-group"><label>台照（客戶）</label><div style="padding:8px 0;font-weight:500">${esc(r['客戶']||'—')}</div></div>
       <div class="form-group"><label>出貨單號</label><div style="padding:8px 0;font-weight:500">${esc(r['出貨單號']||'—')}</div></div>
       <div class="form-group"><label>日期</label><div style="padding:8px 0;font-weight:500">${fmtDate(r['日期'])}</div></div>
-      <div class="form-group"><label>客戶</label><div style="padding:8px 0;font-weight:500">${esc(r['客戶']||'—')}</div></div>
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>序</th><th>品名規格</th><th>數量</th><th>單位</th><th>單價</th><th>金額</th></tr></thead>
+        <thead><tr><th>項次</th><th>品名規格</th><th>數量</th><th>單價</th><th>金額</th><th>備註</th></tr></thead>
         <tbody>${items.map((it,i) => `
           <tr>
             <td style="text-align:center">${it.seq || (i+1)}</td>
             <td>${esc(it.name||'')}</td>
             <td style="text-align:center">${it.qty||''}</td>
-            <td style="text-align:center">${esc(it.unit||'')}</td>
             <td style="text-align:right">$${(Number(it.price)||0).toLocaleString()}</td>
             <td style="text-align:right">$${(Number(it.amount)||0).toLocaleString()}</td>
+            <td>${esc(it.note||'')}</td>
           </tr>`).join('')}
         </tbody>
-        <tfoot><tr style="background:var(--bg)"><td colspan="5" style="text-align:right;font-weight:700">合計</td><td style="text-align:right;font-weight:700">$${(Number(r['合計金額'])||0).toLocaleString()}</td></tr></tfoot>
+        <tfoot><tr style="background:var(--bg)"><td colspan="4" style="text-align:right;font-weight:700">合計</td><td style="text-align:right;font-weight:700">$${(Number(r['合計金額'])||0).toLocaleString()}</td><td></td></tr></tfoot>
       </table>
     </div>`;
   document.getElementById('sales-edit-btn').setAttribute('onclick', `editSalesRecord('${esc(recordId)}')`);
@@ -1535,7 +1524,6 @@ function editSalesRecord(recordId) {
   if (!r) return;
   hideSalesDetail();
   currentInvoiceId = recordId;
-  document.getElementById('inv-supplier').value = r['供應商'] || '';
   document.getElementById('inv-no').value = r['出貨單號'] || '';
   var dv = r['日期'] || '';
   if (dv) { var dd = new Date(dv); if (!isNaN(dd)) dv = dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0'); }
