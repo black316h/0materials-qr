@@ -822,11 +822,28 @@ function removeCardRow(i) {
   calcCardTotal();
 }
 
-function loadQueuedItems() {
+async function loadQueuedItems() {
   const QUEUE_KEY = 'mat_card_queue';
-  let queue = [];
-  try { queue = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); } catch(e) {}
+  let localQueue = [];
+  try { localQueue = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); } catch(e) {}
+
+  let cloudQueue = [];
+  try {
+    const resp = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'queueLoad' })
+    });
+    const data = await resp.json();
+    if (data.ok && data.items) cloudQueue = data.items;
+  } catch(e) {
+    console.warn('雲端 queue 載入失敗:', e);
+  }
+
+  const queue = [...localQueue, ...cloudQueue];
+  if (localQueue.length) localStorage.removeItem(QUEUE_KEY);
   if (!queue.length) { renderCardTable(); return; }
+
   let insertIdx = cardItems.findIndex(item => !item.brand && !item.model && !item.qty && !item.amount);
   if (insertIdx < 0) insertIdx = cardItems.length;
   queue.forEach((item, i) => {
@@ -835,7 +852,6 @@ function loadQueuedItems() {
     if (idx < cardItems.length) cardItems[idx] = row;
     else cardItems.push(row);
   });
-  localStorage.removeItem(QUEUE_KEY);
   renderCardTable();
   calcCardTotal();
   toast('已載入 ' + queue.length + ' 筆掃碼材料');
@@ -902,6 +918,13 @@ renderTable();
 initCardItems();
 document.getElementById('card-date').value = new Date().toISOString().slice(0, 10);
 loadFromCloud();
+
+// 切回頁面時自動載入掃碼 queue
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden && document.getElementById('page-card').classList.contains('active')) {
+    loadQueuedItems();
+  }
+});
 </script>
 </body>
 </html>
