@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>材料卡管理系統</title>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <style>
   :root {
     --bg: #f5f4f0;
@@ -946,10 +946,10 @@ function buildScanURL(m) {
 
 function waitForQRCode(maxMs = 3000) {
   return new Promise(resolve => {
-    if (typeof QRCode !== 'undefined' && QRCode.toDataURL) return resolve(true);
+    if (typeof qrcode === 'function') return resolve(true);
     const start = Date.now();
     const tick  = () => {
-      if (typeof QRCode !== 'undefined' && QRCode.toDataURL) return resolve(true);
+      if (typeof qrcode === 'function') return resolve(true);
       if (Date.now() - start > maxMs) return resolve(false);
       setTimeout(tick, 50);
     };
@@ -960,12 +960,27 @@ function waitForQRCode(maxMs = 3000) {
 async function generateQRImage(content, libReady) {
   if (libReady) {
     try {
-      return await QRCode.toDataURL(content, {
-        width: 300, margin: 1, errorCorrectionLevel: 'M',
-        color: { dark: '#1a1916', light: '#ffffff' }
-      });
+      const qr = qrcode(0, 'M');
+      qr.addData(content);
+      qr.make();
+      const size = qr.getModuleCount();
+      const cellSize = Math.max(4, Math.floor(300 / size));
+      const canvas = document.createElement('canvas');
+      const totalSize = cellSize * size + 8;
+      canvas.width = totalSize;
+      canvas.height = totalSize;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, totalSize, totalSize);
+      ctx.fillStyle = '#1a1916';
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          if (qr.isDark(r, c)) ctx.fillRect(4 + c * cellSize, 4 + r * cellSize, cellSize, cellSize);
+        }
+      }
+      return canvas.toDataURL('image/png');
     } catch (err) {
-      console.warn('QRCode.toDataURL 失敗:', err);
+      console.warn('qrcode-generator 失敗:', err);
     }
   }
   return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=4&data=${encodeURIComponent(content)}`;
