@@ -930,12 +930,10 @@ buildModelList();
 initCardItems();
 document.getElementById('card-date').value = new Date().toISOString().slice(0, 10);
 loadFromCloud();
+loadQueuedItems();
 
-// 切回頁面時自動載入掃碼 queue
 document.addEventListener('visibilitychange', function() {
-  if (!document.hidden && document.getElementById('page-card').classList.contains('active')) {
-    loadQueuedItems();
-  }
+  if (!document.hidden) loadQueuedItems();
 });
 </script>
 </body>
