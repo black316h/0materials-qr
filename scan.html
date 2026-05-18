@@ -162,10 +162,22 @@ if (!mat) {
 }
 
 let html5QrCode = null;
+let scannerRetry = 0;
 function startScanner() {
   const msg = document.getElementById('scanner-msg');
+  if (typeof Html5Qrcode === 'undefined') {
+    if (scannerRetry < 20) {
+      scannerRetry++;
+      msg.textContent = '載入掃描元件中…';
+      setTimeout(startScanner, 500);
+      return;
+    }
+    msg.innerHTML = '掃描元件載入失敗<br>請直接使用手機相機掃描 QR 碼';
+    return;
+  }
   try {
     html5QrCode = new Html5Qrcode('reader');
+    msg.textContent = '啟動相機中…';
     html5QrCode.start(
       { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 220, height: 220 } },
@@ -185,8 +197,10 @@ function startScanner() {
         }
       },
       function() {}
-    ).catch(function(err) {
-      msg.textContent = '無法開啟相機，請確認已授權相機權限';
+    ).then(function() {
+      msg.textContent = '';
+    }).catch(function(err) {
+      msg.innerHTML = '無法開啟相機<br>請確認已授權相機權限，或直接用手機相機掃描 QR 碼';
     });
   } catch(e) {
     msg.textContent = '掃描器初始化失敗';
