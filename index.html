@@ -641,6 +641,7 @@ function renderTable() {
       <td>
         <button class="btn btn-sm" onclick="startEdit('${m.id}')">編輯</button>
         <button class="btn btn-danger btn-sm" onclick="deleteMat('${m.id}')">刪除</button>
+        <button class="btn btn-sm" style="background:var(--accent);color:#fff" onclick="addToCard('${m.id}')">材料卡</button>
       </td>
     </tr>`;
   }).join('');
@@ -786,6 +787,18 @@ function buildModelList() {
   const dl = document.getElementById('model-list');
   if (!dl) return;
   dl.innerHTML = materials.map(m => `<option value="${esc(m.model)}" label="${esc(m.brand)} ${esc(m.model)}">`).join('');
+}
+
+function addToCard(id) {
+  const m = materials.find(x => x.id === id);
+  if (!m) return;
+  let idx = cardItems.findIndex(item => !item.brand && !item.model && !item.cat && !item.qty && !item.amount);
+  if (idx < 0) { idx = cardItems.length; cardItems.push({ brand: '', model: '', cat: '', qty: '', amount: '' }); }
+  cardItems[idx] = { brand: m.brand || '', model: m.model || '', cat: m.cat || '', qty: 1, amount: m.price || 0 };
+  renderCardTable();
+  calcCardTotal();
+  showPage('card', document.querySelector('nav a[onclick*="card"]'));
+  toast('已加入：' + m.brand + ' ' + m.model);
 }
 
 const MIN_CARD_ROWS = 20;
