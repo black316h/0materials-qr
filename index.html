@@ -1184,7 +1184,7 @@ function handleInvoiceUpload(input) {
     })
     .catch(err => {
       document.getElementById('invoice-loading').style.display = 'none';
-      toast('辨識失敗');
+      toast('辨識失敗：' + (err.message || err));
       console.error(err);
     });
   };
