@@ -295,8 +295,8 @@
       </div>
     </div>
     <div class="btn-row" style="margin-top:12px">
-      <button class="btn" onclick="loadCardRecords()">載入領用紀錄</button>
       <button class="btn" onclick="addCardRow()">＋ 新增行</button>
+      <button class="btn" onclick="clearCard()">清空</button>
       <button class="btn btn-primary" onclick="createCardSheet()">建立 Google Sheet</button>
       <span id="card-status" style="font-size:12px;color:var(--text-3);align-self:center;margin-left:auto"></span>
     </div>
@@ -434,7 +434,7 @@ function showPage(name, el) {
   document.getElementById('page-' + name).classList.add('active');
   if (el) el.classList.add('active');
   if (name === 'qr') renderAllQR();
-  if (name === 'card') renderCardTable();
+  if (name === 'card') loadQueuedItems();
 }
 function setFilter(cat, btn) {
   filterCat = cat;
@@ -822,38 +822,36 @@ function removeCardRow(i) {
   calcCardTotal();
 }
 
-async function loadCardRecords() {
-  const customer = document.getElementById('card-customer').value.trim();
-  const project  = document.getElementById('card-project').value.trim();
-  if (!customer && !project) { toast('請先填寫客戶名稱或案件名稱來篩選'); return; }
+function loadQueuedItems() {
+  const QUEUE_KEY = 'mat_card_queue';
+  let queue = [];
+  try { queue = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); } catch(e) {}
+  if (!queue.length) { renderCardTable(); return; }
+  let insertIdx = cardItems.findIndex(item => !item.brand && !item.model && !item.qty && !item.amount);
+  if (insertIdx < 0) insertIdx = cardItems.length;
+  queue.forEach((item, i) => {
+    const row = { brand: item.brand || '', model: item.model || '', qty: item.qty || '', amount: item.amount || '' };
+    const idx = insertIdx + i;
+    if (idx < cardItems.length) cardItems[idx] = row;
+    else cardItems.push(row);
+  });
+  localStorage.removeItem(QUEUE_KEY);
+  renderCardTable();
+  calcCardTotal();
+  toast('已載入 ' + queue.length + ' 筆掃碼材料');
+}
 
-  const statusEl = document.getElementById('card-status');
-  if (statusEl) statusEl.textContent = '載入中…';
-  try {
-    const resp = await fetch(GAS_URL + '?include=records');
-    const data = await resp.json();
-    let records = (data.records || []).filter(r => {
-      const rc = r.customer || r['客戶名稱'] || '';
-      const rp = r.project  || r['案件名稱'] || '';
-      return (!customer || rc === customer) && (!project || rp === project);
-    });
-    if (!records.length) { toast('找不到符合的領用紀錄'); if (statusEl) statusEl.textContent = ''; return; }
-    cardItems = records.map(r => ({
-      brand:  r.brand  || r['廠牌'] || '',
-      model:  r.model  || r['型號'] || '',
-      qty:    r.qty    || r['數量'] || '',
-      amount: r.total  || r['金額'] || ''
-    }));
-    while (cardItems.length < MIN_CARD_ROWS)
-      cardItems.push({ brand: '', model: '', qty: '', amount: '' });
-    renderCardTable();
-    calcCardTotal();
-    if (statusEl) statusEl.textContent = '已載入 ' + records.length + ' 筆';
-    toast('已載入 ' + records.length + ' 筆紀錄');
-  } catch(e) {
-    toast('載入失敗');
-    if (statusEl) statusEl.textContent = '載入失敗';
-  }
+function clearCard() {
+  if (!confirm('確定清空所有材料卡項目？')) return;
+  initCardItems();
+  renderCardTable();
+  calcCardTotal();
+  document.getElementById('card-customer').value = '';
+  document.getElementById('card-no').value = '';
+  document.getElementById('card-project').value = '';
+  document.getElementById('card-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('card-status').textContent = '';
+  toast('已清空');
 }
 
 async function createCardSheet() {
@@ -879,8 +877,14 @@ async function createCardSheet() {
     });
     const result = await resp.json();
     if (result.ok) {
-      toast('已建立工作表：' + sheetName);
-      if (statusEl) statusEl.textContent = '已建立：' + sheetName;
+      toast('已建立 Google Sheet');
+      if (statusEl) {
+        if (result.url) {
+          statusEl.innerHTML = '已建立：<a href="' + result.url + '" target="_blank" style="color:var(--accent)">' + sheetName + '</a>';
+        } else {
+          statusEl.textContent = '已建立：' + sheetName;
+        }
+      }
     } else {
       toast('建立失敗：' + (result.error || '未知錯誤'));
       if (statusEl) statusEl.textContent = '建立失敗';
