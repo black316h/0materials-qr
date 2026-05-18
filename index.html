@@ -131,21 +131,16 @@
   .qr-img-wrap img { display: block; width: 150px; height: 150px; }
   .qr-loading { font-size: 11px; color: var(--text-3); }
 
-  /* 材料卡報表 */
-  .mat-card-report {
-    background: var(--surface); border: 2px solid var(--text); border-radius: var(--radius-lg);
-    padding: 1.5rem; margin-bottom: 1.5rem; max-width: 700px;
+  /* 材料卡 */
+  .card-inp {
+    font-family: var(--font-body); font-size: 13px; padding: 6px 8px;
+    border: 1px solid transparent; border-radius: 4px;
+    background: transparent; color: var(--text); width: 100%;
   }
-  .mat-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 2px solid var(--text); }
-  .mat-card-job { font-size: 20px; font-weight: 700; font-family: var(--font-head); }
-  .mat-card-date { font-size: 12px; color: var(--text-2); }
-  .mat-card-report table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 0.75rem; }
-  .mat-card-report th { background: var(--bg); padding: 7px 10px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.04em; border: 1px solid var(--border-dark); }
-  .mat-card-report td { padding: 6px 10px; border: 1px solid var(--border-dark); }
-  .mat-card-report td.num { text-align: right; }
-  .mat-card-total { display: flex; justify-content: flex-end; gap: 12px; font-size: 16px; font-weight: 700; padding-top: 4px; border-top: 2px solid var(--text); }
-  .mat-card-total span:last-child { color: var(--accent); }
-  .mat-card-actions { margin-top: 10px; display: flex; gap: 8px; }
+  .card-inp:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+  .card-inp::placeholder { color: var(--text-3); }
+  .card-inp[type=number] { text-align: right; -moz-appearance: textfield; }
+  .card-inp[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
 
   .toast {
     position: fixed; bottom: 2rem; right: 2rem;
@@ -278,12 +273,56 @@
 
 <!-- ── 材料卡 ── -->
 <div id="page-card" class="page">
-  <div class="page-title">材料卡（依工程編號）</div>
-  <div class="btn-row" style="margin-bottom:1rem">
-    <button class="btn btn-primary" onclick="loadRecordCards()">重新載入</button>
-    <span id="card-status" style="font-size:12px;color:var(--text-3);align-self:center;margin-left:8px"></span>
+  <div class="page-title">材料卡</div>
+  <div class="card">
+    <div class="card-title">卡片資訊</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>客戶名稱 <span style="color:var(--red)">*</span></label>
+        <input id="card-customer" placeholder="客戶名稱">
+      </div>
+      <div class="form-group">
+        <label>編號</label>
+        <input id="card-no" placeholder="編號">
+      </div>
+      <div class="form-group" style="grid-column:span 2">
+        <label>案件名稱 <span style="color:var(--red)">*</span></label>
+        <input id="card-project" placeholder="案件名稱">
+      </div>
+      <div class="form-group">
+        <label>日期</label>
+        <input id="card-date" type="date">
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn" onclick="loadCardRecords()">載入領用紀錄</button>
+      <button class="btn" onclick="addCardRow()">＋ 新增行</button>
+      <button class="btn btn-primary" onclick="createCardSheet()">建立 Google Sheet</button>
+      <span id="card-status" style="font-size:12px;color:var(--text-3);align-self:center;margin-left:auto"></span>
+    </div>
   </div>
-  <div id="card-list"></div>
+  <div class="table-wrap" style="margin-top:1rem">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:46px">序號</th>
+          <th style="width:100px">廠牌</th>
+          <th>型號</th>
+          <th style="width:70px">數量</th>
+          <th style="width:90px">金額</th>
+          <th style="width:32px"></th>
+        </tr>
+      </thead>
+      <tbody id="card-tbody"></tbody>
+      <tfoot>
+        <tr style="background:var(--bg)">
+          <td colspan="4" style="text-align:right;font-weight:700;border-bottom:none">合計</td>
+          <td style="font-weight:700;text-align:right;border-bottom:none" id="card-total-cell">$0</td>
+          <td style="border-bottom:none"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
 </div>
 
 </div><!-- /.main -->
@@ -395,7 +434,7 @@ function showPage(name, el) {
   document.getElementById('page-' + name).classList.add('active');
   if (el) el.classList.add('active');
   if (name === 'qr') renderAllQR();
-  if (name === 'card') loadRecordCards();
+  if (name === 'card') renderCardTable();
 }
 function setFilter(cat, btn) {
   filterCat = cat;
@@ -738,112 +777,126 @@ function printAllQR() {
   win.document.close();
 }
 
-// ── 材料卡報表 ────────────────────────────────────────
-async function loadRecordCards() {
-  const list   = document.getElementById('card-list');
-  const status = document.getElementById('card-status');
-  if (!list) return;
-  list.innerHTML = '<div class="empty-state">載入中…</div>';
-  if (status) status.textContent = '載入中…';
+// ── 材料卡 ──────────────────────────────────────────────
+const MIN_CARD_ROWS = 20;
+let cardItems = [];
 
-  let records = [];
+function initCardItems() {
+  cardItems = [];
+  for (let i = 0; i < MIN_CARD_ROWS; i++)
+    cardItems.push({ brand: '', model: '', qty: '', amount: '' });
+}
+
+function renderCardTable() {
+  const tbody = document.getElementById('card-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = cardItems.map((item, i) => `
+    <tr>
+      <td style="text-align:center;color:var(--text-3);font-size:12px">${i + 1}</td>
+      <td><input class="card-inp" value="${esc(item.brand)}" oninput="cardItems[${i}].brand=this.value"></td>
+      <td><input class="card-inp" value="${esc(item.model)}" oninput="cardItems[${i}].model=this.value"></td>
+      <td><input class="card-inp" type="number" value="${item.qty}" oninput="cardItems[${i}].qty=this.value;calcCardTotal()"></td>
+      <td><input class="card-inp" type="number" value="${item.amount}" oninput="cardItems[${i}].amount=this.value;calcCardTotal()"></td>
+      <td style="text-align:center"><button onclick="removeCardRow(${i})" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;opacity:0.4" title="清除此行">×</button></td>
+    </tr>`).join('');
+}
+
+function calcCardTotal() {
+  const total = cardItems.reduce((s, item) => s + (Number(item.amount) || 0), 0);
+  const el = document.getElementById('card-total-cell');
+  if (el) el.textContent = '$' + total.toLocaleString();
+}
+
+function addCardRow() {
+  cardItems.push({ brand: '', model: '', qty: '', amount: '' });
+  renderCardTable();
+}
+
+function removeCardRow(i) {
+  if (cardItems.length <= MIN_CARD_ROWS) {
+    cardItems[i] = { brand: '', model: '', qty: '', amount: '' };
+  } else {
+    cardItems.splice(i, 1);
+  }
+  renderCardTable();
+  calcCardTotal();
+}
+
+async function loadCardRecords() {
+  const customer = document.getElementById('card-customer').value.trim();
+  const project  = document.getElementById('card-project').value.trim();
+  if (!customer && !project) { toast('請先填寫客戶名稱或案件名稱來篩選'); return; }
+
+  const statusEl = document.getElementById('card-status');
+  if (statusEl) statusEl.textContent = '載入中…';
   try {
     const resp = await fetch(GAS_URL + '?include=records');
     const data = await resp.json();
-    records = data.records || [];
-  } catch (err) {
-    list.innerHTML = '<div class="empty-state">無法從雲端讀取領用紀錄</div>';
-    if (status) status.textContent = '載入失敗';
-    return;
+    let records = (data.records || []).filter(r => {
+      const rc = r.customer || r['客戶名稱'] || '';
+      const rp = r.project  || r['案件名稱'] || '';
+      return (!customer || rc === customer) && (!project || rp === project);
+    });
+    if (!records.length) { toast('找不到符合的領用紀錄'); if (statusEl) statusEl.textContent = ''; return; }
+    cardItems = records.map(r => ({
+      brand:  r.brand  || r['廠牌'] || '',
+      model:  r.model  || r['型號'] || '',
+      qty:    r.qty    || r['數量'] || '',
+      amount: r.total  || r['金額'] || ''
+    }));
+    while (cardItems.length < MIN_CARD_ROWS)
+      cardItems.push({ brand: '', model: '', qty: '', amount: '' });
+    renderCardTable();
+    calcCardTotal();
+    if (statusEl) statusEl.textContent = '已載入 ' + records.length + ' 筆';
+    toast('已載入 ' + records.length + ' 筆紀錄');
+  } catch(e) {
+    toast('載入失敗');
+    if (statusEl) statusEl.textContent = '載入失敗';
   }
-
-  if (!records.length) {
-    list.innerHTML = '<div class="empty-state">尚無領用紀錄，請師傅掃碼填單後再查看</div>';
-    if (status) status.textContent = '';
-    return;
-  }
-
-  // 依工程編號分組
-  const groups = {};
-  records.forEach(r => {
-    if (!groups[r.job]) groups[r.job] = [];
-    groups[r.job].push(r);
-  });
-
-  const jobKeys = Object.keys(groups);
-  list.innerHTML = jobKeys.map(job => {
-    const items = groups[job];
-    const total = items.reduce((s, r) => s + (Number(r.total) || 0), 0);
-    const firstDate = items[items.length - 1].ts || '';
-    const rows = items.map((r, i) => `
-      <tr>
-        <td style="text-align:center">${i + 1}</td>
-        <td>${esc(r.brand || '—')}</td>
-        <td>${esc(r.model || '')}</td>
-        <td class="num">${r.qty}</td>
-        <td class="num">$${(Number(r.price) || 0).toLocaleString()}</td>
-        <td class="num">$${(Number(r.total) || 0).toLocaleString()}</td>
-        <td style="font-size:11px;color:var(--text-3)">${esc(r.note || '')}</td>
-      </tr>`).join('');
-
-    return `
-      <div class="mat-card-report" id="card-${esc(job)}">
-        <div class="mat-card-header">
-          <div>
-            <div class="mat-card-job">${esc(job)}</div>
-            <div class="mat-card-date">${esc(firstDate)}</div>
-          </div>
-          <span class="badge badge-blue" style="font-size:12px">${items.length} 筆</span>
-        </div>
-        <table>
-          <thead><tr>
-            <th style="width:36px">#</th><th style="width:70px">廠牌</th><th>型號 / 規格</th>
-            <th style="width:50px">數量</th><th style="width:65px">單價</th><th style="width:65px">金額</th><th style="width:70px">備註</th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-        <div class="mat-card-total"><span>合計</span><span>$${total.toLocaleString()}</span></div>
-        <div class="mat-card-actions">
-          <button class="btn btn-sm" onclick="printCard('${esc(job).replace(/'/g,"\\'")}')">列印此卡</button>
-        </div>
-      </div>`;
-  }).join('');
-
-  if (status) status.textContent = `共 ${jobKeys.length} 張材料卡`;
 }
 
-function printCard(job) {
-  const el = document.getElementById('card-' + job);
-  if (!el) return;
-  const clone = el.cloneNode(true);
-  clone.querySelector('.mat-card-actions')?.remove();
-  const win = window.open('', '_blank');
-  if (!win) { toast('請允許瀏覽器開啟彈出視窗'); return; }
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>材料卡 - ${job}</title>
-  <style>
-    body{font-family:Arial,sans-serif;margin:20px;background:#fff}
-    .mat-card-report{border:2px solid #000;border-radius:8px;padding:1.5rem;max-width:700px}
-    .mat-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:2px solid #000}
-    .mat-card-job{font-size:20px;font-weight:700}
-    .mat-card-date{font-size:12px;color:#666}
-    table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:0.75rem}
-    th{background:#f0f0f0;padding:7px 10px;text-align:left;font-size:11px;font-weight:600;border:1px solid #999;text-transform:uppercase}
-    td{padding:6px 10px;border:1px solid #999}
-    td.num{text-align:right}
-    .mat-card-total{display:flex;justify-content:flex-end;gap:12px;font-size:16px;font-weight:700;padding-top:4px;border-top:2px solid #000}
-    .badge{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:#e8f0fb;color:#0f2f5a}
-    @media print{body{margin:10px}}
-  </style></head><body>
-  ${clone.outerHTML}
-  <script>window.addEventListener('load',()=>setTimeout(()=>window.print(),300))<\/script>
-  </body></html>`);
-  win.document.close();
+async function createCardSheet() {
+  const customer = document.getElementById('card-customer').value.trim();
+  const cardNo   = document.getElementById('card-no').value.trim();
+  const project  = document.getElementById('card-project').value.trim();
+  const date     = document.getElementById('card-date').value;
+  if (!customer) { toast('請填寫客戶名稱'); return; }
+  if (!project)  { toast('請填寫案件名稱'); return; }
+  const items = cardItems.filter(item => item.brand || item.model || item.qty || item.amount);
+  if (!items.length) { toast('請至少填寫一筆項目'); return; }
+  const sheetName = date + '_' + customer + '_' + project;
+  const total = items.reduce((s, item) => s + (Number(item.amount) || 0), 0);
+  const statusEl = document.getElementById('card-status');
+  if (statusEl) statusEl.textContent = '建立中…';
+  try {
+    const resp = await fetch(GAS_URL, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'createSheet', sheetName, customer, cardNo, project, date, total,
+        items: items.map((item, i) => ({ seq: i + 1, brand: item.brand, model: item.model, qty: Number(item.qty) || 0, amount: Number(item.amount) || 0 }))
+      })
+    });
+    const result = await resp.json();
+    if (result.ok) {
+      toast('已建立工作表：' + sheetName);
+      if (statusEl) statusEl.textContent = '已建立：' + sheetName;
+    } else {
+      toast('建立失敗：' + (result.error || '未知錯誤'));
+      if (statusEl) statusEl.textContent = '建立失敗';
+    }
+  } catch(e) {
+    toast('建立失敗');
+    if (statusEl) statusEl.textContent = '建立失敗';
+  }
 }
 
 // ── 初始化 ────────────────────────────────────────────
 clearForm();
 renderFilterBtns();
 renderTable();
+initCardItems();
+document.getElementById('card-date').value = new Date().toISOString().slice(0, 10);
 loadFromCloud();
 </script>
 </body>
