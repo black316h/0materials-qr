@@ -1446,6 +1446,12 @@ async function loadSalesRecords() {
   }
 }
 
+function fmtDate(v) {
+  if (!v) return '—';
+  const d = new Date(v);
+  if (isNaN(d)) return String(v);
+  return d.getFullYear() + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0');
+}
 function renderSalesTable() {
   const q = (document.getElementById('sales-search').value || '').toLowerCase();
   const now = new Date();
@@ -1470,7 +1476,7 @@ function renderSalesTable() {
   tbody.innerHTML = rows.map(r => `
     <tr>
       <td><span class="badge badge-blue">${esc(r['紀錄ID']||'')}</span></td>
-      <td>${esc(r['日期']||'')}</td>
+      <td>${fmtDate(r['日期'])}</td>
       <td>${esc(r['供應商']||'')}</td>
       <td>${esc(r['客戶']||'')}</td>
       <td>${esc(r['出貨單號']||'')}</td>
@@ -1497,7 +1503,7 @@ function viewSalesDetail(recordId) {
     <div class="form-grid" style="margin-bottom:1rem">
       <div class="form-group"><label>供應商</label><div style="padding:8px 0;font-weight:500">${esc(r['供應商']||'—')}</div></div>
       <div class="form-group"><label>出貨單號</label><div style="padding:8px 0;font-weight:500">${esc(r['出貨單號']||'—')}</div></div>
-      <div class="form-group"><label>日期</label><div style="padding:8px 0;font-weight:500">${esc(r['日期']||'—')}</div></div>
+      <div class="form-group"><label>日期</label><div style="padding:8px 0;font-weight:500">${fmtDate(r['日期'])}</div></div>
       <div class="form-group"><label>客戶</label><div style="padding:8px 0;font-weight:500">${esc(r['客戶']||'—')}</div></div>
     </div>
     <div class="table-wrap">
@@ -1531,7 +1537,9 @@ function editSalesRecord(recordId) {
   currentInvoiceId = recordId;
   document.getElementById('inv-supplier').value = r['供應商'] || '';
   document.getElementById('inv-no').value = r['出貨單號'] || '';
-  document.getElementById('inv-date').value = r['日期'] || '';
+  var dv = r['日期'] || '';
+  if (dv) { var dd = new Date(dv); if (!isNaN(dd)) dv = dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0'); }
+  document.getElementById('inv-date').value = dv;
   document.getElementById('inv-customer').value = r['客戶'] || '';
   invoiceSource = r['來源'] || 'manual';
   invoiceOcrText = r['OCR原文'] || '';
