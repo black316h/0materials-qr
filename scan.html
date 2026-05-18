@@ -80,6 +80,7 @@
       <div class="mat-id" id="d-id">—</div>
       <div class="mat-brand" id="d-brand">—</div>
       <div class="mat-model" id="d-model">—</div>
+      <div class="mat-cat" id="d-cat" style="display:inline-block;font-size:11px;color:var(--accent-text);background:var(--accent-light);padding:2px 8px;border-radius:99px;margin-top:6px"></div>
       <div class="mat-price">單價：<b id="d-price">—</b> 元</div>
     </div>
     <div class="form-section">
@@ -130,13 +131,14 @@ var matId    = params.get('id')    || '';
 var matBrand = params.get('brand') || '';
 var matModel = params.get('model') || '';
 var matPrice = parseFloat(params.get('price') || '0');
+var matCat   = params.get('cat')   || '';
 
 var materials = [];
 try { materials = JSON.parse(localStorage.getItem(STORAGE_KEY_MAT) || '[]'); } catch(e) {}
 var matFromStorage = materials.find(function(m){ return (m.id || m['料號']) === matId; });
 var mat = matFromStorage
-  ? { id: matFromStorage.id || matFromStorage['料號'] || '', brand: matFromStorage.brand || matFromStorage['廠牌'] || '', model: matFromStorage.model || matFromStorage['型號'] || '', price: Number(matFromStorage.price != null ? matFromStorage.price : (matFromStorage['單價'] != null ? matFromStorage['單價'] : 0)) }
-  : (matId ? { id: matId, brand: matBrand, model: matModel, price: matPrice } : null);
+  ? { id: matFromStorage.id || matFromStorage['料號'] || '', brand: matFromStorage.brand || matFromStorage['廠牌'] || '', model: matFromStorage.model || matFromStorage['型號'] || '', price: Number(matFromStorage.price != null ? matFromStorage.price : (matFromStorage['單價'] != null ? matFromStorage['單價'] : 0)), cat: matFromStorage.cat || matFromStorage['類別'] || '' }
+  : (matId ? { id: matId, brand: matBrand, model: matModel, price: matPrice, cat: matCat } : null);
 
 if (!mat) {
   document.getElementById('no-mat-area').style.display = 'flex';
@@ -146,6 +148,8 @@ if (!mat) {
   document.getElementById('d-brand').textContent = mat.brand || '—';
   document.getElementById('d-model').textContent = mat.model;
   document.getElementById('d-price').textContent = (mat.price || 0).toLocaleString();
+  if (mat.cat) document.getElementById('d-cat').textContent = mat.cat;
+  else document.getElementById('d-cat').style.display = 'none';
   calcSubtotal();
 }
 
@@ -170,7 +174,7 @@ function addToCard() {
   var note = document.getElementById('f-note').value.trim();
   if (!qty || qty <= 0) { document.getElementById('err-qty').textContent = '請輸入有效數量'; return; }
   var amount = Math.round(qty * mat.price);
-  var item = { id: mat.id, brand: mat.brand, model: mat.model, qty: qty, price: mat.price, amount: amount, note: note };
+  var item = { id: mat.id, brand: mat.brand, model: mat.model, cat: mat.cat, qty: qty, price: mat.price, amount: amount, note: note };
 
   var btn = document.querySelector('.submit-btn');
   btn.textContent = '傳送中…';
