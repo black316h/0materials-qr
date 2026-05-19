@@ -423,7 +423,6 @@
           <th>客戶名稱</th>
           <th style="width:90px">單號</th>
           <th style="width:90px">合計</th>
-          <th style="width:50px">來源</th>
           <th style="width:50px"></th>
         </tr>
       </thead>
@@ -1170,9 +1169,9 @@ async function saveInvoice() {
       method: 'POST', headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
         action: 'saveInvoice', recordId: currentInvoiceId,
-        supplier: '', invoiceNo, date, customer,
+        invoiceNo, date, customer,
         items: items.map((it, i) => ({ seq: i+1, name: it.name, qty: Number(it.qty)||0, amount: Number(it.amount)||0, note: it.note||'' })),
-        totalAmount, source: 'manual', ocrText: '', imageUrl: ''
+        totalAmount
       })
     });
     const result = await resp.json();
@@ -1276,7 +1275,7 @@ function renderSalesTable() {
   document.getElementById('sales-count').textContent = '共 ' + rows.length + ' 筆';
   const tbody = document.getElementById('sales-tbody');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">沒有符合的紀錄</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">沒有符合的紀錄</div></td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(r => `
@@ -1286,7 +1285,6 @@ function renderSalesTable() {
       <td>${esc(r['客戶']||'')}</td>
       <td>${esc(r['出貨單號']||'')}</td>
       <td style="text-align:right;font-weight:500">$${(Number(r['合計金額'])||0).toLocaleString()}</td>
-      <td><span class="badge ${r['來源']==='ocr'?'badge-blue':'badge-green'}">${r['來源']==='ocr'?'OCR':'手動'}</span></td>
       <td><button class="btn btn-sm" onclick="viewSalesDetail('${esc(r['紀錄ID']||'')}')">檢視</button></td>
     </tr>`).join('');
 }
