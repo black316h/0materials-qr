@@ -204,6 +204,8 @@
     <div class="btn-row">
       <button class="btn btn-primary" onclick="addMaterial()">＋ 新增</button>
       <button class="btn" onclick="clearForm()">清除</button>
+      <button class="btn" onclick="document.getElementById('excel-file').click()" style="margin-left:auto;background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📥 匯入 Excel</button>
+      <input type="file" id="excel-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(this)">
     </div>
   </div>
 
@@ -478,6 +480,7 @@
 <datalist id="model-list"></datalist>
 <div class="toast" id="toast"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // ── 常數 ──────────────────────────────────────────────
 const STORAGE_KEY_MAT    = 'mat_master_v2';
@@ -931,6 +934,73 @@ function renderTable() {
       </td>
     </tr>`;
   }).join('');
+}
+
+// ── Excel 匯入 ──────────────────────────────────────────
+function importExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      if (!rows.length) { toast('檔案沒有資料'); return; }
+
+      // Auto-map column names
+      const colMap = { brand: '', model: '', cat: '', price: '' };
+      const keys = Object.keys(rows[0]);
+      keys.forEach(k => {
+        const kl = k.trim().toLowerCase();
+        if (/廠牌|brand/i.test(kl)) colMap.brand = k;
+        else if (/型號|規格|model|spec/i.test(kl)) colMap.model = k;
+        else if (/類別|分類|cat/i.test(kl)) colMap.cat = k;
+        else if (/單價|價格|price/i.test(kl)) colMap.price = k;
+      });
+
+      // If no match, try positional: assume 廠牌, 型號, 類別, 單價
+      if (!colMap.brand && !colMap.model && keys.length >= 2) {
+        colMap.brand = keys[0];
+        colMap.model = keys[1];
+        if (keys[2]) colMap.cat = keys[2];
+        if (keys[3]) colMap.price = keys[3];
+      }
+
+      if (!colMap.model) { toast('找不到型號/規格欄位'); return; }
+
+      let added = 0, skipped = 0;
+      rows.forEach(row => {
+        const brand = String(row[colMap.brand] || '').trim();
+        const model = String(row[colMap.model] || '').trim();
+        const cat = String(row[colMap.cat] || '').trim();
+        const price = Number(row[colMap.price]) || 0;
+        if (!model) return;
+
+        // Skip duplicates (same brand + model)
+        const exists = materials.find(m => m.brand === brand && m.model === model);
+        if (exists) { skipped++; return; }
+
+        const id = 'M' + String(materials.length + 1).padStart(5, '0');
+        materials.push({ id, brand, model, cat, price });
+
+        // Auto-add new brands/categories
+        if (brand && !brands.includes(brand)) brands.push(brand);
+        if (cat && !cats.includes(cat)) cats.push(cat);
+        added++;
+      });
+
+      save();
+      renderTable();
+      renderFilterBtns();
+      buildModelList();
+      toast('匯入完成：新增 ' + added + ' 筆' + (skipped ? '，跳過重複 ' + skipped + ' 筆' : ''));
+    } catch(err) {
+      toast('匯入失敗：' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  input.value = '';
 }
 
 // ── 材料卡 ──────────────────────────────────────────────
