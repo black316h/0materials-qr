@@ -278,6 +278,7 @@
     </div>
     <div class="btn-row" style="margin-top:12px">
       <button class="btn" onclick="addCardRow()">＋ 新增行</button>
+      <button class="btn" onclick="showMaterialPicker('card')" style="background:var(--accent-light);color:var(--accent-text);border-color:var(--accent-light)">＋ 從材料主檔選取</button>
       <button class="btn" onclick="clearCard()">清空</button>
       <button class="btn btn-primary" onclick="createCardSheet()">建立 Google Sheet</button>
       <a class="btn" href="https://drive.google.com/drive/folders/1XdVo2Io5cXgqZpL3KWpCDit0wiZOd-_3" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px">📁 材料卡資料夾</a>
@@ -389,7 +390,7 @@
     </div>
     <div class="btn-row" style="margin-top:10px">
       <button class="btn btn-sm" onclick="addInvItem()">＋ 新增行</button>
-      <button class="btn btn-sm" onclick="showMaterialPicker()" style="background:var(--accent-light);color:var(--accent-text);border-color:var(--accent-light)">＋ 從材料主檔選取</button>
+      <button class="btn btn-sm" onclick="showMaterialPicker('invoice')" style="background:var(--accent-light);color:var(--accent-text);border-color:var(--accent-light)">＋ 從材料主檔選取</button>
     </div>
   </div>
   <div class="btn-row" style="margin-top:1rem">
@@ -1190,7 +1191,9 @@ async function saveInvoice() {
 }
 
 // ── 材料選取 Modal ───────────────────────────────────
-function showMaterialPicker() {
+let pickerTarget = 'invoice'; // 'invoice' or 'card'
+function showMaterialPicker(target) {
+  pickerTarget = target || 'invoice';
   document.getElementById('picker-search').value = '';
   filterPickerMaterials();
   document.getElementById('material-picker-modal').style.display = 'flex';
@@ -1214,12 +1217,21 @@ function pickMaterial(matId) {
   const m = materials.find(x => x.id === matId);
   if (!m) return;
   hideMaterialPicker();
-  let idx = invoiceItems.findIndex(it => !it.name && !it.qty && !it.amount);
-  if (idx < 0) { idx = invoiceItems.length; invoiceItems.push({}); }
-  invoiceItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '' };
-  renderInvItems();
-  calcInvTotal();
-  toast('已加入：' + m.brand + ' ' + m.model);
+  if (pickerTarget === 'card') {
+    let idx = cardItems.findIndex(item => !item.brand && !item.model && !item.cat && !item.qty && !item.amount);
+    if (idx < 0) { idx = cardItems.length; cardItems.push({ brand: '', model: '', cat: '', qty: '', amount: '' }); }
+    cardItems[idx] = { brand: m.brand || '', model: m.model || '', cat: m.cat || '', qty: 1, amount: m.price || 0 };
+    renderCardTable();
+    calcCardTotal();
+    toast('已加入材料卡：' + m.brand + ' ' + m.model);
+  } else {
+    let idx = invoiceItems.findIndex(it => !it.name && !it.qty && !it.amount);
+    if (idx < 0) { idx = invoiceItems.length; invoiceItems.push({}); }
+    invoiceItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '' };
+    renderInvItems();
+    calcInvTotal();
+    toast('已加入出貨單：' + m.brand + ' ' + m.model);
+  }
 }
 
 // ── 銷貨紀錄 ─────────────────────────────────────────
