@@ -1,0 +1,25 @@
+{
+  "name": "竑記專用進銷存系統",
+  "short_name": "竑記進銷存",
+  "description": "竑記專用材料與出貨管理系統",
+  "start_url": "/0materials-qr/",
+  "scope": "/0materials-qr/",
+  "display": "standalone",
+  "background_color": "#1a1916",
+  "theme_color": "#1a1916",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
