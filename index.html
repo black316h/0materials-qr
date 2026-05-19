@@ -132,8 +132,9 @@
   }
   .card-inp:focus { outline: none; border-color: var(--accent); background: var(--surface); }
   .card-inp::placeholder { color: var(--text-3); }
-  .card-inp[type=number] { text-align: right; -moz-appearance: textfield; }
-  .card-inp[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .card-inp[inputmode=numeric] { padding: 6px 4px; }
+  #inv-items-tbody td { padding: 4px 4px; }
+  #inv-items-tbody td:first-child { padding-left: 8px; }
 
   .toast {
     position: fixed; bottom: 2rem; right: 2rem;
@@ -372,9 +373,9 @@
           <tr>
             <th style="width:28px">項次</th>
             <th>品名規格</th>
-            <th style="width:42px">數量</th>
-            <th style="width:58px">金額</th>
-            <th style="width:50px">備註</th>
+            <th style="width:52px">數量</th>
+            <th style="width:62px">金額</th>
+            <th style="width:38px">備註</th>
             <th style="width:22px"></th>
           </tr>
         </thead>
