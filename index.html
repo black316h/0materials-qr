@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>材料卡管理系統</title>
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <style>
   :root {
     --bg: #f5f4f0;
@@ -125,12 +124,6 @@
 
   .empty-state { text-align: center; padding: 3rem; color: var(--text-3); font-size: 13px; }
 
-  /* QR page */
-  .qr-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1rem; text-align: center; display: flex; flex-direction: column; align-items: center; }
-  .qr-img-wrap { width: 160px; height: 160px; background: var(--bg); border-radius: 6px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; overflow: hidden; }
-  .qr-img-wrap img { display: block; width: 150px; height: 150px; }
-  .qr-loading { font-size: 11px; color: var(--text-3); }
-
   /* 材料卡 */
   .card-inp {
     font-family: var(--font-body); font-size: 13px; padding: 6px 8px;
@@ -166,7 +159,6 @@
   <h1>材料卡管理系統</h1>
   <nav>
     <a href="#" class="active" onclick="showPage('master',this);return false">材料主檔</a>
-    <a href="#" onclick="showPage('qr',this);return false">QR 碼</a>
     <a href="#" onclick="showPage('card',this);return false">材料卡</a>
     <a href="#" onclick="showPage('invoice',this);return false">出貨單</a>
     <a href="#" onclick="showPage('sales',this);return false">銷貨紀錄</a>
@@ -266,17 +258,6 @@
 </div>
 
 <!-- ── QR 碼 ── -->
-<div id="page-qr" class="page">
-  <div class="page-title">QR 碼總覽</div>
-  <p style="font-size:13px;color:var(--text-2);margin-bottom:1.5rem">每個料號的 QR 碼直接顯示，可單張列印或一次全部列印。</p>
-  <div class="btn-row" style="margin-bottom:1.25rem">
-    <button class="btn btn-primary" onclick="printAllQR()">列印全部 QR 碼</button>
-    <button class="btn" onclick="renderAllQR()">重新產生</button>
-    <span id="qr-status" style="font-size:12px;color:var(--text-3);align-self:center;margin-left:8px"></span>
-  </div>
-  <div id="qr-all-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px"></div>
-</div>
-
 <!-- ── 材料卡 ── -->
 <div id="page-card" class="page">
   <div class="page-title">材料卡</div>
@@ -369,19 +350,7 @@
   <div class="page-title">出貨單</div>
   <div class="btn-row" style="margin-bottom:1rem">
     <button class="btn btn-primary" onclick="newInvoice()">新增出貨單</button>
-    <label class="btn" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-      拍照辨識
-      <input type="file" accept="image/*" capture="environment" id="invoice-file" onchange="handleInvoiceUpload(this)" style="display:none">
-    </label>
-    <a class="btn" href="https://drive.google.com/drive/folders/1FHTTTm9_wKdu_KjByvAk6hykP9N2XZP5" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px">📁 已處理照片</a>
     <span id="invoice-status" style="font-size:12px;color:var(--text-3);align-self:center;margin-left:auto"></span>
-  </div>
-  <div id="invoice-preview" style="display:none;margin-bottom:1rem">
-    <img id="invoice-img" style="max-width:100%;max-height:200px;border-radius:var(--radius);border:1px solid var(--border)">
-  </div>
-  <div id="invoice-loading" style="display:none;text-align:center;padding:2rem">
-    <div style="font-size:14px;color:var(--text-2)">辨識中，請稍候…</div>
   </div>
   <div class="card">
     <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr">
@@ -426,15 +395,6 @@
     <div class="btn-row" style="margin-top:10px">
       <button class="btn btn-sm" onclick="addInvItem()">＋ 新增行</button>
       <button class="btn btn-sm" onclick="showMaterialPicker()" style="background:var(--accent-light);color:var(--accent-text);border-color:var(--accent-light)">＋ 從材料主檔選取</button>
-    </div>
-  </div>
-  <div class="card" style="margin-top:1rem;display:none" id="ocr-text-card">
-    <div class="brand-card-title card-title" onclick="toggleOcrText()" style="margin-bottom:0;cursor:pointer">
-      <span>OCR 原始文字</span>
-      <span id="ocr-text-arrow" style="font-size:14px;font-weight:normal">▸</span>
-    </div>
-    <div id="ocr-text-body" style="display:none;margin-top:1rem">
-      <pre id="inv-ocr-text" style="font-size:12px;color:var(--text-2);white-space:pre-wrap;word-break:break-all;background:var(--bg);padding:12px;border-radius:var(--radius);max-height:300px;overflow-y:auto"></pre>
     </div>
   </div>
   <div class="btn-row" style="margin-top:1rem">
@@ -524,13 +484,6 @@ const STORAGE_KEY_CATS   = 'mat_cats_v1';
 const STORAGE_KEY_CUSTS  = 'mat_customers_v1';
 const STORAGE_KEY_PROJS  = 'mat_projects_v1';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwr2o0j-xcsFHO7CaPTWomMkWshBQ39G3aRB25bPRN1DD-VCDq89_e971JnYLrrNPmUgQ/exec';
-
-function getScanBaseURL() {
-  if (location.protocol === 'file:') return 'scan.html';
-  const dir = location.pathname.replace(/[^\/]*$/, '');
-  return location.origin + dir + 'scan.html';
-}
-const SCAN_BASE = getScanBaseURL();
 
 // ── 資料 ──────────────────────────────────────────────
 function normalizeMat(m) {
@@ -636,7 +589,6 @@ function showPage(name, el) {
   document.querySelectorAll('header nav a').forEach(a => a.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   if (el) el.classList.add('active');
-  if (name === 'qr') renderAllQR();
   if (name === 'card') loadQueuedItems();
   if (name === 'sales') loadSalesRecords();
 }
@@ -934,156 +886,6 @@ function renderTable() {
   }).join('');
 }
 
-// ── QR 碼 ─────────────────────────────────────────────
-function buildScanURL(m) {
-  return `${SCAN_BASE}?id=${encodeURIComponent(m.id)}`
-       + `&brand=${encodeURIComponent(m.brand || '')}`
-       + `&model=${encodeURIComponent(m.model)}`
-       + `&price=${m.price}`
-       + `&cat=${encodeURIComponent(m.cat || '')}`;
-}
-
-function waitForQRCode(maxMs = 3000) {
-  return new Promise(resolve => {
-    if (typeof qrcode === 'function') return resolve(true);
-    const start = Date.now();
-    const tick  = () => {
-      if (typeof qrcode === 'function') return resolve(true);
-      if (Date.now() - start > maxMs) return resolve(false);
-      setTimeout(tick, 50);
-    };
-    tick();
-  });
-}
-
-async function generateQRImage(content, libReady) {
-  if (libReady) {
-    try {
-      const qr = qrcode(0, 'M');
-      qr.addData(content);
-      qr.make();
-      const size = qr.getModuleCount();
-      const cellSize = Math.max(4, Math.floor(300 / size));
-      const canvas = document.createElement('canvas');
-      const totalSize = cellSize * size + 8;
-      canvas.width = totalSize;
-      canvas.height = totalSize;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, totalSize, totalSize);
-      ctx.fillStyle = '#1a1916';
-      for (let r = 0; r < size; r++) {
-        for (let c = 0; c < size; c++) {
-          if (qr.isDark(r, c)) ctx.fillRect(4 + c * cellSize, 4 + r * cellSize, cellSize, cellSize);
-        }
-      }
-      return canvas.toDataURL('image/png');
-    } catch (err) {
-      console.warn('qrcode-generator 失敗:', err);
-    }
-  }
-  return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=4&data=${encodeURIComponent(content)}`;
-}
-
-async function renderAllQR() {
-  const grid   = document.getElementById('qr-all-grid');
-  const status = document.getElementById('qr-status');
-  if (!grid) return;
-
-  if (!materials.length) {
-    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">尚無材料，請先到材料主檔新增</div>';
-    if (status) status.textContent = '';
-    return;
-  }
-
-  grid.innerHTML = materials.map(m => `
-    <div class="qr-card">
-      <div class="qr-img-wrap" id="qrc-wrap-${m.id}">
-        <span class="qr-loading">產生中…</span>
-      </div>
-      <div style="font-size:11px;color:var(--text-3);margin-bottom:2px">${m.id}</div>
-      <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px">${esc(m.brand || '—')}</div>
-      <div style="font-size:11px;color:var(--text-2);margin-bottom:6px;min-height:28px;line-height:1.5">${esc(m.model)}</div>
-      <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">$${(m.price || 0).toLocaleString()}</div>
-      <button class="btn" style="width:100%;justify-content:center;font-size:12px" onclick="printOneQR('${m.id}')">列印這張</button>
-    </div>
-  `).join('');
-
-  if (status) status.textContent = '產生中…';
-  const libReady    = await waitForQRCode();
-  const usedFallback = !libReady;
-
-  for (const m of materials) {
-    const wrap = document.getElementById('qrc-wrap-' + m.id);
-    if (!wrap) continue;
-    try {
-      const src = await generateQRImage(buildScanURL(m), libReady);
-      wrap.dataset.qrSrc = src;
-      wrap.innerHTML = `<img src="${src}" alt="QR ${m.id}" width="150" height="150" loading="lazy">`;
-    } catch (err) {
-      wrap.innerHTML = `<span style="font-size:10px;color:var(--red)">QR 失敗</span>`;
-    }
-  }
-
-  if (status) {
-    status.textContent = usedFallback
-      ? '已使用外部 QR 服務（需網路）'
-      : `已產生 ${materials.length} 個 QR 碼`;
-  }
-}
-
-function getQRSrc(id) {
-  const wrap = document.getElementById('qrc-wrap-' + id);
-  if (!wrap) return null;
-  return wrap.dataset.qrSrc || (wrap.querySelector('img') ? wrap.querySelector('img').src : null);
-}
-
-function printOneQR(id) {
-  const m   = materials.find(x => x.id === id);
-  if (!m) return;
-  const src = getQRSrc(id);
-  if (!src) { toast('QR 碼尚未產生，請稍候'); return; }
-  const win = window.open('', '_blank');
-  if (!win) { toast('請允許瀏覽器開啟彈出視窗'); return; }
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>QR ${m.id}</title>
-  <style>body{font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#fff}
-  .box{border:2px solid #000;border-radius:8px;padding:16px;text-align:center;width:200px}
-  img{display:block;margin:0 auto 8px;width:160px;height:160px}
-  .id{font-size:11px;color:#666}.name{font-size:15px;font-weight:700;margin:2px 0}
-  .spec{font-size:10px;color:#444;line-height:1.4}.price{font-size:13px;font-weight:600;color:#1a6b4a}
-  @media print{body{min-height:auto}}</style></head><body>
-  <div class="box"><img src="${src}">
-  <div class="id">${m.id}</div><div class="name">${esc(m.brand || m.model.substring(0,10))}</div>
-  <div class="spec">${esc(m.model)}</div><div class="price">$${(m.price||0).toLocaleString()}</div></div>
-  <script>window.addEventListener('load',()=>setTimeout(()=>window.print(),300))<\/script></body></html>`);
-  win.document.close();
-}
-
-function printAllQR() {
-  const items = materials.map(m => {
-    const src = getQRSrc(m.id);
-    return src ? { m, src } : null;
-  }).filter(Boolean);
-  if (!items.length) { toast('請先到 QR 碼頁面等 QR 產生完畢'); return; }
-  const win = window.open('', '_blank');
-  if (!win) { toast('請允許瀏覽器開啟彈出視窗'); return; }
-  const html = items.map(({ m, src }) => `
-    <div class="box"><img src="${src}">
-    <div class="id">${m.id}</div><div class="name">${esc(m.brand || m.model.substring(0,10))}</div>
-    <div class="spec">${esc(m.model)}</div><div class="price">$${(m.price||0).toLocaleString()}</div></div>`).join('');
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>QR 全部列印</title>
-  <style>body{font-family:Arial,sans-serif;margin:16px;background:#fff}
-  .grid{display:flex;flex-wrap:wrap;gap:12px}
-  .box{border:2px solid #000;border-radius:8px;padding:12px;text-align:center;width:170px;page-break-inside:avoid}
-  img{display:block;margin:0 auto 6px;width:130px;height:130px}
-  .id{font-size:10px;color:#666}.name{font-size:13px;font-weight:700;margin:2px 0}
-  .spec{font-size:9px;color:#444;line-height:1.4}.price{font-size:11px;font-weight:600;color:#1a6b4a}
-  @media print{body{margin:8px}}</style></head><body>
-  <div class="grid">${html}</div>
-  <script>window.addEventListener('load',()=>setTimeout(()=>window.print(),500))<\/script></body></html>`);
-  win.document.close();
-}
-
 // ── 材料卡 ──────────────────────────────────────────────
 function buildModelList() {
   const dl = document.getElementById('model-list');
@@ -1241,22 +1043,13 @@ async function createCardSheet() {
 // ── 出貨單 ───────────────────────────────────────────
 let invoiceItems = [];
 let currentInvoiceId = null;
-let invoiceSource = 'manual';
-let invoiceOcrText = '';
-let invoiceImageUrl = '';
 const INV_EMPTY_ROWS = 5;
 
 function newInvoice() {
   currentInvoiceId = null;
-  invoiceSource = 'manual';
-  invoiceOcrText = '';
-  invoiceImageUrl = '';
   document.getElementById('inv-no').value = '';
   document.getElementById('inv-date').value = new Date().toISOString().slice(0, 10);
   document.getElementById('inv-customer').value = '';
-  document.getElementById('invoice-preview').style.display = 'none';
-  document.getElementById('invoice-loading').style.display = 'none';
-  document.getElementById('ocr-text-card').style.display = 'none';
   document.getElementById('invoice-status').textContent = '';
   invoiceItems = [];
   for (let i = 0; i < INV_EMPTY_ROWS; i++) invoiceItems.push({ seq: i+1, name: '', qty: '', amount: '', note: '' });
@@ -1302,70 +1095,6 @@ function removeInvItem(i) {
   calcInvTotal();
 }
 
-function toggleOcrText() {
-  const body = document.getElementById('ocr-text-body');
-  const arrow = document.getElementById('ocr-text-arrow');
-  const open = body.style.display === 'block';
-  body.style.display = open ? 'none' : 'block';
-  arrow.textContent = open ? '▸' : '▾';
-}
-
-function handleInvoiceUpload(input) {
-  if (!input.files || !input.files[0]) return;
-  const file = input.files[0];
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    document.getElementById('invoice-img').src = e.target.result;
-    document.getElementById('invoice-preview').style.display = 'block';
-    document.getElementById('invoice-loading').style.display = 'block';
-
-    const base64 = e.target.result.split(',')[1];
-    fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'ocrInvoice', image: base64, fileName: file.name })
-    })
-    .then(r => r.json())
-    .then(data => {
-      document.getElementById('invoice-loading').style.display = 'none';
-      if (data.ok) {
-        const p = data.parsed || {};
-        document.getElementById('inv-no').value = p.invoiceNo || '';
-        document.getElementById('inv-customer').value = p.customer || '';
-        if (p.date) {
-          const parts = p.date.split('/');
-          if (parts.length === 3) document.getElementById('inv-date').value = parts[0] + '-' + parts[1] + '-' + parts[2];
-        }
-        invoiceSource = 'ocr';
-        invoiceOcrText = data.ocrText || '';
-        invoiceImageUrl = data.imageUrl || '';
-        document.getElementById('inv-ocr-text').textContent = invoiceOcrText;
-        document.getElementById('ocr-text-card').style.display = 'block';
-        if (p.items && p.items.length) {
-          invoiceItems = p.items.map((it, idx) => ({
-            seq: idx + 1, name: it.name || '', qty: it.qty || '', amount: it.amount || '', note: ''
-          }));
-        }
-        renderInvItems();
-        calcInvTotal();
-        toast('辨識完成，共 ' + (p.items ? p.items.length : 0) + ' 筆品項');
-      } else {
-        var errMsg = '辨識失敗：' + (data.error || '未知錯誤');
-        toast(errMsg);
-        document.getElementById('invoice-status').textContent = errMsg;
-      }
-    })
-    .catch(err => {
-      document.getElementById('invoice-loading').style.display = 'none';
-      var errMsg = '辨識失敗：' + (err.message || err);
-      toast(errMsg);
-      document.getElementById('invoice-status').textContent = errMsg;
-    });
-  };
-  reader.readAsDataURL(file);
-  input.value = '';
-}
-
 async function saveInvoice() {
   const invoiceNo = document.getElementById('inv-no').value.trim();
   const date = document.getElementById('inv-date').value;
@@ -1382,7 +1111,7 @@ async function saveInvoice() {
         action: 'saveInvoice', recordId: currentInvoiceId,
         supplier: '', invoiceNo, date, customer,
         items: items.map((it, i) => ({ seq: i+1, name: it.name, qty: Number(it.qty)||0, amount: Number(it.amount)||0, note: it.note||'' })),
-        totalAmount, source: invoiceSource, ocrText: invoiceOcrText, imageUrl: invoiceImageUrl
+        totalAmount, source: 'manual', ocrText: '', imageUrl: ''
       })
     });
     const result = await resp.json();
@@ -1542,19 +1271,12 @@ function editSalesRecord(recordId) {
   if (dv) { var dd = new Date(dv); if (!isNaN(dd)) dv = dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0'); }
   document.getElementById('inv-date').value = dv;
   document.getElementById('inv-customer').value = r['客戶'] || '';
-  invoiceSource = r['來源'] || 'manual';
-  invoiceOcrText = r['OCR原文'] || '';
-  invoiceImageUrl = r['圖片連結'] || '';
-  if (invoiceOcrText) {
-    document.getElementById('inv-ocr-text').textContent = invoiceOcrText;
-    document.getElementById('ocr-text-card').style.display = 'block';
-  }
   let items = [];
   try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
   invoiceItems = items.length ? items : [{ seq:1, name:'', qty:'', amount:'', note:'' }];
   renderInvItems();
   calcInvTotal();
-  showPage('invoice', document.querySelectorAll('header nav a')[3]);
+  showPage('invoice', document.querySelectorAll('header nav a')[2]);
   toast('已載入 ' + recordId + ' 編輯中');
 }
 
