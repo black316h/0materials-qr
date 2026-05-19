@@ -369,11 +369,11 @@
       <table>
         <thead>
           <tr>
-            <th style="width:36px;font-size:14px">項次</th>
-            <th style="font-size:14px">品名規格</th>
-            <th style="width:60px;font-size:14px">數量</th>
-            <th style="width:90px;font-size:14px">金額</th>
-            <th style="font-size:14px">備註</th>
+            <th style="width:36px">項次</th>
+            <th>品名規格</th>
+            <th style="width:60px">數量</th>
+            <th style="width:90px">金額</th>
+            <th>備註</th>
             <th style="width:30px"></th>
           </tr>
         </thead>
@@ -1125,11 +1125,15 @@ function renderInvItems() {
       <td><input class="card-inp" data-field="note" data-idx="${i}" oninput="invoiceItems[${i}].note=this.value"></td>
       <td style="text-align:center"><button onclick="removeInvItem(${i})" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;opacity:0.4">×</button></td>
     </tr>`).join('');
-  // Set values via JS to avoid quote/encoding issues on mobile
-  tbody.querySelectorAll('input[data-field]').forEach(inp => {
+  setInvInputValues();
+}
+function setInvInputValues() {
+  document.querySelectorAll('#inv-items-tbody input[data-field]').forEach(inp => {
     const idx = parseInt(inp.dataset.idx);
     const field = inp.dataset.field;
-    inp.value = invoiceItems[idx][field] || '';
+    const val = invoiceItems[idx] ? (invoiceItems[idx][field] || '') : '';
+    inp.value = val;
+    inp.setAttribute('value', val);
   });
 }
 
@@ -1209,6 +1213,7 @@ function filterPickerMaterials() {
 function pickMaterial(matId) {
   const m = materials.find(x => x.id === matId);
   if (!m) return;
+  hideMaterialPicker();
   let idx = invoiceItems.findIndex(it => !it.name && !it.qty && !it.amount);
   if (idx < 0) { idx = invoiceItems.length; invoiceItems.push({}); }
   invoiceItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '' };
