@@ -386,7 +386,7 @@
   <div class="card">
     <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr">
       <div class="form-group">
-        <label>台照（客戶）</label>
+        <label>客戶名稱</label>
         <input id="inv-customer" placeholder="客戶名稱">
       </div>
       <div class="form-group">
@@ -407,9 +407,8 @@
           <tr>
             <th style="width:36px">項次</th>
             <th>品名規格</th>
-            <th style="width:55px">數量</th>
-            <th style="width:70px">單價</th>
-            <th style="width:80px">金額</th>
+            <th style="width:60px">數量</th>
+            <th style="width:90px">金額</th>
             <th>備註</th>
             <th style="width:30px"></th>
           </tr>
@@ -417,7 +416,7 @@
         <tbody id="inv-items-tbody"></tbody>
         <tfoot>
           <tr style="background:var(--bg)">
-            <td colspan="4" style="text-align:right;font-weight:700;border-bottom:none">合計</td>
+            <td colspan="3" style="text-align:right;font-weight:700;border-bottom:none">合計</td>
             <td style="font-weight:700;text-align:right;border-bottom:none" id="inv-total-cell">$0</td>
             <td colspan="2" style="border-bottom:none"></td>
           </tr>
@@ -465,7 +464,7 @@
         <tr>
           <th style="width:90px">紀錄ID</th>
           <th style="width:90px">日期</th>
-          <th>台照</th>
+          <th>客戶名稱</th>
           <th style="width:90px">單號</th>
           <th style="width:90px">合計</th>
           <th style="width:50px">來源</th>
@@ -489,7 +488,6 @@
             <th>料號</th>
             <th>廠牌</th>
             <th>型號</th>
-            <th style="width:70px">單價</th>
             <th style="width:55px"></th>
           </tr>
         </thead>
@@ -1261,7 +1259,7 @@ function newInvoice() {
   document.getElementById('ocr-text-card').style.display = 'none';
   document.getElementById('invoice-status').textContent = '';
   invoiceItems = [];
-  for (let i = 0; i < INV_EMPTY_ROWS; i++) invoiceItems.push({ seq: i+1, name: '', qty: '', price: '', amount: '', note: '' });
+  for (let i = 0; i < INV_EMPTY_ROWS; i++) invoiceItems.push({ seq: i+1, name: '', qty: '', amount: '', note: '' });
   renderInvItems();
   calcInvTotal();
   toast('已清空，可開始填寫新出貨單');
@@ -1272,21 +1270,18 @@ function renderInvItems() {
   tbody.innerHTML = invoiceItems.map((item, i) => `
     <tr>
       <td style="text-align:center;color:var(--text-3);font-size:12px">${i + 1}</td>
-      <td><input class="card-inp" value="${esc(item.name || '')}" oninput="invoiceItems[${i}].name=this.value"></td>
-      <td><input class="card-inp" type="number" value="${item.qty || ''}" oninput="invoiceItems[${i}].qty=this.value;calcItemAmount(${i})" style="text-align:center"></td>
-      <td><input class="card-inp" type="number" value="${item.price || ''}" oninput="invoiceItems[${i}].price=this.value;calcItemAmount(${i})" style="text-align:right"></td>
-      <td><input class="card-inp" type="number" value="${item.amount || ''}" oninput="invoiceItems[${i}].amount=this.value;calcInvTotal()" style="text-align:right"></td>
-      <td><input class="card-inp" value="${esc(item.note || '')}" oninput="invoiceItems[${i}].note=this.value"></td>
+      <td><input class="card-inp" data-field="name" data-idx="${i}" oninput="invoiceItems[${i}].name=this.value"></td>
+      <td><input class="card-inp" type="number" data-field="qty" data-idx="${i}" oninput="invoiceItems[${i}].qty=this.value" style="text-align:center"></td>
+      <td><input class="card-inp" type="number" data-field="amount" data-idx="${i}" oninput="invoiceItems[${i}].amount=this.value;calcInvTotal()" style="text-align:right"></td>
+      <td><input class="card-inp" data-field="note" data-idx="${i}" oninput="invoiceItems[${i}].note=this.value"></td>
       <td style="text-align:center"><button onclick="removeInvItem(${i})" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;opacity:0.4">×</button></td>
     </tr>`).join('');
-}
-
-function calcItemAmount(i) {
-  const qty = Number(invoiceItems[i].qty) || 0;
-  const price = Number(invoiceItems[i].price) || 0;
-  invoiceItems[i].amount = qty * price;
-  renderInvItems();
-  calcInvTotal();
+  // Set values via JS to avoid quote/encoding issues on mobile
+  tbody.querySelectorAll('input[data-field]').forEach(inp => {
+    const idx = parseInt(inp.dataset.idx);
+    const field = inp.dataset.field;
+    inp.value = invoiceItems[idx][field] || '';
+  });
 }
 
 function calcInvTotal() {
@@ -1296,12 +1291,12 @@ function calcInvTotal() {
 }
 
 function addInvItem() {
-  invoiceItems.push({ seq: invoiceItems.length + 1, name: '', qty: '', price: '', amount: '', note: '' });
+  invoiceItems.push({ seq: invoiceItems.length + 1, name: '', qty: '', amount: '', note: '' });
   renderInvItems();
 }
 
 function removeInvItem(i) {
-  if (invoiceItems.length <= 1) { invoiceItems[0] = { seq:1, name:'', qty:'', price:'', amount:'', note:'' }; }
+  if (invoiceItems.length <= 1) { invoiceItems[0] = { seq:1, name:'', qty:'', amount:'', note:'' }; }
   else invoiceItems.splice(i, 1);
   renderInvItems();
   calcInvTotal();
@@ -1348,7 +1343,7 @@ function handleInvoiceUpload(input) {
         document.getElementById('ocr-text-card').style.display = 'block';
         if (p.items && p.items.length) {
           invoiceItems = p.items.map((it, idx) => ({
-            seq: idx + 1, name: it.name || '', qty: it.qty || '', price: it.price || '', amount: it.amount || '', note: ''
+            seq: idx + 1, name: it.name || '', qty: it.qty || '', amount: it.amount || '', note: ''
           }));
         }
         renderInvItems();
@@ -1386,7 +1381,7 @@ async function saveInvoice() {
       body: JSON.stringify({
         action: 'saveInvoice', recordId: currentInvoiceId,
         supplier: '', invoiceNo, date, customer,
-        items: items.map((it, i) => ({ seq: i+1, name: it.name, qty: Number(it.qty)||0, price: Number(it.price)||0, amount: Number(it.amount)||0, note: it.note||'' })),
+        items: items.map((it, i) => ({ seq: i+1, name: it.name, qty: Number(it.qty)||0, amount: Number(it.amount)||0, note: it.note||'' })),
         totalAmount, source: invoiceSource, ocrText: invoiceOcrText, imageUrl: invoiceImageUrl
       })
     });
@@ -1424,16 +1419,15 @@ function filterPickerMaterials() {
       <td><span class="badge badge-blue">${esc(m.id)}</span></td>
       <td>${esc(m.brand||'')}</td>
       <td style="font-size:12px">${esc(m.model)}</td>
-      <td style="text-align:right">$${(m.price||0).toLocaleString()}</td>
       <td><button class="btn btn-sm btn-primary" onclick="pickMaterial('${esc(m.id)}')">選取</button></td>
-    </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text-3)">沒有符合的材料</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text-3)">沒有符合的材料</td></tr>';
 }
 function pickMaterial(matId) {
   const m = materials.find(x => x.id === matId);
   if (!m) return;
-  let idx = invoiceItems.findIndex(it => !it.name && !it.qty && !it.price);
+  let idx = invoiceItems.findIndex(it => !it.name && !it.qty && !it.amount);
   if (idx < 0) { idx = invoiceItems.length; invoiceItems.push({}); }
-  invoiceItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, price: m.price || 0, amount: m.price || 0, note: '' };
+  invoiceItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '' };
   renderInvItems();
   calcInvTotal();
   toast('已加入：' + m.brand + ' ' + m.model);
@@ -1511,24 +1505,23 @@ function viewSalesDetail(recordId) {
   const content = document.getElementById('sales-detail-content');
   content.innerHTML = `
     <div class="form-grid" style="margin-bottom:1rem;grid-template-columns:1fr 1fr 1fr">
-      <div class="form-group"><label>台照（客戶）</label><div style="padding:8px 0;font-weight:500">${esc(r['客戶']||'—')}</div></div>
+      <div class="form-group"><label>客戶名稱</label><div style="padding:8px 0;font-weight:500">${esc(r['客戶']||'—')}</div></div>
       <div class="form-group"><label>出貨單號</label><div style="padding:8px 0;font-weight:500">${esc(r['出貨單號']||'—')}</div></div>
       <div class="form-group"><label>日期</label><div style="padding:8px 0;font-weight:500">${fmtDate(r['日期'])}</div></div>
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>項次</th><th>品名規格</th><th>數量</th><th>單價</th><th>金額</th><th>備註</th></tr></thead>
+        <thead><tr><th>項次</th><th>品名規格</th><th>數量</th><th>金額</th><th>備註</th></tr></thead>
         <tbody>${items.map((it,i) => `
           <tr>
             <td style="text-align:center">${it.seq || (i+1)}</td>
             <td>${esc(it.name||'')}</td>
             <td style="text-align:center">${it.qty||''}</td>
-            <td style="text-align:right">$${(Number(it.price)||0).toLocaleString()}</td>
             <td style="text-align:right">$${(Number(it.amount)||0).toLocaleString()}</td>
             <td>${esc(it.note||'')}</td>
           </tr>`).join('')}
         </tbody>
-        <tfoot><tr style="background:var(--bg)"><td colspan="4" style="text-align:right;font-weight:700">合計</td><td style="text-align:right;font-weight:700">$${(Number(r['合計金額'])||0).toLocaleString()}</td><td></td></tr></tfoot>
+        <tfoot><tr style="background:var(--bg)"><td colspan="3" style="text-align:right;font-weight:700">合計</td><td style="text-align:right;font-weight:700">$${(Number(r['合計金額'])||0).toLocaleString()}</td><td></td></tr></tfoot>
       </table>
     </div>`;
   document.getElementById('sales-edit-btn').setAttribute('onclick', `editSalesRecord('${esc(recordId)}')`);
@@ -1558,7 +1551,7 @@ function editSalesRecord(recordId) {
   }
   let items = [];
   try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
-  invoiceItems = items.length ? items : [{ seq:1, name:'', qty:'', unit:'', price:'', amount:'' }];
+  invoiceItems = items.length ? items : [{ seq:1, name:'', qty:'', amount:'', note:'' }];
   renderInvItems();
   calcInvTotal();
   showPage('invoice', document.querySelectorAll('header nav a')[3]);
