@@ -327,23 +327,39 @@
     </div>
   </div>
 
+  <!-- 廠商管理（可收合） -->
+  <div class="card" style="margin-top:1rem">
+    <div class="brand-card-title card-title" onclick="toggleSuppMgmt()" style="margin-bottom:0">
+      <span>廠商管理</span>
+      <span id="supp-arrow" style="font-size:14px;font-weight:normal">▸</span>
+    </div>
+    <div id="supp-mgmt-body" style="display:none;margin-top:1rem">
+      <div id="supp-chips"></div>
+      <div class="brand-add-row">
+        <input id="f-new-supp" placeholder="輸入新廠商名稱">
+        <button class="btn btn-primary btn-sm" onclick="addSupplier()">＋ 新增廠商</button>
+      </div>
+    </div>
+  </div>
+
   <div class="table-wrap" style="margin-top:1rem">
     <table>
       <thead>
         <tr>
           <th style="width:46px">序號</th>
+          <th style="width:90px">廠商</th>
           <th style="width:90px">廠牌</th>
           <th>型號</th>
-          <th style="width:95px">類別</th>
-          <th style="width:65px">數量</th>
-          <th style="width:85px">金額</th>
+          <th style="width:80px">類別</th>
+          <th style="width:55px">數量</th>
+          <th style="width:75px">金額</th>
           <th style="width:32px"></th>
         </tr>
       </thead>
       <tbody id="card-tbody"></tbody>
       <tfoot>
         <tr style="background:var(--bg)">
-          <td colspan="5" style="text-align:right;font-weight:700;border-bottom:none">合計</td>
+          <td colspan="6" style="text-align:right;font-weight:700;border-bottom:none">合計</td>
           <td style="font-weight:700;text-align:right;border-bottom:none" id="card-total-cell">$0</td>
           <td style="border-bottom:none"></td>
         </tr>
@@ -478,6 +494,7 @@
 
 </div><!-- /.main -->
 <datalist id="model-list"></datalist>
+<datalist id="supp-list"></datalist>
 <div class="toast" id="toast"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -488,6 +505,7 @@ const STORAGE_KEY_BRANDS = 'mat_brands_v1';
 const STORAGE_KEY_CATS   = 'mat_cats_v1';
 const STORAGE_KEY_CUSTS  = 'mat_customers_v1';
 const STORAGE_KEY_PROJS  = 'mat_projects_v1';
+const STORAGE_KEY_SUPPS  = 'mat_suppliers_v1';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwr2o0j-xcsFHO7CaPTWomMkWshBQ39G3aRB25bPRN1DD-VCDq89_e971JnYLrrNPmUgQ/exec';
 
 // ── 資料 ──────────────────────────────────────────────
@@ -509,6 +527,7 @@ let cats = JSON.parse(localStorage.getItem(STORAGE_KEY_CATS) || 'null')
 
 let customers = JSON.parse(localStorage.getItem(STORAGE_KEY_CUSTS) || 'null') || [];
 let projects  = JSON.parse(localStorage.getItem(STORAGE_KEY_PROJS) || 'null') || [];
+let suppliers = JSON.parse(localStorage.getItem(STORAGE_KEY_SUPPS) || 'null') || [];
 
 let materials = (JSON.parse(localStorage.getItem(STORAGE_KEY_MAT) || 'null') || [
   {id:'M00001',brand:'雙梅',model:'金庫型 350×280×180 橫',price:770,cat:'控制箱'},
@@ -574,6 +593,7 @@ function save() {
   localStorage.setItem(STORAGE_KEY_CATS,   JSON.stringify(cats));
   localStorage.setItem(STORAGE_KEY_CUSTS,  JSON.stringify(customers));
   localStorage.setItem(STORAGE_KEY_PROJS,  JSON.stringify(projects));
+  localStorage.setItem(STORAGE_KEY_SUPPS,  JSON.stringify(suppliers));
   syncToCloud();
 }
 // 同步到 Google Sheets（背景執行，不阻塞 UI）
@@ -582,7 +602,7 @@ function syncToCloud() {
   fetch(GAS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ action: 'sync', materials, brands, cats, customers, projects })
+    body: JSON.stringify({ action: 'sync', materials, brands, cats, customers, projects, suppliers })
   }).catch(() => {});
 }
 // 從 Google Sheets 載入資料（頁面開啟時呼叫）
@@ -597,11 +617,13 @@ async function loadFromCloud() {
       cats      = data.cats      && data.cats.length      ? data.cats      : cats;
       customers = data.customers && data.customers.length ? data.customers : customers;
       projects  = data.projects  && data.projects.length  ? data.projects  : projects;
+      suppliers = data.suppliers && data.suppliers.length ? data.suppliers : suppliers;
       localStorage.setItem(STORAGE_KEY_MAT,    JSON.stringify(materials));
       localStorage.setItem(STORAGE_KEY_BRANDS, JSON.stringify(brands));
       localStorage.setItem(STORAGE_KEY_CATS,   JSON.stringify(cats));
       localStorage.setItem(STORAGE_KEY_CUSTS,  JSON.stringify(customers));
       localStorage.setItem(STORAGE_KEY_PROJS,  JSON.stringify(projects));
+      localStorage.setItem(STORAGE_KEY_SUPPS,  JSON.stringify(suppliers));
       nextNum = materials.reduce((m,x) => Math.max(m, parseInt(x.id.slice(1))), 0) + 1;
       clearForm();
       renderFilterBtns();
@@ -609,6 +631,7 @@ async function loadFromCloud() {
       buildModelList();
       renderCustOptions();
       renderProjOptions();
+      renderSuppOptions();
       toast('已從雲端載入資料');
     } else {
       syncToCloud();
@@ -835,6 +858,48 @@ function deleteProject(idx) {
   toast('已刪除案件：' + name);
 }
 
+// ── 廠商管理 ─────────────────────────────────────────
+function renderSuppOptions() {
+  const dl = document.getElementById('supp-list');
+  if (dl) dl.innerHTML = suppliers.map(s => `<option value="${esc(s)}">`).join('');
+}
+function renderSuppChips() {
+  document.getElementById('supp-chips').innerHTML =
+    suppliers.length
+      ? suppliers.map((s, i) => `
+          <span class="brand-chip">
+            ${esc(s)}
+            <button class="chip-del" title="刪除" onclick="deleteSupplier(${i})">×</button>
+          </span>`).join('')
+      : '<span style="font-size:12px;color:var(--text-3)">尚無廠商，請新增</span>';
+  renderSuppOptions();
+}
+function toggleSuppMgmt() {
+  const body  = document.getElementById('supp-mgmt-body');
+  const arrow = document.getElementById('supp-arrow');
+  const open  = body.style.display === 'block';
+  body.style.display = open ? 'none' : 'block';
+  arrow.textContent  = open ? '▸' : '▾';
+  if (!open) renderSuppChips();
+}
+function addSupplier() {
+  const name = document.getElementById('f-new-supp').value.trim();
+  if (!name) { toast('請輸入廠商名稱'); return; }
+  if (suppliers.includes(name)) { toast('廠商已存在'); return; }
+  suppliers.push(name);
+  save();
+  renderSuppChips();
+  document.getElementById('f-new-supp').value = '';
+  toast('已新增廠商：' + name);
+}
+function deleteSupplier(idx) {
+  const name = suppliers[idx];
+  suppliers.splice(idx, 1);
+  save();
+  renderSuppChips();
+  toast('已刪除廠商：' + name);
+}
+
 // ── 篩選按鈕（依類別動態產生）─────────────────────────
 function renderFilterBtns() {
   const row = document.getElementById('filter-row');
@@ -1020,9 +1085,9 @@ function buildModelList() {
 function addToCard(id) {
   const m = materials.find(x => x.id === id);
   if (!m) return;
-  let idx = cardItems.findIndex(item => !item.brand && !item.model && !item.cat && !item.qty && !item.amount);
-  if (idx < 0) { idx = cardItems.length; cardItems.push({ brand: '', model: '', cat: '', qty: '', amount: '' }); }
-  cardItems[idx] = { brand: m.brand || '', model: m.model || '', cat: m.cat || '', qty: 1, amount: m.price || 0 };
+  let idx = cardItems.findIndex(item => !item.supplier && !item.brand && !item.model && !item.cat && !item.qty && !item.amount);
+  if (idx < 0) { idx = cardItems.length; cardItems.push({ supplier: '', brand: '', model: '', cat: '', qty: '', amount: '' }); }
+  cardItems[idx] = { supplier: '', brand: m.brand || '', model: m.model || '', cat: m.cat || '', qty: 1, amount: m.price || 0 };
   renderCardTable();
   calcCardTotal();
   toast('已加入材料卡：' + m.brand + ' ' + m.model);
@@ -1045,15 +1110,17 @@ let cardItems = [];
 function initCardItems() {
   cardItems = [];
   for (let i = 0; i < MIN_CARD_ROWS; i++)
-    cardItems.push({ brand: '', model: '', cat: '', qty: '', amount: '' });
+    cardItems.push({ supplier: '', brand: '', model: '', cat: '', qty: '', amount: '' });
 }
 
 function renderCardTable() {
   const tbody = document.getElementById('card-tbody');
   if (!tbody) return;
+  const suppOpts = suppliers.map(s => `<option value="${esc(s)}">`).join('');
   tbody.innerHTML = cardItems.map((item, i) => `
     <tr>
       <td style="text-align:center;color:var(--text-3);font-size:12px">${i + 1}</td>
+      <td><input class="card-inp" value="${esc(item.supplier || '')}" oninput="cardItems[${i}].supplier=this.value" list="supp-list"></td>
       <td><input class="card-inp" value="${esc(item.brand)}" oninput="cardItems[${i}].brand=this.value"></td>
       <td><input class="card-inp" value="${esc(item.model)}" oninput="cardItems[${i}].model=this.value" list="model-list"></td>
       <td><input class="card-inp" value="${esc(item.cat)}" oninput="cardItems[${i}].cat=this.value"></td>
@@ -1070,13 +1137,13 @@ function calcCardTotal() {
 }
 
 function addCardRow() {
-  cardItems.push({ brand: '', model: '', cat: '', qty: '', amount: '' });
+  cardItems.push({ supplier: '', brand: '', model: '', cat: '', qty: '', amount: '' });
   renderCardTable();
 }
 
 function removeCardRow(i) {
   if (cardItems.length <= MIN_CARD_ROWS) {
-    cardItems[i] = { brand: '', model: '', cat: '', qty: '', amount: '' };
+    cardItems[i] = { supplier: '', brand: '', model: '', cat: '', qty: '', amount: '' };
   } else {
     cardItems.splice(i, 1);
   }
@@ -1106,10 +1173,10 @@ async function loadQueuedItems() {
   if (localQueue.length) localStorage.removeItem(QUEUE_KEY);
   if (!queue.length) { renderCardTable(); return; }
 
-  let insertIdx = cardItems.findIndex(item => !item.brand && !item.model && !item.cat && !item.qty && !item.amount);
+  let insertIdx = cardItems.findIndex(item => !item.supplier && !item.brand && !item.model && !item.cat && !item.qty && !item.amount);
   if (insertIdx < 0) insertIdx = cardItems.length;
   queue.forEach((item, i) => {
-    const row = { brand: item.brand || '', model: item.model || '', cat: item.cat || '', qty: item.qty || '', amount: item.amount || '' };
+    const row = { supplier: '', brand: item.brand || '', model: item.model || '', cat: item.cat || '', qty: item.qty || '', amount: item.amount || '' };
     const idx = insertIdx + i;
     if (idx < cardItems.length) cardItems[idx] = row;
     else cardItems.push(row);
@@ -1140,7 +1207,7 @@ async function createCardSheet() {
   const date     = document.getElementById('card-date').value;
   if (!customer) { toast('請選擇客戶名稱'); return; }
   if (!project)  { toast('請選擇案件名稱'); return; }
-  const items = cardItems.filter(item => item.brand || item.model || item.cat || item.qty || item.amount);
+  const items = cardItems.filter(item => item.supplier || item.brand || item.model || item.cat || item.qty || item.amount);
   if (!items.length) { toast('請至少填寫一筆項目'); return; }
   const sheetName = date + '_' + customer + '_' + project;
   const total = items.reduce((s, item) => s + (Number(item.amount) || 0), 0);
@@ -1151,7 +1218,7 @@ async function createCardSheet() {
       method: 'POST', headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
         action: 'createSheet', sheetName, customer, cardNo, project, date, total,
-        items: items.map((item, i) => ({ seq: i + 1, brand: item.brand, model: item.model, cat: item.cat, qty: Number(item.qty) || 0, amount: Number(item.amount) || 0 }))
+        items: items.map((item, i) => ({ seq: i + 1, supplier: item.supplier || '', brand: item.brand, model: item.model, cat: item.cat, qty: Number(item.qty) || 0, amount: Number(item.amount) || 0 }))
       })
     });
     const result = await resp.json();
@@ -1302,9 +1369,9 @@ function pickMaterial(matId) {
   if (!m) return;
   hideMaterialPicker();
   if (pickerTarget === 'card') {
-    let idx = cardItems.findIndex(item => !item.brand && !item.model && !item.cat && !item.qty && !item.amount);
-    if (idx < 0) { idx = cardItems.length; cardItems.push({ brand: '', model: '', cat: '', qty: '', amount: '' }); }
-    cardItems[idx] = { brand: m.brand || '', model: m.model || '', cat: m.cat || '', qty: 1, amount: m.price || 0 };
+    let idx = cardItems.findIndex(item => !item.supplier && !item.brand && !item.model && !item.cat && !item.qty && !item.amount);
+    if (idx < 0) { idx = cardItems.length; cardItems.push({ supplier: '', brand: '', model: '', cat: '', qty: '', amount: '' }); }
+    cardItems[idx] = { supplier: '', brand: m.brand || '', model: m.model || '', cat: m.cat || '', qty: 1, amount: m.price || 0 };
     renderCardTable();
     calcCardTotal();
     toast('已加入材料卡：' + m.brand + ' ' + m.model);
@@ -1443,6 +1510,7 @@ buildModelList();
 initCardItems();
 renderCustOptions();
 renderProjOptions();
+renderSuppOptions();
 const today = new Date();
 const todayStr = today.getFullYear() + String(today.getMonth()+1).padStart(2,'0') + String(today.getDate()).padStart(2,'0');
 document.getElementById('card-date').value = today.toISOString().slice(0, 10);
