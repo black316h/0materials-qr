@@ -241,7 +241,7 @@
 
   <!-- 搜尋列 -->
   <div class="search-row">
-    <input id="search" placeholder="搜尋廠牌、型號…" oninput="renderTable()">
+    <input id="search" placeholder="搜尋廠牌、型號…" oninput="debounceRender()">
     <div class="filter-row" id="filter-row"></div>
     <span id="mat-count"></span>
   </div>
@@ -260,6 +260,9 @@
       </thead>
       <tbody id="mat-tbody"></tbody>
     </table>
+  </div>
+  <div id="load-more-row" style="display:none;text-align:center;padding:1rem">
+    <button class="btn" onclick="showMoreMats()" id="load-more-btn" style="width:100%">顯示更多</button>
   </div>
 </div>
 
@@ -956,22 +959,40 @@ function saveEdit(id) {
 }
 
 // ── 渲染資料表 ────────────────────────────────────────
+let _searchTimer;
+function debounceRender() {
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(renderTable, 200);
+}
+const PAGE_SIZE = 100;
+let displayLimit = PAGE_SIZE;
+let filteredRows = [];
+
 function renderTable() {
+  displayLimit = PAGE_SIZE;
   const q    = (document.getElementById('search').value || '').toLowerCase();
-  const rows = materials.filter(m => {
+  filteredRows = materials.filter(m => {
     const matchQ   = !q || (m.brand||'').toLowerCase().includes(q) || m.model.toLowerCase().includes(q);
     const matchCat = !filterCat || m.cat === filterCat;
     return matchQ && matchCat;
   });
-  document.getElementById('mat-count').textContent = `共 ${rows.length} 筆`;
+  document.getElementById('mat-count').textContent = `共 ${filteredRows.length} 筆`;
+  renderTableRows();
+}
+function showMoreMats() {
+  displayLimit += PAGE_SIZE;
+  renderTableRows();
+}
+function renderTableRows() {
   const tbody = document.getElementById('mat-tbody');
-  if (!rows.length) {
+  if (!filteredRows.length) {
     tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state">沒有符合的材料</div></td></tr>';
+    document.getElementById('load-more-row').style.display = 'none';
     return;
   }
-  tbody.innerHTML = rows.map(m => {
+  const visible = filteredRows.slice(0, displayLimit);
+  tbody.innerHTML = visible.map(m => {
     if (m.id === editingId) {
-      // 編輯列
       const brandOpts = renderBrandOptions(editBuf.brand);
       const catOpts   = renderCatOptions(editBuf.cat);
       return `<tr class="editing" data-id="${m.id}">
@@ -985,7 +1006,6 @@ function renderTable() {
         </td>
       </tr>`;
     }
-    // 一般列
     return `<tr data-id="${m.id}">
       <td>${esc(m.brand || '—')}</td>
       <td style="font-size:12px">${esc(m.model)}</td>
@@ -999,6 +1019,14 @@ function renderTable() {
       </td>
     </tr>`;
   }).join('');
+  // 顯示更多按鈕
+  const moreRow = document.getElementById('load-more-row');
+  if (displayLimit < filteredRows.length) {
+    moreRow.style.display = 'block';
+    document.getElementById('load-more-btn').textContent = `顯示更多（已顯示 ${visible.length} / ${filteredRows.length} 筆）`;
+  } else {
+    moreRow.style.display = 'none';
+  }
 }
 
 // ── Excel 匯入 ──────────────────────────────────────────
