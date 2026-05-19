@@ -625,10 +625,11 @@ function esc(s) {
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
-function toast(msg) {
+function toast(msg, duration) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2200);
+  const ms = duration || (msg.includes('失敗') || msg.includes('錯誤') ? 6000 : 2500);
+  setTimeout(() => t.classList.remove('show'), ms);
 }
 
 // ── 頁面切換 ──────────────────────────────────────────
