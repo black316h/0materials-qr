@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>竑記專用進銷存系統</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a1916">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="竑記進銷存">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <style>
   :root {
     --bg: #f5f4f0;
@@ -1377,6 +1384,11 @@ newInvoice();
 document.addEventListener('visibilitychange', function() {
   if (!document.hidden) loadQueuedItems();
 });
+
+// PWA Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(function() {});
+}
 </script>
 </body>
 </html>
