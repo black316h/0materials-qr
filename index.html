@@ -374,11 +374,11 @@
       <table>
         <thead>
           <tr>
-            <th style="width:36px">項次</th>
-            <th>品名規格</th>
-            <th style="width:60px">數量</th>
-            <th style="width:90px">金額</th>
-            <th>備註</th>
+            <th style="width:36px;font-size:14px">項次</th>
+            <th style="font-size:14px">品名規格</th>
+            <th style="width:60px;font-size:14px">數量</th>
+            <th style="width:90px;font-size:14px">金額</th>
+            <th style="font-size:14px">備註</th>
             <th style="width:30px"></th>
           </tr>
         </thead>
@@ -904,8 +904,7 @@ function addToCard(id) {
   cardItems[idx] = { brand: m.brand || '', model: m.model || '', cat: m.cat || '', qty: 1, amount: m.price || 0 };
   renderCardTable();
   calcCardTotal();
-  showPage('card', document.querySelector('nav a[onclick*="card"]'));
-  toast('已加入：' + m.brand + ' ' + m.model);
+  toast('已加入材料卡：' + m.brand + ' ' + m.model);
 }
 
 const MIN_CARD_ROWS = 20;
