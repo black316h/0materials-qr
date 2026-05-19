@@ -132,7 +132,8 @@
   }
   .card-inp:focus { outline: none; border-color: var(--accent); background: var(--surface); }
   .card-inp::placeholder { color: var(--text-3); }
-  .card-inp[inputmode=numeric] { padding: 6px 4px; }
+  .card-inp[type=number] { text-align: right; -moz-appearance: textfield; padding: 6px 4px; }
+  .card-inp[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
   #inv-items-tbody td { padding: 4px 4px; }
   #inv-items-tbody td:first-child { padding-left: 8px; }
 
@@ -1121,8 +1122,8 @@ function renderInvItems() {
     <tr>
       <td style="text-align:center;color:var(--text-3);font-size:12px">${i + 1}</td>
       <td><input class="card-inp" data-field="name" data-idx="${i}" oninput="invoiceItems[${i}].name=this.value;autoFillQty(${i})"></td>
-      <td><input class="card-inp" inputmode="numeric" pattern="[0-9]*" data-field="qty" data-idx="${i}" oninput="invoiceItems[${i}].qty=this.value" style="text-align:center"></td>
-      <td><input class="card-inp" inputmode="numeric" pattern="[0-9]*" data-field="amount" data-idx="${i}" oninput="invoiceItems[${i}].amount=this.value;calcInvTotal()" style="text-align:right"></td>
+      <td><input class="card-inp" type="number" data-field="qty" data-idx="${i}" oninput="invoiceItems[${i}].qty=this.value" style="text-align:center"></td>
+      <td><input class="card-inp" type="number" data-field="amount" data-idx="${i}" oninput="invoiceItems[${i}].amount=this.value;calcInvTotal()" style="text-align:right"></td>
       <td><input class="card-inp" data-field="note" data-idx="${i}" oninput="invoiceItems[${i}].note=this.value"></td>
       <td style="text-align:center"><button onclick="removeInvItem(${i})" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;opacity:0.4">×</button></td>
     </tr>`).join('');
