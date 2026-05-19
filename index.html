@@ -1119,13 +1119,20 @@ function renderInvItems() {
   tbody.innerHTML = invoiceItems.map((item, i) => `
     <tr>
       <td style="text-align:center;color:var(--text-3);font-size:12px">${i + 1}</td>
-      <td><input class="card-inp" data-field="name" data-idx="${i}" oninput="invoiceItems[${i}].name=this.value"></td>
-      <td><input class="card-inp" type="number" data-field="qty" data-idx="${i}" oninput="invoiceItems[${i}].qty=this.value" style="text-align:center"></td>
-      <td><input class="card-inp" type="number" data-field="amount" data-idx="${i}" oninput="invoiceItems[${i}].amount=this.value;calcInvTotal()" style="text-align:right"></td>
+      <td><input class="card-inp" data-field="name" data-idx="${i}" oninput="invoiceItems[${i}].name=this.value;autoFillQty(${i})"></td>
+      <td><input class="card-inp" inputmode="numeric" pattern="[0-9]*" data-field="qty" data-idx="${i}" oninput="invoiceItems[${i}].qty=this.value" style="text-align:center"></td>
+      <td><input class="card-inp" inputmode="numeric" pattern="[0-9]*" data-field="amount" data-idx="${i}" oninput="invoiceItems[${i}].amount=this.value;calcInvTotal()" style="text-align:right"></td>
       <td><input class="card-inp" data-field="note" data-idx="${i}" oninput="invoiceItems[${i}].note=this.value"></td>
       <td style="text-align:center"><button onclick="removeInvItem(${i})" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;opacity:0.4">×</button></td>
     </tr>`).join('');
   setInvInputValues();
+}
+function autoFillQty(i) {
+  if (invoiceItems[i].name && !invoiceItems[i].qty) {
+    invoiceItems[i].qty = 1;
+    const qtyInp = document.querySelector('#inv-items-tbody input[data-field="qty"][data-idx="'+i+'"]');
+    if (qtyInp) { qtyInp.value = 1; qtyInp.setAttribute('value', '1'); }
+  }
 }
 function setInvInputValues() {
   document.querySelectorAll('#inv-items-tbody input[data-field]').forEach(inp => {
