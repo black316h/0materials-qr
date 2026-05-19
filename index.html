@@ -1355,12 +1355,16 @@ function handleInvoiceUpload(input) {
         calcInvTotal();
         toast('辨識完成，共 ' + (p.items ? p.items.length : 0) + ' 筆品項');
       } else {
-        toast('辨識失敗：' + (data.error || '未知錯誤'));
+        var errMsg = '辨識失敗：' + (data.error || '未知錯誤');
+        toast(errMsg);
+        document.getElementById('invoice-status').textContent = errMsg;
       }
     })
     .catch(err => {
       document.getElementById('invoice-loading').style.display = 'none';
-      toast('辨識失敗：' + (err.message || err));
+      var errMsg = '辨識失敗：' + (err.message || err);
+      toast(errMsg);
+      document.getElementById('invoice-status').textContent = errMsg;
     });
   };
   reader.readAsDataURL(file);
