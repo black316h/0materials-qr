@@ -176,10 +176,6 @@
     <div class="card-title">新增材料</div>
     <div class="form-grid">
       <div class="form-group">
-        <label>料號（自動）</label>
-        <input id="f-id" readonly>
-      </div>
-      <div class="form-group">
         <label>廠牌 <span style="color:var(--red)">*</span></label>
         <select id="f-brand"></select>
       </div>
@@ -234,7 +230,7 @@
 
   <!-- 搜尋列 -->
   <div class="search-row">
-    <input id="search" placeholder="搜尋廠牌、型號、料號…" oninput="renderTable()">
+    <input id="search" placeholder="搜尋廠牌、型號…" oninput="renderTable()">
     <div class="filter-row" id="filter-row"></div>
     <span id="mat-count"></span>
   </div>
@@ -244,7 +240,6 @@
     <table>
       <thead>
         <tr>
-          <th style="width:100px">料號</th>
           <th style="width:90px">廠牌</th>
           <th>型號 / 規格</th>
           <th style="width:95px">類別</th>
@@ -440,12 +435,11 @@
 <div id="material-picker-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)hideMaterialPicker()">
   <div class="modal-content">
     <div class="card-title">從材料主檔選取</div>
-    <input id="picker-search" placeholder="搜尋料號、廠牌、型號…" oninput="filterPickerMaterials()" style="width:100%;margin-bottom:1rem">
+    <input id="picker-search" placeholder="搜尋廠牌、型號…" oninput="filterPickerMaterials()" style="width:100%;margin-bottom:1rem">
     <div class="table-wrap" style="max-height:50vh;overflow-y:auto">
       <table>
         <thead>
           <tr>
-            <th>料號</th>
             <th>廠牌</th>
             <th>型號</th>
             <th style="width:55px"></th>
@@ -804,20 +798,21 @@ function addMaterial() {
   const cat   = document.getElementById('f-cat').value;
   const id    = 'M' + pad(nextNum++);
   materials.push({ id, brand, model, price, cat });
-  save(); renderTable(); clearForm(); toast('已新增 ' + id);
+  save(); renderTable(); clearForm(); toast('已新增：' + brand + ' ' + model);
 }
 function clearForm() {
   document.getElementById('f-model').value = '';
   document.getElementById('f-price').value = '';
-  document.getElementById('f-id').value    = 'M' + pad(nextNum);
   document.getElementById('f-brand').innerHTML = renderBrandOptions(brands[0]);
   document.getElementById('f-cat').innerHTML   = renderCatOptions(cats[0]);
 }
 function deleteMat(id) {
-  if (!confirm('確定刪除 ' + id + '？')) return;
-  materials = materials.filter(m => m.id !== id);
+  const m = materials.find(x => x.id === id);
+  const label = m ? (m.brand + ' ' + m.model) : id;
+  if (!confirm('確定刪除 ' + label + '？')) return;
+  materials = materials.filter(x => x.id !== id);
   if (editingId === id) { editingId = null; editBuf = {}; }
-  save(); renderTable(); toast('已刪除 ' + id);
+  save(); renderTable(); toast('已刪除：' + label);
 }
 
 // ── 內嵌編輯 ──────────────────────────────────────────
@@ -846,14 +841,14 @@ function saveEdit(id) {
 function renderTable() {
   const q    = (document.getElementById('search').value || '').toLowerCase();
   const rows = materials.filter(m => {
-    const matchQ   = !q || m.id.toLowerCase().includes(q) || (m.brand||'').toLowerCase().includes(q) || m.model.toLowerCase().includes(q);
+    const matchQ   = !q || (m.brand||'').toLowerCase().includes(q) || m.model.toLowerCase().includes(q);
     const matchCat = !filterCat || m.cat === filterCat;
     return matchQ && matchCat;
   });
   document.getElementById('mat-count').textContent = `共 ${rows.length} 筆`;
   const tbody = document.getElementById('mat-tbody');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">沒有符合的材料</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state">沒有符合的材料</div></td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(m => {
@@ -862,7 +857,6 @@ function renderTable() {
       const brandOpts = renderBrandOptions(editBuf.brand);
       const catOpts   = renderCatOptions(editBuf.cat);
       return `<tr class="editing" data-id="${m.id}">
-        <td><span class="badge badge-blue">${m.id}</span></td>
         <td><select class="edit-sel" onchange="editBuf.brand=this.value">${brandOpts}</select></td>
         <td><input class="edit-inp" value="${esc(editBuf.model)}" oninput="editBuf.model=this.value" style="min-width:160px"></td>
         <td><select class="edit-sel" onchange="editBuf.cat=this.value">${catOpts}</select></td>
@@ -875,7 +869,6 @@ function renderTable() {
     }
     // 一般列
     return `<tr data-id="${m.id}">
-      <td><span class="badge badge-blue">${m.id}</span></td>
       <td>${esc(m.brand || '—')}</td>
       <td style="font-size:12px">${esc(m.model)}</td>
       <td><span class="badge badge-green">${m.cat}</span></td>
@@ -1155,15 +1148,14 @@ function hideMaterialPicker() {
 function filterPickerMaterials() {
   const q = (document.getElementById('picker-search').value || '').toLowerCase();
   const rows = materials.filter(m =>
-    !q || m.id.toLowerCase().includes(q) || (m.brand||'').toLowerCase().includes(q) || m.model.toLowerCase().includes(q)
+    !q || (m.brand||'').toLowerCase().includes(q) || m.model.toLowerCase().includes(q)
   );
   document.getElementById('picker-tbody').innerHTML = rows.map(m => `
     <tr>
-      <td><span class="badge badge-blue">${esc(m.id)}</span></td>
       <td>${esc(m.brand||'')}</td>
       <td style="font-size:12px">${esc(m.model)}</td>
       <td><button class="btn btn-sm btn-primary" onclick="pickMaterial('${esc(m.id)}')">選取</button></td>
-    </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text-3)">沒有符合的材料</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--text-3)">沒有符合的材料</td></tr>';
 }
 function pickMaterial(matId) {
   const m = materials.find(x => x.id === matId);
