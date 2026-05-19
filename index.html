@@ -177,7 +177,7 @@
     <div class="form-grid">
       <div class="form-group">
         <label>廠牌 <span style="color:var(--red)">*</span></label>
-        <select id="f-brand"></select>
+        <select id="f-brand" onchange="buildModelList()"></select>
       </div>
       <div class="form-group" style="grid-column:span 2">
         <label>型號 / 規格 <span style="color:var(--red)">*</span></label>
@@ -185,7 +185,7 @@
       </div>
       <div class="form-group">
         <label>類別</label>
-        <select id="f-cat"></select>
+        <select id="f-cat" onchange="buildModelList()"></select>
       </div>
       <div class="form-group">
         <label>單價（元）</label>
@@ -929,7 +929,14 @@ function renderTable() {
 function buildModelList() {
   const dl = document.getElementById('model-list');
   if (!dl) return;
-  dl.innerHTML = materials.map(m => `<option value="${esc(m.model)}" label="${esc(m.brand)} ${esc(m.model)}">`).join('');
+  const selBrand = (document.getElementById('f-brand') || {}).value || '';
+  const selCat   = (document.getElementById('f-cat')   || {}).value || '';
+  const filtered = materials.filter(m => {
+    if (selBrand && m.brand !== selBrand) return false;
+    if (selCat && m.cat !== selCat) return false;
+    return true;
+  });
+  dl.innerHTML = filtered.map(m => `<option value="${esc(m.model)}" label="${esc(m.brand)} ${esc(m.model)}">`).join('');
 }
 
 function addToCard(id) {
