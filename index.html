@@ -491,7 +491,7 @@ function normalizeMat(m) {
 }
 
 let brands = JSON.parse(localStorage.getItem(STORAGE_KEY_BRANDS) || 'null')
-  || ['雙梅','東文','士林','仕通','知果','（無廠牌）'];
+  || ['雙梅','東元','士林','仕通','知果','歐姆龍','（無廠牌）'];
 
 let cats = JSON.parse(localStorage.getItem(STORAGE_KEY_CATS) || 'null')
   || ['斷路器','電磁開關','計時器','繼電器','保險絲','端子台','指示燈','按鈕開關','控制箱','其他'];
@@ -500,14 +500,56 @@ let customers = JSON.parse(localStorage.getItem(STORAGE_KEY_CUSTS) || 'null') ||
 let projects  = JSON.parse(localStorage.getItem(STORAGE_KEY_PROJS) || 'null') || [];
 
 let materials = (JSON.parse(localStorage.getItem(STORAGE_KEY_MAT) || 'null') || [
-  {id:'M00001',brand:'雙梅',   model:'金庫型 350×280×180 橫',  price:770, cat:'控制箱'},
-  {id:'M00002',brand:'東文',   model:'QCE 2P 50A',             price:150, cat:'斷路器'},
-  {id:'M00003',brand:'士林',   model:'MS0-P30T HP 220V',       price:715, cat:'電磁開關'},
-  {id:'M00004',brand:'仕通',   model:'SH3-3-30S 220V + 座',    price:260, cat:'計時器'},
-  {id:'M00005',brand:'知果',   model:'RU2S-C 220V + 座',       price:140, cat:'繼電器'},
-  {id:'M00006',brand:'（無廠牌）',model:'Fuse 座 + 3A + 上蓋', price:2,   cat:'保險絲'},
-  {id:'M00007',brand:'（無廠牌）',model:'10A 22P 端子台',       price:150, cat:'端子台'},
+  {id:'M00001',brand:'雙梅',model:'金庫型 350×280×180 橫',price:770,cat:'控制箱'},
+  {id:'M00002',brand:'東元',model:'QCE 2P 50A',price:150,cat:'斷路器'},
+  {id:'M00003',brand:'士林',model:'MS0-P30T HP 220V',price:715,cat:'電磁開關'},
+  {id:'M00004',brand:'仕通',model:'SH3-3-30S 220V + 座',price:260,cat:'計時器'},
+  {id:'M00005',brand:'知果',model:'RU2S-C 220V + 座',price:140,cat:'繼電器'},
+  {id:'M00006',brand:'（無廠牌）',model:'Fuse 座 + 3A + 上蓋',price:2,cat:'保險絲'},
+  {id:'M00007',brand:'（無廠牌）',model:'10A 22P 端子台',price:150,cat:'端子台'},
   {id:'M00008',brand:'（無廠牌）',model:'30Φ 傳統指示燈 220V WW',price:100,cat:'指示燈'},
+  {id:'M00009',brand:'士林',model:'BH 2P 20A',price:95,cat:'斷路器'},
+  {id:'M00010',brand:'士林',model:'BH 2P 30A',price:95,cat:'斷路器'},
+  {id:'M00011',brand:'士林',model:'BH 2P 50A',price:120,cat:'斷路器'},
+  {id:'M00012',brand:'士林',model:'BH 3P 20A',price:180,cat:'斷路器'},
+  {id:'M00013',brand:'士林',model:'BH 3P 50A',price:210,cat:'斷路器'},
+  {id:'M00014',brand:'士林',model:'NF30-CS 2P 15A',price:550,cat:'斷路器'},
+  {id:'M00015',brand:'士林',model:'NF30-CS 2P 30A',price:550,cat:'斷路器'},
+  {id:'M00016',brand:'士林',model:'MS0-P11 HP 220V',price:520,cat:'電磁開關'},
+  {id:'M00017',brand:'士林',model:'MS0-P16 HP 220V',price:580,cat:'電磁開關'},
+  {id:'M00018',brand:'士林',model:'MS0-P21 HP 220V',price:650,cat:'電磁開關'},
+  {id:'M00019',brand:'士林',model:'S-P11 220V',price:280,cat:'電磁開關'},
+  {id:'M00020',brand:'士林',model:'S-P16 220V',price:320,cat:'電磁開關'},
+  {id:'M00021',brand:'士林',model:'S-P21 220V',price:380,cat:'電磁開關'},
+  {id:'M00022',brand:'士林',model:'TH-P12 5A',price:350,cat:'電磁開關'},
+  {id:'M00023',brand:'士林',model:'TH-P12 9A',price:350,cat:'電磁開關'},
+  {id:'M00024',brand:'仕通',model:'SH3-3-60S 220V + 座',price:280,cat:'計時器'},
+  {id:'M00025',brand:'仕通',model:'SH3-3-30M 220V + 座',price:300,cat:'計時器'},
+  {id:'M00026',brand:'仕通',model:'AH3-3 60S 220V + 座',price:180,cat:'計時器'},
+  {id:'M00027',brand:'知果',model:'RU2S-C 110V + 座',price:140,cat:'繼電器'},
+  {id:'M00028',brand:'知果',model:'RU4S-C 220V + 座',price:180,cat:'繼電器'},
+  {id:'M00029',brand:'知果',model:'RU4S-C 110V + 座',price:180,cat:'繼電器'},
+  {id:'M00030',brand:'歐姆龍',model:'MY2N-J 220V + 座',price:220,cat:'繼電器'},
+  {id:'M00031',brand:'歐姆龍',model:'MY4N-J 220V + 座',price:260,cat:'繼電器'},
+  {id:'M00032',brand:'（無廠牌）',model:'Fuse 座 + 5A + 上蓋',price:2,cat:'保險絲'},
+  {id:'M00033',brand:'（無廠牌）',model:'Fuse 座 + 10A + 上蓋',price:3,cat:'保險絲'},
+  {id:'M00034',brand:'（無廠牌）',model:'Fuse 座 + 15A + 上蓋',price:3,cat:'保險絲'},
+  {id:'M00035',brand:'（無廠牌）',model:'20A 12P 端子台',price:120,cat:'端子台'},
+  {id:'M00036',brand:'（無廠牌）',model:'30A 12P 端子台',price:180,cat:'端子台'},
+  {id:'M00037',brand:'（無廠牌）',model:'50A 6P 端子台',price:200,cat:'端子台'},
+  {id:'M00038',brand:'（無廠牌）',model:'30Φ 傳統指示燈 220V RD',price:100,cat:'指示燈'},
+  {id:'M00039',brand:'（無廠牌）',model:'30Φ 傳統指示燈 220V GN',price:100,cat:'指示燈'},
+  {id:'M00040',brand:'（無廠牌）',model:'22Φ LED指示燈 220V RD',price:65,cat:'指示燈'},
+  {id:'M00041',brand:'（無廠牌）',model:'22Φ LED指示燈 220V GN',price:65,cat:'指示燈'},
+  {id:'M00042',brand:'（無廠牌）',model:'22Φ LED指示燈 220V YW',price:65,cat:'指示燈'},
+  {id:'M00043',brand:'（無廠牌）',model:'25Φ 按鈕開關 1a RD',price:45,cat:'按鈕開關'},
+  {id:'M00044',brand:'（無廠牌）',model:'25Φ 按鈕開關 1a GN',price:45,cat:'按鈕開關'},
+  {id:'M00045',brand:'（無廠牌）',model:'25Φ 按鈕開關 1b BK',price:45,cat:'按鈕開關'},
+  {id:'M00046',brand:'（無廠牌）',model:'25Φ 緊急停止按鈕 1b',price:80,cat:'按鈕開關'},
+  {id:'M00047',brand:'（無廠牌）',model:'25Φ 選擇開關 2段 1a',price:55,cat:'按鈕開關'},
+  {id:'M00048',brand:'雙梅',model:'金庫型 400×300×200 橫',price:950,cat:'控制箱'},
+  {id:'M00049',brand:'雙梅',model:'金庫型 500×400×200 橫',price:1350,cat:'控制箱'},
+  {id:'M00050',brand:'雙梅',model:'金庫型 300×250×150 橫',price:580,cat:'控制箱'},
 ]).map(normalizeMat);
 let nextNum    = materials.reduce((m,x) => Math.max(m, parseInt(x.id.slice(1))), 0) + 1;
 let filterCat  = '';
