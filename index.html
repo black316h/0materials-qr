@@ -493,7 +493,7 @@
 <div id="page-sales" class="page">
   <div class="page-title">銷貨紀錄</div>
   <div class="search-row">
-    <input id="sales-search" placeholder="搜尋客戶、單號…" oninput="renderSalesTable()">
+    <input id="sales-search" placeholder="搜尋客戶、單號、日期…" oninput="renderSalesTable()">
     <div class="filter-row" id="sales-filter-row">
       <button class="filter-btn active" onclick="setSalesFilter('all',this)">全部</button>
       <button class="filter-btn" onclick="setSalesFilter('month',this)">本月</button>
@@ -1569,7 +1569,7 @@ function renderSalesTable() {
   const now = new Date();
   const rows = salesRecords.filter(r => {
     if (q) {
-      const match = (r['客戶']||'').toLowerCase().includes(q) || (r['出貨單號']||'').toLowerCase().includes(q) || (r['紀錄ID']||'').toLowerCase().includes(q);
+      const match = (r['客戶']||'').toLowerCase().includes(q) || (r['出貨單號']||'').toLowerCase().includes(q) || (r['紀錄ID']||'').toLowerCase().includes(q) || (r['日期']||'').includes(q) || fmtDate(r['日期']).includes(q);
       if (!match) return false;
     }
     if (salesFilterPeriod !== 'all' && r['日期']) {
