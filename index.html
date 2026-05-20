@@ -446,9 +446,16 @@
       <span id="cust-arrow" style="font-size:14px;font-weight:normal">▸</span>
     </div>
     <div id="cust-mgmt-body" style="display:none;margin-top:1rem">
-      <div id="cust-chips"></div>
-      <div class="brand-add-row">
-        <input id="f-new-cust" placeholder="輸入新客戶名稱">
+      <div id="cust-list"></div>
+      <div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:var(--radius)">
+        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+          <div class="form-group"><label>客戶名稱 *</label><input id="f-new-cust" placeholder="名稱"></div>
+          <div class="form-group"><label>聯絡人</label><input id="f-new-cust-contact" placeholder="聯絡人"></div>
+          <div class="form-group"><label>電話</label><input id="f-new-cust-phone" placeholder="電話"></div>
+          <div class="form-group"><label>傳真</label><input id="f-new-cust-fax" placeholder="傳真"></div>
+          <div class="form-group"><label>手機</label><input id="f-new-cust-mobile" placeholder="手機"></div>
+          <div class="form-group"><label>地址</label><input id="f-new-cust-address" placeholder="地址"></div>
+        </div>
         <button class="btn btn-primary btn-sm" onclick="addCustomer()">＋ 新增客戶</button>
       </div>
     </div>
@@ -476,9 +483,16 @@
       <span id="supp-arrow" style="font-size:14px;font-weight:normal">▸</span>
     </div>
     <div id="supp-mgmt-body" style="display:none;margin-top:1rem">
-      <div id="supp-chips"></div>
-      <div class="brand-add-row">
-        <input id="f-new-supp" placeholder="輸入新廠商名稱">
+      <div id="supp-list-area"></div>
+      <div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:var(--radius)">
+        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+          <div class="form-group"><label>廠商名稱 *</label><input id="f-new-supp" placeholder="名稱"></div>
+          <div class="form-group"><label>聯絡人</label><input id="f-new-supp-contact" placeholder="聯絡人"></div>
+          <div class="form-group"><label>電話</label><input id="f-new-supp-phone" placeholder="電話"></div>
+          <div class="form-group"><label>傳真</label><input id="f-new-supp-fax" placeholder="傳真"></div>
+          <div class="form-group"><label>手機</label><input id="f-new-supp-mobile" placeholder="手機"></div>
+          <div class="form-group"><label>地址</label><input id="f-new-supp-address" placeholder="地址"></div>
+        </div>
         <button class="btn btn-primary btn-sm" onclick="addSupplier()">＋ 新增廠商</button>
       </div>
     </div>
@@ -901,9 +915,9 @@ initAuth();
 const STORAGE_KEY_MAT    = 'mat_master_v2';
 const STORAGE_KEY_BRANDS = 'mat_brands_v1';
 const STORAGE_KEY_CATS   = 'mat_cats_v1';
-const STORAGE_KEY_CUSTS  = 'mat_customers_v1';
+const STORAGE_KEY_CUSTS  = 'mat_customers_v2';
 const STORAGE_KEY_PROJS  = 'mat_projects_v1';
-const STORAGE_KEY_SUPPS  = 'mat_suppliers_v1';
+const STORAGE_KEY_SUPPS  = 'mat_suppliers_v2';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwr2o0j-xcsFHO7CaPTWomMkWshBQ39G3aRB25bPRN1DD-VCDq89_e971JnYLrrNPmUgQ/exec';
 
 // ── 資料 ──────────────────────────────────────────────
@@ -923,9 +937,13 @@ let brands = JSON.parse(localStorage.getItem(STORAGE_KEY_BRANDS) || 'null')
 let cats = JSON.parse(localStorage.getItem(STORAGE_KEY_CATS) || 'null')
   || ['斷路器','電磁開關','計時器','繼電器','保險絲','端子台','指示燈','按鈕開關','控制箱','其他'];
 
-let customers = JSON.parse(localStorage.getItem(STORAGE_KEY_CUSTS) || 'null') || [];
+function migrateToObj(arr) {
+  if (!arr || !arr.length) return [];
+  return arr.map(item => typeof item === 'string' ? { name: item, contact: '', phone: '', fax: '', mobile: '', address: '' } : item);
+}
+let customers = migrateToObj(JSON.parse(localStorage.getItem(STORAGE_KEY_CUSTS) || localStorage.getItem('mat_customers_v1') || 'null') || []);
 let projects  = JSON.parse(localStorage.getItem(STORAGE_KEY_PROJS) || 'null') || [];
-let suppliers = JSON.parse(localStorage.getItem(STORAGE_KEY_SUPPS) || 'null') || [];
+let suppliers = migrateToObj(JSON.parse(localStorage.getItem(STORAGE_KEY_SUPPS) || localStorage.getItem('mat_suppliers_v1') || 'null') || []);
 
 let materials = (JSON.parse(localStorage.getItem(STORAGE_KEY_MAT) || 'null') || [
   {id:'M00001',brand:'雙梅',model:'金庫型 350×280×180 橫',price:770,cat:'控制箱'},
@@ -1013,9 +1031,9 @@ async function loadFromCloud() {
       materials = data.materials.map(normalizeMat);
       brands    = data.brands    && data.brands.length    ? data.brands    : brands;
       cats      = data.cats      && data.cats.length      ? data.cats      : cats;
-      customers = data.customers && data.customers.length ? data.customers : customers;
+      customers = data.customers && data.customers.length ? migrateToObj(data.customers) : customers;
       projects  = data.projects  && data.projects.length  ? data.projects  : projects;
-      suppliers = data.suppliers && data.suppliers.length ? data.suppliers : suppliers;
+      suppliers = data.suppliers && data.suppliers.length ? migrateToObj(data.suppliers) : suppliers;
       localStorage.setItem(STORAGE_KEY_MAT,    JSON.stringify(materials));
       localStorage.setItem(STORAGE_KEY_BRANDS, JSON.stringify(brands));
       localStorage.setItem(STORAGE_KEY_CATS,   JSON.stringify(cats));
@@ -1174,18 +1192,30 @@ function renderCustOptions() {
     const sel = document.getElementById(id);
     if (!sel) return;
     const cur = sel.value;
-    sel.innerHTML = '<option value="">選擇客戶</option>' + customers.map(c => `<option value="${esc(c)}"${c === cur ? ' selected' : ''}>${esc(c)}</option>`).join('');
+    sel.innerHTML = '<option value="">選擇客戶</option>' + customers.map(c => `<option value="${esc(c.name)}"${c.name === cur ? ' selected' : ''}>${esc(c.name)}</option>`).join('');
   });
 }
-function renderCustChips() {
-  document.getElementById('cust-chips').innerHTML =
-    customers.length
-      ? customers.map((c, i) => `
-          <span class="brand-chip">
-            ${esc(c)}
-            <button class="chip-del" title="刪除" onclick="deleteCustomer(${i})">×</button>
-          </span>`).join('')
-      : '<span style="font-size:12px;color:var(--text-3)">尚無客戶，請新增</span>';
+function renderCustList() {
+  const el = document.getElementById('cust-list');
+  if (!el) return;
+  if (!customers.length) {
+    el.innerHTML = '<span style="font-size:12px;color:var(--text-3)">尚無客戶，請新增</span>';
+  } else {
+    el.innerHTML = '<table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:4px"><thead><tr style="background:var(--bg)">' +
+      '<th style="padding:4px 6px;text-align:left">名稱</th><th style="padding:4px 6px;text-align:left">聯絡人</th>' +
+      '<th style="padding:4px 6px;text-align:left">電話</th><th style="padding:4px 6px;text-align:left">傳真</th>' +
+      '<th style="padding:4px 6px;text-align:left">手機</th><th style="padding:4px 6px;text-align:left">地址</th>' +
+      '<th style="padding:4px 6px;width:40px"></th></tr></thead><tbody>' +
+      customers.map((c, i) => `<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:4px 6px">${esc(c.name)}</td>
+        <td style="padding:4px 6px">${esc(c.contact||'')}</td>
+        <td style="padding:4px 6px">${esc(c.phone||'')}</td>
+        <td style="padding:4px 6px">${esc(c.fax||'')}</td>
+        <td style="padding:4px 6px">${esc(c.mobile||'')}</td>
+        <td style="padding:4px 6px">${esc(c.address||'')}</td>
+        <td style="padding:4px 6px"><button class="btn-danger" style="font-size:14px;padding:2px 6px" onclick="deleteCustomer(${i})">×</button></td>
+      </tr>`).join('') + '</tbody></table>';
+  }
   renderCustOptions();
 }
 function toggleCustMgmt() {
@@ -1194,23 +1224,30 @@ function toggleCustMgmt() {
   const open  = body.style.display === 'block';
   body.style.display = open ? 'none' : 'block';
   arrow.textContent  = open ? '▸' : '▾';
-  if (!open) renderCustChips();
+  if (!open) renderCustList();
 }
 function addCustomer() {
   const name = document.getElementById('f-new-cust').value.trim();
   if (!name) { toast('請輸入客戶名稱'); return; }
-  if (customers.includes(name)) { toast('客戶已存在'); return; }
-  customers.push(name);
+  if (customers.some(c => c.name === name)) { toast('客戶已存在'); return; }
+  customers.push({
+    name: name,
+    contact: document.getElementById('f-new-cust-contact').value.trim(),
+    phone:   document.getElementById('f-new-cust-phone').value.trim(),
+    fax:     document.getElementById('f-new-cust-fax').value.trim(),
+    mobile:  document.getElementById('f-new-cust-mobile').value.trim(),
+    address: document.getElementById('f-new-cust-address').value.trim()
+  });
   save();
-  renderCustChips();
-  document.getElementById('f-new-cust').value = '';
+  renderCustList();
+  ['f-new-cust','f-new-cust-contact','f-new-cust-phone','f-new-cust-fax','f-new-cust-mobile','f-new-cust-address'].forEach(id => document.getElementById(id).value = '');
   toast('已新增客戶：' + name);
 }
 function deleteCustomer(idx) {
-  const name = customers[idx];
+  const name = customers[idx].name;
   customers.splice(idx, 1);
   save();
-  renderCustChips();
+  renderCustList();
   toast('已刪除客戶：' + name);
 }
 
@@ -1260,22 +1297,34 @@ function deleteProject(idx) {
 // ── 廠商管理 ─────────────────────────────────────────
 function renderSuppOptions() {
   const dl = document.getElementById('supp-list');
-  if (dl) dl.innerHTML = suppliers.map(s => `<option value="${esc(s)}">`).join('');
+  if (dl) dl.innerHTML = suppliers.map(s => `<option value="${esc(s.name)}">`).join('');
   const sel = document.getElementById('pur-supplier');
   if (sel) {
     const cur = sel.value;
-    sel.innerHTML = '<option value="">選擇廠商</option>' + suppliers.map(s => `<option value="${esc(s)}"${s === cur ? ' selected' : ''}>${esc(s)}</option>`).join('');
+    sel.innerHTML = '<option value="">選擇廠商</option>' + suppliers.map(s => `<option value="${esc(s.name)}"${s.name === cur ? ' selected' : ''}>${esc(s.name)}</option>`).join('');
   }
 }
-function renderSuppChips() {
-  document.getElementById('supp-chips').innerHTML =
-    suppliers.length
-      ? suppliers.map((s, i) => `
-          <span class="brand-chip">
-            ${esc(s)}
-            <button class="chip-del" title="刪除" onclick="deleteSupplier(${i})">×</button>
-          </span>`).join('')
-      : '<span style="font-size:12px;color:var(--text-3)">尚無廠商，請新增</span>';
+function renderSuppList() {
+  const el = document.getElementById('supp-list-area');
+  if (!el) return;
+  if (!suppliers.length) {
+    el.innerHTML = '<span style="font-size:12px;color:var(--text-3)">尚無廠商，請新增</span>';
+  } else {
+    el.innerHTML = '<table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:4px"><thead><tr style="background:var(--bg)">' +
+      '<th style="padding:4px 6px;text-align:left">名稱</th><th style="padding:4px 6px;text-align:left">聯絡人</th>' +
+      '<th style="padding:4px 6px;text-align:left">電話</th><th style="padding:4px 6px;text-align:left">傳真</th>' +
+      '<th style="padding:4px 6px;text-align:left">手機</th><th style="padding:4px 6px;text-align:left">地址</th>' +
+      '<th style="padding:4px 6px;width:40px"></th></tr></thead><tbody>' +
+      suppliers.map((s, i) => `<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:4px 6px">${esc(s.name)}</td>
+        <td style="padding:4px 6px">${esc(s.contact||'')}</td>
+        <td style="padding:4px 6px">${esc(s.phone||'')}</td>
+        <td style="padding:4px 6px">${esc(s.fax||'')}</td>
+        <td style="padding:4px 6px">${esc(s.mobile||'')}</td>
+        <td style="padding:4px 6px">${esc(s.address||'')}</td>
+        <td style="padding:4px 6px"><button class="btn-danger" style="font-size:14px;padding:2px 6px" onclick="deleteSupplier(${i})">×</button></td>
+      </tr>`).join('') + '</tbody></table>';
+  }
   renderSuppOptions();
 }
 function toggleSuppMgmt() {
@@ -1284,23 +1333,30 @@ function toggleSuppMgmt() {
   const open  = body.style.display === 'block';
   body.style.display = open ? 'none' : 'block';
   arrow.textContent  = open ? '▸' : '▾';
-  if (!open) renderSuppChips();
+  if (!open) renderSuppList();
 }
 function addSupplier() {
   const name = document.getElementById('f-new-supp').value.trim();
   if (!name) { toast('請輸入廠商名稱'); return; }
-  if (suppliers.includes(name)) { toast('廠商已存在'); return; }
-  suppliers.push(name);
+  if (suppliers.some(s => s.name === name)) { toast('廠商已存在'); return; }
+  suppliers.push({
+    name: name,
+    contact: document.getElementById('f-new-supp-contact').value.trim(),
+    phone:   document.getElementById('f-new-supp-phone').value.trim(),
+    fax:     document.getElementById('f-new-supp-fax').value.trim(),
+    mobile:  document.getElementById('f-new-supp-mobile').value.trim(),
+    address: document.getElementById('f-new-supp-address').value.trim()
+  });
   save();
-  renderSuppChips();
-  document.getElementById('f-new-supp').value = '';
+  renderSuppList();
+  ['f-new-supp','f-new-supp-contact','f-new-supp-phone','f-new-supp-fax','f-new-supp-mobile','f-new-supp-address'].forEach(id => document.getElementById(id).value = '');
   toast('已新增廠商：' + name);
 }
 function deleteSupplier(idx) {
-  const name = suppliers[idx];
+  const name = suppliers[idx].name;
   suppliers.splice(idx, 1);
   save();
-  renderSuppChips();
+  renderSuppList();
   toast('已刪除廠商：' + name);
 }
 
@@ -1562,7 +1618,7 @@ function initCardItems() {
 function renderCardTable() {
   const tbody = document.getElementById('card-tbody');
   if (!tbody) return;
-  const suppOpts = suppliers.map(s => `<option value="${esc(s)}">`).join('');
+  const suppOpts = suppliers.map(s => `<option value="${esc(s.name)}">`).join('');
   tbody.innerHTML = cardItems.map((item, i) => `
     <tr>
       <td style="text-align:center;color:var(--text-3);font-size:12px">${i + 1}</td>
