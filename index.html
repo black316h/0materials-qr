@@ -1219,6 +1219,7 @@ function renderTableRows() {
         <button class="btn btn-danger btn-sm" onclick="deleteMat('${m.id}')">刪除</button>
         <button class="btn btn-sm" style="background:var(--accent);color:#fff" onclick="addToCard('${m.id}')">材料卡</button>
         <button class="btn btn-sm" style="background:var(--blue);color:#fff" onclick="addToInvoice('${m.id}')">出貨單</button>
+        <button class="btn btn-sm" style="background:#8e44ad;color:#fff" onclick="addToPurchase('${m.id}')">進貨單</button>
       </td>
     </tr>`;
   }).join('');
@@ -1338,6 +1339,17 @@ function addToInvoice(id) {
   renderInvItems();
   calcInvTotal();
   toast('已加入出貨單：' + m.brand + ' ' + m.model);
+}
+
+function addToPurchase(id) {
+  const m = materials.find(x => x.id === id);
+  if (!m) return;
+  let idx = purchaseItems.findIndex(it => !it.name && !it.qty && !it.amount);
+  if (idx < 0) { idx = purchaseItems.length; purchaseItems.push({}); }
+  purchaseItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '' };
+  renderPurItems();
+  calcPurTotal();
+  toast('已加入進貨單：' + m.brand + ' ' + m.model);
 }
 
 const MIN_CARD_ROWS = 20;
