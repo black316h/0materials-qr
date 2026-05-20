@@ -1654,7 +1654,7 @@ function renderSalesTable() {
   const now = new Date();
   const rows = salesRecords.filter(r => {
     if (q) {
-      const match = (r['客戶']||'').toLowerCase().includes(q) || (r['出貨單號']||'').toLowerCase().includes(q) || (r['紀錄ID']||'').toLowerCase().includes(q) || (r['日期']||'').includes(q) || fmtDate(r['日期']).includes(q);
+      const match = String(r['客戶']||'').toLowerCase().includes(q) || String(r['出貨單號']||'').toLowerCase().includes(q) || String(r['紀錄ID']||'').toLowerCase().includes(q) || String(r['日期']||'').toLowerCase().includes(q) || fmtDate(r['日期']).toLowerCase().includes(q);
       if (!match) return false;
     }
     if (salesFilterPeriod !== 'all' && r['日期']) {
