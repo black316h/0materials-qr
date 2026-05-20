@@ -512,6 +512,8 @@
   <div class="btn-row" style="margin-top:1rem">
     <button class="btn btn-primary" onclick="saveInvoice()">儲存出貨單</button>
     <button class="btn" onclick="newInvoice()">清除</button>
+    <button class="btn btn-primary" onclick="printInvoice()">🖨️ 列印</button>
+    <button class="btn" onclick="exportInvoiceExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
   </div>
 </div>
 
@@ -1545,6 +1547,103 @@ function removeInvItem(i) {
   else invoiceItems.splice(i, 1);
   renderInvItems();
   calcInvTotal();
+}
+
+function printInvoice() {
+  const customer = document.getElementById('inv-customer');
+  const customerName = customer.options[customer.selectedIndex] ? customer.options[customer.selectedIndex].text : '';
+  const invoiceNo = document.getElementById('inv-no').value.trim();
+  const date = document.getElementById('inv-date').value;
+  const items = invoiceItems.filter(it => it.name);
+  if (!items.length) { toast('請至少填寫一筆品項'); return; }
+
+  const total = items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+
+  const MIN_ROWS = 25;
+  const rows = items.map((it, i) => ({
+    seq: i + 1, name: it.name || '', qty: it.qty || '', amount: it.amount || '', note: it.note || ''
+  }));
+  while (rows.length < MIN_ROWS) rows.push({ seq: '', name: '', qty: '', amount: '', note: '' });
+
+  const area = document.getElementById('print-area');
+  area.innerHTML = `
+    <table class="print-header">
+      <tr>
+        <td class="lbl">客戶名稱</td>
+        <td class="val" colspan="2">${esc(customerName || '')}</td>
+        <td class="lbl">出貨單號</td>
+        <td class="val">${esc(invoiceNo)}</td>
+      </tr>
+      <tr>
+        <td class="lbl">日期</td>
+        <td class="val" colspan="4">${esc(date)}</td>
+      </tr>
+    </table>
+    <table class="print-items">
+      <thead>
+        <tr><th style="width:45px">項次</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:80px">備註</th></tr>
+      </thead>
+      <tbody>
+        ${rows.map(r => `<tr>
+          <td>${r.seq}</td>
+          <td class="left">${esc(r.name)}</td>
+          <td>${r.qty}</td>
+          <td class="right">${r.amount ? '$' + Number(r.amount).toLocaleString() : ''}</td>
+          <td class="left">${esc(r.note)}</td>
+        </tr>`).join('')}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2" style="border:none"></td>
+          <td class="right" style="font-weight:700">合計</td>
+          <td class="right">$${total.toLocaleString()}</td>
+          <td style="border:none"></td>
+        </tr>
+      </tfoot>
+    </table>
+  `;
+  window.print();
+}
+
+function exportInvoiceExcel() {
+  const customer = document.getElementById('inv-customer');
+  const customerName = customer.options[customer.selectedIndex] ? customer.options[customer.selectedIndex].text : '';
+  const invoiceNo = document.getElementById('inv-no').value.trim();
+  const date = document.getElementById('inv-date').value;
+  const items = invoiceItems.filter(it => it.name);
+  if (!items.length) { toast('沒有資料可匯出'); return; }
+
+  const total = items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+
+  const headerData = [
+    ['客戶名稱', customerName, '', '出貨單號', invoiceNo],
+    ['日期', date],
+    [],
+    ['項次', '品名規格', '數量', '金額', '備註']
+  ];
+  const itemData = items.map((it, i) => [
+    i + 1, it.name || '', Number(it.qty) || 0, Number(it.amount) || 0, it.note || ''
+  ]);
+  const footerData = [[], ['', '', '合計', total, '']];
+
+  const wsData = [...headerData, ...itemData, ...footerData];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [
+    { wch: 6 },  // 項次
+    { wch: 30 }, // 品名規格
+    { wch: 8 },  // 數量
+    { wch: 10 }, // 金額
+    { wch: 12 }  // 備註
+  ];
+  ws['!merges'] = [
+    { s: { r: 0, c: 1 }, e: { r: 0, c: 2 } }
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '出貨單');
+  const fileName = '出貨單_' + (invoiceNo || customerName || date || 'export') + '.xlsx';
+  XLSX.writeFile(wb, fileName);
+  toast('已匯出 ' + fileName);
 }
 
 async function saveInvoice() {
