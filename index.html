@@ -258,6 +258,17 @@
     </div>
     <button class="btn btn-primary" onclick="doLogin()">登入</button>
     <div id="login-err"></div>
+    <div style="text-align:center;margin-top:12px">
+      <a href="#" onclick="showResetPwd();return false" style="font-size:12px;color:var(--text-3);text-decoration:none">忘記密碼？</a>
+    </div>
+    <div id="reset-section" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+      <div class="form-group" style="margin-bottom:8px">
+        <label>重置碼</label>
+        <input id="reset-code" type="password" placeholder="請輸入重置碼" onkeydown="if(event.key==='Enter')doResetPwd()">
+      </div>
+      <button class="btn" onclick="doResetPwd()" style="width:100%;justify-content:center">重置密碼</button>
+      <div id="reset-msg" style="font-size:12px;text-align:center;margin-top:6px;min-height:18px"></div>
+    </div>
   </div>
 </div>
 
@@ -853,6 +864,35 @@ async function doChangePwd() {
   localStorage.setItem(AUTH_HASH_KEY, newHash);
   hideChangePwd();
   toast('密碼已修改');
+}
+
+const RESET_CODE_HASH = 'a]9Fk#2xLm$7'; // 重置碼明碼（只有管理者知道）
+
+function showResetPwd() {
+  const sec = document.getElementById('reset-section');
+  sec.style.display = sec.style.display === 'none' ? 'block' : 'none';
+  document.getElementById('reset-code').value = '';
+  document.getElementById('reset-msg').textContent = '';
+}
+
+function doResetPwd() {
+  const code = document.getElementById('reset-code').value;
+  const msgEl = document.getElementById('reset-msg');
+  if (code === RESET_CODE_HASH) {
+    localStorage.setItem(AUTH_USER_KEY, DEFAULT_USER);
+    localStorage.setItem(AUTH_HASH_KEY, DEFAULT_HASH);
+    localStorage.removeItem(AUTH_SESSION_KEY);
+    msgEl.style.color = 'var(--accent)';
+    msgEl.textContent = '密碼已重置為 0000，請重新登入';
+    document.getElementById('reset-section').style.display = 'none';
+    document.getElementById('login-user').value = 'admin';
+    document.getElementById('login-pass').value = '';
+    document.getElementById('login-pass').focus();
+    document.getElementById('login-err').textContent = '';
+  } else {
+    msgEl.style.color = 'var(--red)';
+    msgEl.textContent = '重置碼錯誤';
+  }
 }
 
 initAuth();
