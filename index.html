@@ -160,6 +160,66 @@
     header { padding: 0 1rem; }
     .main { padding: 1rem; }
   }
+
+  /* ── 列印樣式 ── */
+  @media print {
+    body { background: #fff; }
+    header, .toast, .modal-overlay { display: none !important; }
+    .main { max-width: 100%; padding: 0; margin: 0; }
+    .page { display: none !important; }
+    #print-area { display: block !important; }
+  }
+  #print-area {
+    display: none;
+    font-family: 'Microsoft JhengHei', 'PingFang TC', sans-serif;
+    color: #000;
+    padding: 12mm 15mm;
+  }
+  #print-area .print-header {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 6px;
+  }
+  #print-area .print-header td {
+    padding: 6px 10px;
+    font-size: 15px;
+    border: 1px solid #888;
+  }
+  #print-area .print-header .lbl {
+    width: 80px;
+    font-weight: 600;
+    background: #f0f0f0;
+    font-size: 14px;
+  }
+  #print-area .print-header .val {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  #print-area .print-items {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 4px;
+  }
+  #print-area .print-items th,
+  #print-area .print-items td {
+    border: 1px solid #888;
+    padding: 5px 8px;
+    font-size: 14px;
+    text-align: center;
+  }
+  #print-area .print-items th {
+    background: #f0f0f0;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  #print-area .print-items td.left { text-align: left; }
+  #print-area .print-items td.right { text-align: right; }
+  #print-area .print-items tfoot td {
+    border-top: 2px solid #555;
+    font-weight: 700;
+    font-size: 15px;
+  }
 </style>
 </head>
 <body>
@@ -294,6 +354,7 @@
       <button class="btn" onclick="addCardRow()">＋ 新增行</button>
       <button class="btn" onclick="showMaterialPicker('card')" style="background:var(--accent-light);color:var(--accent-text);border-color:var(--accent-light)">＋ 從材料主檔選取</button>
       <button class="btn" onclick="clearCard()">清空</button>
+      <button class="btn btn-primary" onclick="printCard()">🖨️ 列印</button>
       <!-- <button class="btn btn-primary" onclick="createCardSheet()">建立 Google Sheet</button> -->
       <!-- <a class="btn" href="https://drive.google.com/drive/folders/1XdVo2Io5cXgqZpL3KWpCDit0wiZOd-_3" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px">📁 材料卡資料夾</a> -->
       <span id="card-status" style="font-size:12px;color:var(--text-3);align-self:center;margin-left:auto"></span>
@@ -499,6 +560,9 @@
 <datalist id="model-list"></datalist>
 <datalist id="supp-list"></datalist>
 <div class="toast" id="toast"></div>
+
+<!-- ── 列印專用區域 ── -->
+<div id="print-area"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -1212,6 +1276,69 @@ async function loadQueuedItems() {
   renderCardTable();
   calcCardTotal();
   toast('已載入 ' + queue.length + ' 筆掃碼材料');
+}
+
+function printCard() {
+  const customer = document.getElementById('card-customer');
+  const customerName = customer.options[customer.selectedIndex] ? customer.options[customer.selectedIndex].text : '';
+  const cardNo = document.getElementById('card-no').value.trim();
+  const project = document.getElementById('card-project');
+  const projectName = project.options[project.selectedIndex] ? project.options[project.selectedIndex].text : '';
+  const date = document.getElementById('card-date').value;
+  const items = cardItems.filter(item => item.brand || item.model || item.cat || item.qty || item.amount);
+  if (!customerName || customerName === '選擇客戶') { toast('請選擇客戶名稱'); return; }
+  if (!items.length) { toast('請至少填寫一筆項目'); return; }
+
+  const total = items.reduce((s, item) => s + (Number(item.amount) || 0), 0);
+
+  // 填滿空行到至少 25 行（A4 整頁）
+  const MIN_ROWS = 25;
+  const rows = items.map((item, i) => ({
+    seq: i + 1, brand: item.brand || '', model: item.model || '',
+    cat: item.cat || '', qty: item.qty || '', amount: item.amount || ''
+  }));
+  while (rows.length < MIN_ROWS) rows.push({ seq: '', brand: '', model: '', cat: '', qty: '', amount: '' });
+
+  const area = document.getElementById('print-area');
+  area.innerHTML = `
+    <table class="print-header">
+      <tr>
+        <td class="lbl">客戶名稱</td>
+        <td class="val" colspan="2">${esc(customerName)}</td>
+        <td class="lbl">編號</td>
+        <td class="val">${esc(cardNo)}</td>
+      </tr>
+      <tr>
+        <td class="lbl">案件名稱</td>
+        <td class="val" colspan="2">${esc(projectName)}</td>
+        <td class="lbl">日期</td>
+        <td class="val">${esc(date)}</td>
+      </tr>
+    </table>
+    <table class="print-items">
+      <thead>
+        <tr><th style="width:50px">序號</th><th style="width:90px">廠牌</th><th>型號</th><th style="width:80px">類別</th><th style="width:55px">數量</th><th style="width:70px">金額</th></tr>
+      </thead>
+      <tbody>
+        ${rows.map(r => `<tr>
+          <td>${r.seq}</td>
+          <td class="left">${esc(r.brand)}</td>
+          <td class="left">${esc(r.model)}</td>
+          <td>${esc(r.cat)}</td>
+          <td>${r.qty}</td>
+          <td class="right">${r.amount ? '$' + Number(r.amount).toLocaleString() : ''}</td>
+        </tr>`).join('')}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="4" style="border:none"></td>
+          <td class="right">合計</td>
+          <td class="right">$${total.toLocaleString()}</td>
+        </tr>
+      </tfoot>
+    </table>
+  `;
+  window.print();
 }
 
 function clearCard() {
