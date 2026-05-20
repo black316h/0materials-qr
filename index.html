@@ -380,6 +380,7 @@
       <button class="btn" onclick="showMaterialPicker('card')" style="background:var(--accent-light);color:var(--accent-text);border-color:var(--accent-light)">＋ 從材料主檔選取</button>
       <button class="btn" onclick="clearCard()">清空</button>
       <button class="btn btn-primary" onclick="printCard()">🖨️ 列印</button>
+      <button class="btn" onclick="exportCardExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
       <!-- <button class="btn btn-primary" onclick="createCardSheet()">建立 Google Sheet</button> -->
       <!-- <a class="btn" href="https://drive.google.com/drive/folders/1XdVo2Io5cXgqZpL3KWpCDit0wiZOd-_3" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px">📁 材料卡資料夾</a> -->
       <span id="card-status" style="font-size:12px;color:var(--text-3);align-self:center;margin-left:auto"></span>
@@ -1369,6 +1370,60 @@ function printCard() {
     </table>
   `;
   window.print();
+}
+
+function exportCardExcel() {
+  const customer = document.getElementById('card-customer');
+  const customerName = customer.options[customer.selectedIndex] ? customer.options[customer.selectedIndex].text : '';
+  const cardNo = document.getElementById('card-no').value.trim();
+  const project = document.getElementById('card-project');
+  const projectName = project.options[project.selectedIndex] ? project.options[project.selectedIndex].text : '';
+  const date = document.getElementById('card-date').value;
+  const items = cardItems.filter(item => item.brand || item.model || item.cat || item.qty || item.amount);
+  if (!items.length) { toast('沒有資料可匯出'); return; }
+
+  const total = items.reduce((s, item) => s + (Number(item.amount) || 0), 0);
+
+  // Build header rows
+  const headerData = [
+    ['客戶名稱', customerName, '', '編號', cardNo],
+    ['案件名稱', projectName, '', '日期', date],
+    [],
+    ['序號', '廠牌', '型號', '類別', '數量', '金額']
+  ];
+  // Build item rows
+  const itemData = items.map((item, i) => [
+    i + 1, item.brand || '', item.model || '', item.cat || '',
+    Number(item.qty) || 0, Number(item.amount) || 0
+  ]);
+  // Footer
+  const footerData = [[], ['', '', '', '', '合計', total]];
+
+  const wsData = [...headerData, ...itemData, ...footerData];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // Set column widths
+  ws['!cols'] = [
+    { wch: 6 },  // 序號
+    { wch: 12 }, // 廠牌
+    { wch: 25 }, // 型號
+    { wch: 12 }, // 類別
+    { wch: 8 },  // 數量
+    { wch: 10 }  // 金額
+  ];
+  // Merge header cells: customer name spans B1:C1, project name spans B2:C2
+  ws['!merges'] = [
+    { s: { r: 0, c: 1 }, e: { r: 0, c: 2 } },
+    { s: { r: 0, c: 3 }, e: { r: 0, c: 3 } },
+    { s: { r: 1, c: 1 }, e: { r: 1, c: 2 } },
+    { s: { r: 1, c: 3 }, e: { r: 1, c: 3 } }
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '材料卡');
+  const fileName = (customerName || '材料卡') + '_' + (cardNo || date || 'export') + '.xlsx';
+  XLSX.writeFile(wb, fileName);
+  toast('已匯出 ' + fileName);
 }
 
 function clearCard() {
