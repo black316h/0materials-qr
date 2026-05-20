@@ -265,7 +265,32 @@
       <button class="btn btn-primary" onclick="addMaterial()">＋ 新增</button>
       <button class="btn" onclick="clearForm()">清除</button>
       <button class="btn" onclick="document.getElementById('excel-file').click()" style="margin-left:auto;background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📥 匯入 Excel</button>
+      <button class="btn btn-sm" onclick="showImportHelp()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light);padding:8px 10px" title="匯入格式說明">❓</button>
       <input type="file" id="excel-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(this)">
+    </div>
+    <!-- 匯入格式說明 -->
+    <div id="import-help" style="display:none;margin-top:10px;padding:14px 16px;background:var(--blue-light);border:1px solid var(--border);border-radius:var(--radius-lg);font-size:13px;line-height:1.7;color:var(--text)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <strong style="font-size:14px">📋 Excel 匯入格式說明</strong>
+        <button class="btn btn-sm" onclick="document.getElementById('import-help').style.display='none'" style="padding:2px 8px">✕</button>
+      </div>
+      <p>Excel 第一列為欄位名稱，系統會自動辨識以下欄位：</p>
+      <table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:12px">
+        <thead><tr style="background:var(--surface)">
+          <th style="padding:6px 8px;border:1px solid var(--border);text-align:left">欄位名稱</th>
+          <th style="padding:6px 8px;border:1px solid var(--border);text-align:left">可接受的名稱</th>
+          <th style="padding:6px 8px;border:1px solid var(--border);text-align:left">必填</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style="padding:5px 8px;border:1px solid var(--border)">廠牌</td><td style="padding:5px 8px;border:1px solid var(--border)">廠牌、brand</td><td style="padding:5px 8px;border:1px solid var(--border)">否</td></tr>
+          <tr><td style="padding:5px 8px;border:1px solid var(--border)"><strong>型號/規格</strong></td><td style="padding:5px 8px;border:1px solid var(--border)">型號、規格、model、spec</td><td style="padding:5px 8px;border:1px solid var(--border)"><strong style="color:var(--red)">是</strong></td></tr>
+          <tr><td style="padding:5px 8px;border:1px solid var(--border)">類別</td><td style="padding:5px 8px;border:1px solid var(--border)">類別、分類、cat</td><td style="padding:5px 8px;border:1px solid var(--border)">否</td></tr>
+          <tr><td style="padding:5px 8px;border:1px solid var(--border)">單價</td><td style="padding:5px 8px;border:1px solid var(--border)">單價、價格、price</td><td style="padding:5px 8px;border:1px solid var(--border)">否</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:6px">⚠️ 若欄位名稱都不符，系統會依順序當作：<strong>廠牌、型號、類別、單價</strong></p>
+      <p>⚠️ 相同廠牌＋型號的資料會自動跳過，不會重複匯入</p>
+      <p style="margin-top:6px">📎 支援格式：<strong>.xlsx</strong>、<strong>.xls</strong>、<strong>.csv</strong></p>
     </div>
   </div>
 
@@ -1094,6 +1119,11 @@ function renderTableRows() {
 }
 
 // ── Excel 匯入 ──────────────────────────────────────────
+function showImportHelp() {
+  const el = document.getElementById('import-help');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
 function importExcel(input) {
   const file = input.files[0];
   if (!file) return;
