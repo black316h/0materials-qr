@@ -707,7 +707,11 @@
   <div class="btn-row" style="margin-bottom:12px">
     <button class="btn btn-primary" onclick="printSalesRecords()">🖨️ 列印</button>
     <button class="btn" onclick="exportSalesRecordsExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
+    <button class="btn" onclick="document.getElementById('sales-import-file').click()" style="background:var(--green-light);color:var(--green-text);border-color:var(--green-light)">📥 匯入 Excel</button>
+    <button class="btn" onclick="showImportFormat('sales')" style="font-size:12px">❓ 匯入格式</button>
+    <input type="file" id="sales-import-file" accept=".xlsx,.xls" style="display:none" onchange="handleImportExcel(this,'sales')">
   </div>
+  <div id="sales-import-status" style="display:none;text-align:center;padding:0.5rem;margin-bottom:8px;font-size:13px;color:var(--text-2)"></div>
   <div id="sales-loading" style="display:none;text-align:center;padding:2rem">
     <div style="font-size:14px;color:var(--text-2)">載入中…</div>
   </div>
@@ -788,7 +792,11 @@
   <div class="btn-row" style="margin-bottom:12px">
     <button class="btn btn-primary" onclick="printQuotationRecords()">🖨️ 列印</button>
     <button class="btn" onclick="exportQuotationRecordsExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
+    <button class="btn" onclick="document.getElementById('quotations-import-file').click()" style="background:var(--green-light);color:var(--green-text);border-color:var(--green-light)">📥 匯入 Excel</button>
+    <button class="btn" onclick="showImportFormat('quotations')" style="font-size:12px">❓ 匯入格式</button>
+    <input type="file" id="quotations-import-file" accept=".xlsx,.xls" style="display:none" onchange="handleImportExcel(this,'quotations')">
   </div>
+  <div id="quotations-import-status" style="display:none;text-align:center;padding:0.5rem;margin-bottom:8px;font-size:13px;color:var(--text-2)"></div>
   <div id="quotations-loading" style="display:none;text-align:center;padding:2rem">
     <div style="font-size:14px;color:var(--text-2)">載入中…</div>
   </div>
@@ -869,11 +877,27 @@
   <div class="btn-row" style="margin-bottom:12px">
     <button class="btn btn-primary" onclick="printPurchaseRecords()">🖨️ 列印</button>
     <button class="btn" onclick="exportPurchaseRecordsExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
+    <button class="btn" onclick="document.getElementById('purchases-import-file').click()" style="background:var(--green-light);color:var(--green-text);border-color:var(--green-light)">📥 匯入 Excel</button>
+    <button class="btn" onclick="showImportFormat('purchases')" style="font-size:12px">❓ 匯入格式</button>
+    <input type="file" id="purchases-import-file" accept=".xlsx,.xls" style="display:none" onchange="handleImportExcel(this,'purchases')">
   </div>
+  <div id="purchases-import-status" style="display:none;text-align:center;padding:0.5rem;margin-bottom:8px;font-size:13px;color:var(--text-2)"></div>
   <div id="purchases-loading" style="display:none;text-align:center;padding:2rem">
     <div style="font-size:14px;color:var(--text-2)">載入中…</div>
   </div>
   <div id="purchases-list"></div>
+</div>
+
+<!-- 匯入格式說明 Modal -->
+<div id="import-format-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-content" style="max-width:600px">
+    <div class="card-title" style="margin-bottom:1rem">📥 Excel 匯入格式說明</div>
+    <div id="import-format-body" style="font-size:13px;line-height:1.8"></div>
+    <div class="btn-row" style="margin-top:1rem;justify-content:flex-end;gap:8px">
+      <button class="btn btn-primary" onclick="downloadImportTemplate()" id="import-template-btn">📄 下載範例模板</button>
+      <button class="btn" onclick="document.getElementById('import-format-modal').style.display='none'">關閉</button>
+    </div>
+  </div>
 </div>
 
 <!-- 材料選取 Modal -->
@@ -3227,6 +3251,211 @@ function exportPurchaseRecordsExcel() {
   const fileName = '進貨紀錄_' + new Date().toISOString().slice(0,10) + '.xlsx';
   XLSX.writeFile(wb, fileName);
   toast('已匯出 ' + fileName);
+}
+
+// ── Excel 匯入（銷貨/報價/進貨 共用） ─────────────────────
+let _importFormatType = 'sales';
+const IMPORT_FORMATS = {
+  sales: {
+    label: '銷貨紀錄',
+    cols: ['日期', '客戶', '出貨單號', '品名規格', '數量', '金額', '備註'],
+    groupKey: '出貨單號',
+    partyCol: '客戶',
+    action: 'saveInvoice',
+    noField: 'invoiceNo',
+    partyField: 'customer',
+    reload: () => loadSalesRecords(),
+    example: [
+      ['2026/05/20', '王大明', 'S20260520-01', 'A牌 白膠 3kg', 10, 150, ''],
+      ['2026/05/20', '王大明', 'S20260520-01', 'B牌 矽利康 300ml', 20, 80, '急件'],
+      ['2026/05/21', '李先生', 'S20260521-01', 'C牌 PVC管 1寸', 5, 200, '']
+    ]
+  },
+  quotations: {
+    label: '報價紀錄',
+    cols: ['日期', '客戶', '報價單號', '品名規格', '數量', '金額', '備註'],
+    groupKey: '報價單號',
+    partyCol: '客戶',
+    action: 'saveQuotation',
+    noField: 'quotationNo',
+    partyField: 'customer',
+    reload: () => loadQuotationRecords(),
+    example: [
+      ['2026/05/20', '王大明', 'Q20260520-01', 'A牌 白膠 3kg', 10, 150, ''],
+      ['2026/05/20', '王大明', 'Q20260520-01', 'B牌 矽利康 300ml', 20, 80, '含稅'],
+      ['2026/05/21', '李先生', 'Q20260521-01', 'C牌 PVC管 1寸', 5, 200, '']
+    ]
+  },
+  purchases: {
+    label: '進貨紀錄',
+    cols: ['日期', '廠商', '進貨單號', '品名規格', '數量', '金額', '備註'],
+    groupKey: '進貨單號',
+    partyCol: '廠商',
+    action: 'savePurchase',
+    noField: 'purchaseNo',
+    partyField: 'supplier',
+    reload: () => loadPurchaseRecords(),
+    example: [
+      ['2026/05/20', '大東五金', 'P20260520-01', 'A牌 白膠 3kg', 50, 120, ''],
+      ['2026/05/20', '大東五金', 'P20260520-01', 'B牌 矽利康 300ml', 100, 60, ''],
+      ['2026/05/21', '正新建材', 'P20260521-01', 'C牌 PVC管 1寸', 30, 180, '']
+    ]
+  }
+};
+
+function showImportFormat(type) {
+  _importFormatType = type;
+  const fmt = IMPORT_FORMATS[type];
+  if (!fmt) return;
+  const body = document.getElementById('import-format-body');
+  body.innerHTML = `
+    <div style="margin-bottom:12px"><strong>${fmt.label} 匯入格式</strong></div>
+    <div style="margin-bottom:8px">Excel 檔案的 <b>第一列</b> 為標題列，欄位依序為：</div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:12px;font-size:12px">
+      <thead><tr style="background:var(--bg-2)">
+        ${fmt.cols.map((c,i) => `<th style="border:1px solid var(--border);padding:4px 8px;text-align:center">${String.fromCharCode(65+i)}</th>`).join('')}
+      </tr><tr style="background:var(--surface)">
+        ${fmt.cols.map(c => `<th style="border:1px solid var(--border);padding:4px 8px;font-weight:600">${c}</th>`).join('')}
+      </tr></thead>
+      <tbody>
+        ${fmt.example.map(row => `<tr>${row.map(v => `<td style="border:1px solid var(--border);padding:4px 8px">${v}</td>`).join('')}</tr>`).join('')}
+      </tbody>
+    </table>
+    <div style="background:var(--bg-2);border-radius:var(--radius);padding:10px 12px;font-size:12px;line-height:1.7">
+      <b>注意事項：</b><br>
+      • 同一張單據的 <b>${fmt.groupKey}</b> 必須相同，系統會自動合併為一筆紀錄<br>
+      • <b>日期</b> 格式：YYYY/MM/DD 或 YYYY-MM-DD<br>
+      • <b>數量</b> 和 <b>金額</b> 必須為數字<br>
+      • <b>備註</b> 可留空<br>
+      • 可直接使用「匯出 Excel」產生的明細格式來匯入（會自動跳過「項次」欄）<br>
+      • 匯入會新增紀錄，不會覆蓋現有資料
+    </div>
+  `;
+  document.getElementById('import-format-modal').style.display = 'flex';
+}
+
+function downloadImportTemplate() {
+  const fmt = IMPORT_FORMATS[_importFormatType];
+  if (!fmt) return;
+  const wb = XLSX.utils.book_new();
+  const data = [fmt.cols, ...fmt.example];
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{ wch:12 }, { wch:14 }, { wch:18 }, { wch:24 }, { wch:8 }, { wch:10 }, { wch:12 }];
+  XLSX.utils.book_append_sheet(wb, ws, fmt.label);
+  XLSX.writeFile(wb, fmt.label + '_匯入範例.xlsx');
+  toast('已下載範例模板');
+}
+
+async function handleImportExcel(input, type) {
+  const file = input.files[0];
+  input.value = '';
+  if (!file) return;
+  const fmt = IMPORT_FORMATS[type];
+  if (!fmt) return;
+
+  const statusEl = document.getElementById(type + '-import-status');
+  statusEl.style.display = 'block';
+  statusEl.textContent = '讀取檔案中…';
+
+  try {
+    const data = await file.arrayBuffer();
+    const wb = XLSX.read(data);
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+    if (!rows.length) { toast('檔案無資料'); statusEl.style.display = 'none'; return; }
+
+    // 自動偵測欄位：支援匯出明細格式（含「項次」欄）
+    const firstRow = rows[0];
+    const keys = Object.keys(firstRow);
+    let colDate, colParty, colNo, colName, colQty, colAmount, colNote;
+
+    // 嘗試依標題名稱對應
+    const find = (candidates) => keys.find(k => candidates.some(c => k.includes(c)));
+    colDate = find(['日期']);
+    colParty = find([fmt.partyCol]);
+    colNo = find([fmt.groupKey]);
+    colName = find(['品名', '規格', '品名規格']);
+    colQty = find(['數量']);
+    colAmount = find(['金額']);
+    colNote = find(['備註']);
+
+    if (!colDate || !colNo || !colName) {
+      toast('欄位格式錯誤，請確認標題列包含：' + fmt.cols.join('、'));
+      statusEl.style.display = 'none';
+      return;
+    }
+
+    // 依單號分組
+    const groups = {};
+    rows.forEach(r => {
+      const no = String(r[colNo] || '').trim();
+      if (!no) return;
+      if (!groups[no]) {
+        let dateVal = r[colDate] || '';
+        if (dateVal instanceof Date) {
+          dateVal = dateVal.getFullYear() + '-' + String(dateVal.getMonth()+1).padStart(2,'0') + '-' + String(dateVal.getDate()).padStart(2,'0');
+        } else {
+          dateVal = String(dateVal).replace(/\//g, '-').trim();
+          // handle Excel serial date
+          if (/^\d{5}$/.test(dateVal)) {
+            const d = new Date((Number(dateVal) - 25569) * 86400000);
+            dateVal = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+          }
+        }
+        groups[no] = { no, date: dateVal, party: String(r[colParty] || '').trim(), items: [] };
+      }
+      const name = String(r[colName] || '').trim();
+      if (name) {
+        groups[no].items.push({
+          seq: groups[no].items.length + 1,
+          name,
+          qty: Number(r[colQty]) || 0,
+          amount: Number(r[colAmount]) || 0,
+          note: String(r[colNote] || '').trim()
+        });
+      }
+    });
+
+    const records = Object.values(groups).filter(g => g.items.length > 0);
+    if (!records.length) { toast('找不到有效的品項資料'); statusEl.style.display = 'none'; return; }
+
+    if (!confirm(`即將匯入 ${records.length} 筆${fmt.label}，共 ${records.reduce((s,g) => s+g.items.length, 0)} 個品項，確定要匯入嗎？`)) {
+      statusEl.style.display = 'none';
+      return;
+    }
+
+    let success = 0, fail = 0;
+    for (let i = 0; i < records.length; i++) {
+      const rec = records[i];
+      statusEl.textContent = `匯入中 (${i+1}/${records.length})… ${rec.no}`;
+      const totalAmount = rec.items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+      const payload = {
+        action: fmt.action,
+        [fmt.noField]: rec.no,
+        date: rec.date,
+        [fmt.partyField]: rec.party,
+        items: rec.items,
+        totalAmount
+      };
+      try {
+        const resp = await fetch(GAS_URL, {
+          method: 'POST', headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify(payload)
+        });
+        const result = await resp.json();
+        if (result.ok) success++; else fail++;
+      } catch(e) { fail++; }
+    }
+
+    statusEl.textContent = `匯入完成：成功 ${success} 筆` + (fail ? `，失敗 ${fail} 筆` : '');
+    toast(`匯入完成：成功 ${success} 筆` + (fail ? `，失敗 ${fail} 筆` : ''));
+    setTimeout(() => { statusEl.style.display = 'none'; }, 5000);
+    fmt.reload();
+  } catch(e) {
+    toast('匯入失敗：' + e.message);
+    statusEl.style.display = 'none';
+  }
 }
 
 function editPurchaseRecord(recordId) {
