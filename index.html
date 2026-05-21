@@ -327,7 +327,7 @@
     <div class="home-card" onclick="showPage('card')">
       <div class="home-icon">📋</div>
       <div class="home-label">材料卡</div>
-      <div class="home-desc">材料卡片管理、客戶/廠商/案件</div>
+      <div class="home-desc">材料卡片管理、客戶/廠商/訂單</div>
     </div>
     <div class="home-card" onclick="showPage('customers')">
       <div class="home-icon">👥</div>
@@ -505,8 +505,8 @@
         <input id="card-no" placeholder="編號">
       </div>
       <div class="form-group" style="grid-column:span 2">
-        <label>案件名稱 <span style="color:var(--red)">*</span></label>
-        <select id="card-project"><option value="">選擇案件</option></select>
+        <label>訂單名稱 <span style="color:var(--red)">*</span></label>
+        <select id="card-project"><option value="">選擇訂單</option></select>
       </div>
       <div class="form-group">
         <label>日期</label>
@@ -525,17 +525,17 @@
     </div>
   </div>
 
-  <!-- 案件管理（可收合） -->
+  <!-- 訂單管理（可收合） -->
   <div class="card" style="margin-top:1rem">
     <div class="brand-card-title card-title" onclick="toggleProjMgmt()" style="margin-bottom:0">
-      <span>案件管理</span>
+      <span>訂單管理</span>
       <span id="proj-arrow" style="font-size:14px;font-weight:normal">▸</span>
     </div>
     <div id="proj-mgmt-body" style="display:none;margin-top:1rem">
       <div id="proj-chips"></div>
       <div class="brand-add-row">
-        <input id="f-new-proj" placeholder="輸入新案件名稱">
-        <button class="btn btn-primary btn-sm" onclick="addProject()">＋ 新增案件</button>
+        <input id="f-new-proj" placeholder="輸入新訂單名稱">
+        <button class="btn btn-primary btn-sm" onclick="addProject()">＋ 新增訂單</button>
       </div>
     </div>
   </div>
@@ -1495,11 +1495,11 @@ function exportCustomersExcel() {
   toast('已匯出客戶資料');
 }
 
-// ── 案件管理 ──────────────────────────────────────────
+// ── 訂單管理 ──────────────────────────────────────────
 function renderProjOptions() {
   const sel = document.getElementById('card-project');
   const cur = sel.value;
-  sel.innerHTML = '<option value="">選擇案件</option>' + projects.map(p => `<option value="${esc(p)}"${p === cur ? ' selected' : ''}>${esc(p)}</option>`).join('');
+  sel.innerHTML = '<option value="">選擇訂單</option>' + projects.map(p => `<option value="${esc(p)}"${p === cur ? ' selected' : ''}>${esc(p)}</option>`).join('');
 }
 function renderProjChips() {
   document.getElementById('proj-chips').innerHTML =
@@ -1509,7 +1509,7 @@ function renderProjChips() {
             ${esc(p)}
             <button class="chip-del" style="color:var(--accent-text)" title="刪除" onclick="deleteProject(${i})">×</button>
           </span>`).join('')
-      : '<span style="font-size:12px;color:var(--text-3)">尚無案件，請新增</span>';
+      : '<span style="font-size:12px;color:var(--text-3)">尚無訂單，請新增</span>';
   renderProjOptions();
 }
 function toggleProjMgmt() {
@@ -1522,20 +1522,20 @@ function toggleProjMgmt() {
 }
 function addProject() {
   const name = document.getElementById('f-new-proj').value.trim();
-  if (!name) { toast('請輸入案件名稱'); return; }
-  if (projects.includes(name)) { toast('案件已存在'); return; }
+  if (!name) { toast('請輸入訂單名稱'); return; }
+  if (projects.includes(name)) { toast('訂單已存在'); return; }
   projects.push(name);
   save();
   renderProjChips();
   document.getElementById('f-new-proj').value = '';
-  toast('已新增案件：' + name);
+  toast('已新增訂單：' + name);
 }
 function deleteProject(idx) {
   const name = projects[idx];
   projects.splice(idx, 1);
   save();
   renderProjChips();
-  toast('已刪除案件：' + name);
+  toast('已刪除訂單：' + name);
 }
 
 // ── 廠商管理 ─────────────────────────────────────────
@@ -2067,7 +2067,7 @@ function printCard() {
         <td class="val">${esc(cardNo)}</td>
       </tr>
       <tr>
-        <td class="lbl">案件名稱</td>
+        <td class="lbl">訂單名稱</td>
         <td class="val" colspan="2">${esc(projectName)}</td>
         <td class="lbl">日期</td>
         <td class="val">${esc(date)}</td>
@@ -2114,7 +2114,7 @@ function exportCardExcel() {
   // Build header rows
   const headerData = [
     ['客戶名稱', customerName, '', '編號', cardNo],
-    ['案件名稱', projectName, '', '日期', date],
+    ['訂單名稱', projectName, '', '日期', date],
     [],
     ['序號', '廠牌', '型號', '類別', '數量', '金額']
   ];
@@ -2173,7 +2173,7 @@ async function createCardSheet() {
   const project  = document.getElementById('card-project').value;
   const date     = document.getElementById('card-date').value;
   if (!customer) { toast('請選擇客戶名稱'); return; }
-  if (!project)  { toast('請選擇案件名稱'); return; }
+  if (!project)  { toast('請選擇訂單名稱'); return; }
   const items = cardItems.filter(item => item.supplier || item.brand || item.model || item.cat || item.qty || item.amount);
   if (!items.length) { toast('請至少填寫一筆項目'); return; }
   const sheetName = date + '_' + customer + '_' + project;
