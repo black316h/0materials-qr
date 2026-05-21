@@ -3015,7 +3015,13 @@ function renderQuotationsTable() {
           <span>客戶：<strong>${esc(r['客戶']||'—')}</strong></span>
           ${r['訂單名稱'] ? `<span class="record-divider">|</span><span>訂單：<strong>${esc(r['訂單名稱'])}</strong></span>` : ''}
         </div>
-        <button class="btn btn-sm" onclick="editQuotationRecord('${esc(r['紀錄ID']||'')}')">編輯</button>
+        <div style="display:flex;align-items:center;gap:6px">
+          <label class="deal-check" style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;font-weight:600;${r['成交']==='是'?'color:var(--green-text)':'color:var(--text-3)'}">
+            <input type="checkbox" ${r['成交']==='是'?'checked':''} onchange="toggleDeal('${esc(r['紀錄ID']||'')}',this)" style="accent-color:var(--accent);width:16px;height:16px;cursor:pointer">
+            ${r['成交']==='是'?'已成交':'成交'}
+          </label>
+          <button class="btn btn-sm" onclick="editQuotationRecord('${esc(r['紀錄ID']||'')}')">編輯</button>
+        </div>
       </div>
       <div class="table-wrap" style="margin-top:8px">
         <table>
@@ -3116,6 +3122,70 @@ function editQuotationRecord(recordId) {
   calcQuoTotal();
   showPage('quotation');
   toast('已載入 ' + recordId + ' 編輯中');
+}
+
+async function toggleDeal(recordId, checkbox) {
+  const r = quotationRecords.find(x => x['紀錄ID'] === recordId);
+  if (!r) { checkbox.checked = !checkbox.checked; return; }
+
+  const wasDeal = r['成交'] === '是';
+  const newDeal = !wasDeal;
+
+  if (newDeal) {
+    if (!confirm('確定將此報價單標記為「已成交」？\n將自動建立訂單。')) {
+      checkbox.checked = false;
+      return;
+    }
+  } else {
+    if (!confirm('確定取消成交狀態？')) {
+      checkbox.checked = true;
+      return;
+    }
+  }
+
+  toast('更新中…');
+  try {
+    const resp = await fetch(GAS_URL, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'dealQuotation', recordId, deal: newDeal })
+    });
+    const result = await resp.json();
+    if (result.ok) {
+      r['成交'] = newDeal ? '是' : '';
+
+      if (newDeal) {
+        // 自動建立訂單
+        const orderName = (r['報價單號'] || recordId) + ' ' + (r['客戶'] || '');
+        const exists = projects.some(p => p.name === orderName);
+        if (!exists) {
+          const maxSeq = projects.reduce((mx, p) => Math.max(mx, p.seq || 0), 0);
+          projects.push({
+            seq: maxSeq + 1,
+            date: new Date().toISOString().slice(0, 10),
+            customer: r['客戶'] || '',
+            name: orderName,
+            deliveryDate: '',
+            note: '報價單成交：' + recordId
+          });
+          save();
+          renderProjOptions();
+          toast('✅ 已成交，訂單已建立：' + orderName);
+        } else {
+          toast('✅ 已成交（訂單已存在）');
+        }
+      } else {
+        toast('已取消成交狀態');
+      }
+
+      renderQuotationsTable();
+    } else {
+      toast('更新失敗：' + (result.error || ''));
+      checkbox.checked = wasDeal;
+    }
+  } catch(e) {
+    toast('更新失敗：' + e.message);
+    checkbox.checked = wasDeal;
+  }
 }
 
 // ── 進貨單 ───────────────────────────────────────────
