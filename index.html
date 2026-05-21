@@ -327,7 +327,7 @@
     <div class="home-card" onclick="showPage('card')">
       <div class="home-icon">📋</div>
       <div class="home-label">材料卡</div>
-      <div class="home-desc">材料卡片管理、客戶/廠商/訂單</div>
+      <div class="home-desc">材料卡片管理</div>
     </div>
     <div class="home-card" onclick="showPage('customers')">
       <div class="home-icon">👥</div>
@@ -338,6 +338,11 @@
       <div class="home-icon">🏭</div>
       <div class="home-label">廠商管理</div>
       <div class="home-desc">廠商資料維護、列印、匯出</div>
+    </div>
+    <div class="home-card" onclick="showPage('orders')">
+      <div class="home-icon">📋</div>
+      <div class="home-label">訂單管理</div>
+      <div class="home-desc">訂單建立、查詢、維護</div>
     </div>
     <div class="home-card" onclick="showPage('invoice')">
       <div class="home-icon">📤</div>
@@ -525,21 +530,6 @@
     </div>
   </div>
 
-  <!-- 訂單管理（可收合） -->
-  <div class="card" style="margin-top:1rem">
-    <div class="brand-card-title card-title" onclick="toggleProjMgmt()" style="margin-bottom:0">
-      <span>訂單管理</span>
-      <span id="proj-arrow" style="font-size:14px;font-weight:normal">▸</span>
-    </div>
-    <div id="proj-mgmt-body" style="display:none;margin-top:1rem">
-      <div id="proj-chips"></div>
-      <div class="brand-add-row">
-        <input id="f-new-proj" placeholder="輸入新訂單名稱">
-        <button class="btn btn-primary btn-sm" onclick="addProject()">＋ 新增訂單</button>
-      </div>
-    </div>
-  </div>
-
   <div class="table-wrap" style="margin-top:1rem">
     <table>
       <thead>
@@ -639,6 +629,43 @@
       <div class="form-group"><label>地址</label><input id="f-new-supp-address" placeholder="地址"></div>
     </div>
     <button class="btn btn-primary btn-sm" onclick="addSupplier()">＋ 新增廠商</button>
+  </div>
+</div>
+
+<!-- ── 訂單管理 ── -->
+<div id="page-orders" class="page">
+  <div class="page-title">訂單管理</div>
+  <div class="btn-row" style="margin-bottom:12px">
+    <button class="btn btn-primary" onclick="printOrders()">🖨️ 列印</button>
+    <button class="btn" onclick="exportOrdersExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
+    <span id="order-count" style="font-size:12px;color:var(--text-3);align-self:center;margin-left:auto"></span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:50px">序號</th>
+          <th style="width:100px">日期</th>
+          <th>客戶名稱</th>
+          <th>訂單名稱</th>
+          <th style="width:100px">交期</th>
+          <th>備註</th>
+          <th style="width:90px"></th>
+        </tr>
+      </thead>
+      <tbody id="order-tbody"></tbody>
+    </table>
+  </div>
+  <div class="card" style="margin-top:1rem">
+    <div class="card-title">新增訂單</div>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+      <div class="form-group"><label>日期</label><input id="f-new-order-date" type="date"></div>
+      <div class="form-group"><label>客戶名稱</label><select id="f-new-order-cust"><option value="">選擇客戶</option></select></div>
+      <div class="form-group"><label>訂單名稱 <span style="color:var(--red)">*</span></label><input id="f-new-order-name" placeholder="訂單名稱"></div>
+      <div class="form-group"><label>交期</label><input id="f-new-order-delivery" type="date"></div>
+      <div class="form-group"><label>備註</label><input id="f-new-order-note" placeholder="備註"></div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="addOrder()">＋ 新增訂單</button>
   </div>
 </div>
 
@@ -1123,7 +1150,7 @@ function migrateToObj(arr) {
   return arr.map(item => typeof item === 'string' ? { name: item, contact: '', phone: '', fax: '', mobile: '', address: '' } : item);
 }
 let customers = migrateToObj(JSON.parse(localStorage.getItem(STORAGE_KEY_CUSTS) || localStorage.getItem('mat_customers_v1') || 'null') || []);
-let projects  = JSON.parse(localStorage.getItem(STORAGE_KEY_PROJS) || 'null') || [];
+let projects  = migrateProjects(JSON.parse(localStorage.getItem(STORAGE_KEY_PROJS) || 'null') || []);
 let suppliers = migrateToObj(JSON.parse(localStorage.getItem(STORAGE_KEY_SUPPS) || localStorage.getItem('mat_suppliers_v1') || 'null') || []);
 
 let materials = (JSON.parse(localStorage.getItem(STORAGE_KEY_MAT) || 'null') || [
@@ -1213,7 +1240,7 @@ async function loadFromCloud() {
       brands    = data.brands    && data.brands.length    ? data.brands    : brands;
       cats      = data.cats      && data.cats.length      ? data.cats      : cats;
       customers = data.customers && data.customers.length ? migrateToObj(data.customers) : customers;
-      projects  = data.projects  && data.projects.length  ? data.projects  : projects;
+      projects  = data.projects  && data.projects.length  ? migrateProjects(data.projects)  : projects;
       suppliers = data.suppliers && data.suppliers.length ? migrateToObj(data.suppliers) : suppliers;
       localStorage.setItem(STORAGE_KEY_MAT,    JSON.stringify(materials));
       localStorage.setItem(STORAGE_KEY_BRANDS, JSON.stringify(brands));
@@ -1263,6 +1290,7 @@ function showPage(name) {
   if (name === 'purchases') loadPurchaseRecords();
   if (name === 'customers') renderCustPage();
   if (name === 'suppliers') renderSuppPage();
+  if (name === 'orders') renderOrderPage();
 }
 function goHome() { showPage('home'); }
 function setFilter(cat, btn) {
@@ -1496,46 +1524,153 @@ function exportCustomersExcel() {
 }
 
 // ── 訂單管理 ──────────────────────────────────────────
+// 資料遷移：舊格式 string[] → 新格式 object[]
+function migrateProjects(arr) {
+  if (!arr || !arr.length) return [];
+  return arr.map((p, i) => {
+    if (typeof p === 'string') return { seq: i+1, date: '', customer: '', name: p, deliveryDate: '', note: '' };
+    return p;
+  });
+}
+
 function renderProjOptions() {
   const sel = document.getElementById('card-project');
   const cur = sel.value;
-  sel.innerHTML = '<option value="">選擇訂單</option>' + projects.map(p => `<option value="${esc(p)}"${p === cur ? ' selected' : ''}>${esc(p)}</option>`).join('');
+  sel.innerHTML = '<option value="">選擇訂單</option>' + projects.map(p => {
+    const label = typeof p === 'string' ? p : p.name;
+    return `<option value="${esc(label)}"${label === cur ? ' selected' : ''}>${esc(label)}</option>`;
+  }).join('');
 }
-function renderProjChips() {
-  document.getElementById('proj-chips').innerHTML =
-    projects.length
-      ? projects.map((p, i) => `
-          <span class="brand-chip" style="background:var(--accent-light);color:var(--accent-text)">
-            ${esc(p)}
-            <button class="chip-del" style="color:var(--accent-text)" title="刪除" onclick="deleteProject(${i})">×</button>
-          </span>`).join('')
-      : '<span style="font-size:12px;color:var(--text-3)">尚無訂單，請新增</span>';
-  renderProjOptions();
+
+function renderOrderCustOptions() {
+  const sel = document.getElementById('f-new-order-cust');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">選擇客戶</option>' + customers.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
 }
-function toggleProjMgmt() {
-  const body  = document.getElementById('proj-mgmt-body');
-  const arrow = document.getElementById('proj-arrow');
-  const open  = body.style.display === 'block';
-  body.style.display = open ? 'none' : 'block';
-  arrow.textContent  = open ? '▸' : '▾';
-  if (!open) renderProjChips();
+
+let editingOrderIdx = -1;
+
+function renderOrderPage() {
+  const tbody = document.getElementById('order-tbody');
+  const countEl = document.getElementById('order-count');
+  if (countEl) countEl.textContent = '共 ' + projects.length + ' 筆';
+  renderOrderCustOptions();
+  // 預設新增日期為今天
+  const dateInput = document.getElementById('f-new-order-date');
+  if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
+
+  if (!projects.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">尚無訂單，請新增</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = projects.map((p, i) => {
+    if (i === editingOrderIdx) {
+      const custOpts = '<option value="">選擇客戶</option>' + customers.map(c =>
+        `<option value="${esc(c.name)}"${c.name === (p.customer||'') ? ' selected' : ''}>${esc(c.name)}</option>`
+      ).join('');
+      return `<tr class="editing">
+        <td style="text-align:center">${p.seq || i+1}</td>
+        <td><input class="edit-inp" id="eo-date" type="date" value="${esc(p.date||'')}"></td>
+        <td><select class="edit-sel" id="eo-cust">${custOpts}</select></td>
+        <td><input class="edit-inp" id="eo-name" value="${esc(p.name||'')}"></td>
+        <td><input class="edit-inp" id="eo-delivery" type="date" value="${esc(p.deliveryDate||'')}"></td>
+        <td><input class="edit-inp" id="eo-note" value="${esc(p.note||'')}"></td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-sm btn-primary" onclick="saveOrderEdit(${i})" style="padding:3px 8px;font-size:11px">儲存</button>
+          <button class="btn btn-sm" onclick="cancelOrderEdit()" style="padding:3px 8px;font-size:11px">取消</button>
+        </td>
+      </tr>`;
+    }
+    return `<tr>
+      <td style="text-align:center">${p.seq || i+1}</td>
+      <td>${p.date ? fmtDate(p.date) : ''}</td>
+      <td>${esc(p.customer||'')}</td>
+      <td>${esc(p.name||'')}</td>
+      <td>${p.deliveryDate ? fmtDate(p.deliveryDate) : ''}</td>
+      <td>${esc(p.note||'')}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm" onclick="editOrder(${i})" style="padding:3px 8px;font-size:11px">編輯</button>
+        <button class="btn-danger" style="font-size:14px;padding:2px 6px" onclick="deleteOrder(${i})">×</button>
+      </td>
+    </tr>`;
+  }).join('');
 }
-function addProject() {
-  const name = document.getElementById('f-new-proj').value.trim();
+
+function editOrder(idx) { editingOrderIdx = idx; renderOrderPage(); }
+function cancelOrderEdit() { editingOrderIdx = -1; renderOrderPage(); }
+
+function saveOrderEdit(idx) {
+  const name = document.getElementById('eo-name').value.trim();
+  if (!name) { toast('訂單名稱不可為空'); return; }
+  projects[idx] = {
+    seq: projects[idx].seq || idx+1,
+    date: document.getElementById('eo-date').value,
+    customer: document.getElementById('eo-cust').value,
+    name: name,
+    deliveryDate: document.getElementById('eo-delivery').value,
+    note: document.getElementById('eo-note').value.trim()
+  };
+  editingOrderIdx = -1;
+  save(); renderOrderPage(); renderProjOptions();
+  toast('已儲存訂單：' + name);
+}
+
+function addOrder() {
+  const name = document.getElementById('f-new-order-name').value.trim();
   if (!name) { toast('請輸入訂單名稱'); return; }
-  if (projects.includes(name)) { toast('訂單已存在'); return; }
-  projects.push(name);
-  save();
-  renderProjChips();
-  document.getElementById('f-new-proj').value = '';
+  const maxSeq = projects.reduce((mx, p) => Math.max(mx, p.seq || 0), 0);
+  projects.push({
+    seq: maxSeq + 1,
+    date: document.getElementById('f-new-order-date').value || new Date().toISOString().slice(0, 10),
+    customer: document.getElementById('f-new-order-cust').value,
+    name: name,
+    deliveryDate: document.getElementById('f-new-order-delivery').value,
+    note: document.getElementById('f-new-order-note').value.trim()
+  });
+  save(); renderOrderPage(); renderProjOptions();
+  document.getElementById('f-new-order-name').value = '';
+  document.getElementById('f-new-order-note').value = '';
+  document.getElementById('f-new-order-delivery').value = '';
   toast('已新增訂單：' + name);
 }
-function deleteProject(idx) {
-  const name = projects[idx];
+
+function deleteOrder(idx) {
+  const name = projects[idx].name || projects[idx];
   projects.splice(idx, 1);
-  save();
-  renderProjChips();
+  save(); renderOrderPage(); renderProjOptions();
   toast('已刪除訂單：' + name);
+}
+
+function printOrders() {
+  const area = document.getElementById('print-area');
+  let html = '<h2 style="text-align:center;margin-bottom:12px">訂單管理</h2>';
+  html += '<table border="1" cellpadding="6" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:12px">';
+  html += '<tr style="background:#eee"><th>序號</th><th>日期</th><th>客戶名稱</th><th>訂單名稱</th><th>交期</th><th>備註</th></tr>';
+  projects.forEach(p => {
+    html += `<tr>
+      <td style="text-align:center">${p.seq||''}</td>
+      <td>${p.date ? fmtDate(p.date) : ''}</td>
+      <td>${esc(p.customer||'')}</td>
+      <td>${esc(p.name||'')}</td>
+      <td>${p.deliveryDate ? fmtDate(p.deliveryDate) : ''}</td>
+      <td>${esc(p.note||'')}</td>
+    </tr>`;
+  });
+  html += '</table>';
+  area.innerHTML = html;
+  window.print();
+}
+
+function exportOrdersExcel() {
+  if (!projects.length) { toast('沒有訂單資料可匯出'); return; }
+  const header = ['序號', '日期', '客戶名稱', '訂單名稱', '交期', '備註'];
+  const data = projects.map(p => [p.seq||'', p.date||'', p.customer||'', p.name||'', p.deliveryDate||'', p.note||'']);
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([header, ...data]);
+  ws['!cols'] = [{ wch:6 }, { wch:12 }, { wch:16 }, { wch:24 }, { wch:12 }, { wch:20 }];
+  XLSX.utils.book_append_sheet(wb, ws, '訂單管理');
+  XLSX.writeFile(wb, '訂單管理_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  toast('已匯出訂單資料');
 }
 
 // ── 廠商管理 ─────────────────────────────────────────
