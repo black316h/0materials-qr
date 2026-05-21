@@ -317,6 +317,16 @@
       <div class="home-label">材料卡</div>
       <div class="home-desc">材料卡片管理、客戶/廠商/案件</div>
     </div>
+    <div class="home-card" onclick="showPage('customers')">
+      <div class="home-icon">👥</div>
+      <div class="home-label">客戶管理</div>
+      <div class="home-desc">客戶資料維護、列印、匯出</div>
+    </div>
+    <div class="home-card" onclick="showPage('suppliers')">
+      <div class="home-icon">🏭</div>
+      <div class="home-label">廠商管理</div>
+      <div class="home-desc">廠商資料維護、列印、匯出</div>
+    </div>
     <div class="home-card" onclick="showPage('invoice')">
       <div class="home-icon">📤</div>
       <div class="home-label">出貨單</div>
@@ -493,28 +503,6 @@
     </div>
   </div>
 
-  <!-- 客戶管理（可收合） -->
-  <div class="card" style="margin-top:1rem">
-    <div class="brand-card-title card-title" onclick="toggleCustMgmt()" style="margin-bottom:0">
-      <span>客戶管理</span>
-      <span id="cust-arrow" style="font-size:14px;font-weight:normal">▸</span>
-    </div>
-    <div id="cust-mgmt-body" style="display:none;margin-top:1rem">
-      <div id="cust-list"></div>
-      <div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:var(--radius)">
-        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
-          <div class="form-group"><label>客戶名稱 *</label><input id="f-new-cust" placeholder="名稱"></div>
-          <div class="form-group"><label>聯絡人</label><input id="f-new-cust-contact" placeholder="聯絡人"></div>
-          <div class="form-group"><label>電話</label><input id="f-new-cust-phone" placeholder="電話"></div>
-          <div class="form-group"><label>傳真</label><input id="f-new-cust-fax" placeholder="傳真"></div>
-          <div class="form-group"><label>手機</label><input id="f-new-cust-mobile" placeholder="手機"></div>
-          <div class="form-group"><label>地址</label><input id="f-new-cust-address" placeholder="地址"></div>
-        </div>
-        <button class="btn btn-primary btn-sm" onclick="addCustomer()">＋ 新增客戶</button>
-      </div>
-    </div>
-  </div>
-
   <!-- 案件管理（可收合） -->
   <div class="card" style="margin-top:1rem">
     <div class="brand-card-title card-title" onclick="toggleProjMgmt()" style="margin-bottom:0">
@@ -526,28 +514,6 @@
       <div class="brand-add-row">
         <input id="f-new-proj" placeholder="輸入新案件名稱">
         <button class="btn btn-primary btn-sm" onclick="addProject()">＋ 新增案件</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 廠商管理（可收合） -->
-  <div class="card" style="margin-top:1rem">
-    <div class="brand-card-title card-title" onclick="toggleSuppMgmt()" style="margin-bottom:0">
-      <span>廠商管理</span>
-      <span id="supp-arrow" style="font-size:14px;font-weight:normal">▸</span>
-    </div>
-    <div id="supp-mgmt-body" style="display:none;margin-top:1rem">
-      <div id="supp-list-area"></div>
-      <div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:var(--radius)">
-        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
-          <div class="form-group"><label>廠商名稱 *</label><input id="f-new-supp" placeholder="名稱"></div>
-          <div class="form-group"><label>聯絡人</label><input id="f-new-supp-contact" placeholder="聯絡人"></div>
-          <div class="form-group"><label>電話</label><input id="f-new-supp-phone" placeholder="電話"></div>
-          <div class="form-group"><label>傳真</label><input id="f-new-supp-fax" placeholder="傳真"></div>
-          <div class="form-group"><label>手機</label><input id="f-new-supp-mobile" placeholder="手機"></div>
-          <div class="form-group"><label>地址</label><input id="f-new-supp-address" placeholder="地址"></div>
-        </div>
-        <button class="btn btn-primary btn-sm" onclick="addSupplier()">＋ 新增廠商</button>
       </div>
     </div>
   </div>
@@ -575,6 +541,82 @@
         </tr>
       </tfoot>
     </table>
+  </div>
+</div>
+
+<!-- ── 客戶管理 ── -->
+<div id="page-customers" class="page">
+  <div class="page-title">客戶管理</div>
+  <div class="btn-row" style="margin-bottom:12px">
+    <button class="btn btn-primary" onclick="printCustomers()">🖨️ 列印</button>
+    <button class="btn" onclick="exportCustomersExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
+    <span id="cust-count" style="font-size:12px;color:var(--text-3);align-self:center;margin-left:auto"></span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>名稱</th>
+          <th>聯絡人</th>
+          <th>電話</th>
+          <th>傳真</th>
+          <th>手機</th>
+          <th>地址</th>
+          <th style="width:40px"></th>
+        </tr>
+      </thead>
+      <tbody id="cust-tbody"></tbody>
+    </table>
+  </div>
+  <div class="card" style="margin-top:1rem">
+    <div class="card-title">新增客戶</div>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+      <div class="form-group"><label>客戶名稱 <span style="color:var(--red)">*</span></label><input id="f-new-cust" placeholder="名稱"></div>
+      <div class="form-group"><label>聯絡人</label><input id="f-new-cust-contact" placeholder="聯絡人"></div>
+      <div class="form-group"><label>電話</label><input id="f-new-cust-phone" placeholder="電話"></div>
+      <div class="form-group"><label>傳真</label><input id="f-new-cust-fax" placeholder="傳真"></div>
+      <div class="form-group"><label>手機</label><input id="f-new-cust-mobile" placeholder="手機"></div>
+      <div class="form-group"><label>地址</label><input id="f-new-cust-address" placeholder="地址"></div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="addCustomer()">＋ 新增客戶</button>
+  </div>
+</div>
+
+<!-- ── 廠商管理 ── -->
+<div id="page-suppliers" class="page">
+  <div class="page-title">廠商管理</div>
+  <div class="btn-row" style="margin-bottom:12px">
+    <button class="btn btn-primary" onclick="printSuppliers()">🖨️ 列印</button>
+    <button class="btn" onclick="exportSuppliersExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
+    <span id="supp-count" style="font-size:12px;color:var(--text-3);align-self:center;margin-left:auto"></span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>名稱</th>
+          <th>聯絡人</th>
+          <th>電話</th>
+          <th>傳真</th>
+          <th>手機</th>
+          <th>地址</th>
+          <th style="width:40px"></th>
+        </tr>
+      </thead>
+      <tbody id="supp-tbody"></tbody>
+    </table>
+  </div>
+  <div class="card" style="margin-top:1rem">
+    <div class="card-title">新增廠商</div>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+      <div class="form-group"><label>廠商名稱 <span style="color:var(--red)">*</span></label><input id="f-new-supp" placeholder="名稱"></div>
+      <div class="form-group"><label>聯絡人</label><input id="f-new-supp-contact" placeholder="聯絡人"></div>
+      <div class="form-group"><label>電話</label><input id="f-new-supp-phone" placeholder="電話"></div>
+      <div class="form-group"><label>傳真</label><input id="f-new-supp-fax" placeholder="傳真"></div>
+      <div class="form-group"><label>手機</label><input id="f-new-supp-mobile" placeholder="手機"></div>
+      <div class="form-group"><label>地址</label><input id="f-new-supp-address" placeholder="地址"></div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="addSupplier()">＋ 新增廠商</button>
   </div>
 </div>
 
@@ -1089,6 +1131,8 @@ function showPage(name) {
   if (name === 'card') loadQueuedItems();
   if (name === 'sales') loadSalesRecords();
   if (name === 'purchases') loadPurchaseRecords();
+  if (name === 'customers') renderCustPage();
+  if (name === 'suppliers') renderSuppPage();
 }
 function goHome() { showPage('home'); }
 function setFilter(cat, btn) {
@@ -1207,36 +1251,24 @@ function renderCustOptions() {
     sel.innerHTML = '<option value="">選擇客戶</option>' + customers.map(c => `<option value="${esc(c.name)}"${c.name === cur ? ' selected' : ''}>${esc(c.name)}</option>`).join('');
   });
 }
-function renderCustList() {
-  const el = document.getElementById('cust-list');
-  if (!el) return;
+function renderCustPage() {
+  const tbody = document.getElementById('cust-tbody');
+  const countEl = document.getElementById('cust-count');
+  if (countEl) countEl.textContent = '共 ' + customers.length + ' 筆';
   if (!customers.length) {
-    el.innerHTML = '<span style="font-size:12px;color:var(--text-3)">尚無客戶，請新增</span>';
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">尚無客戶，請新增</div></td></tr>';
   } else {
-    el.innerHTML = '<table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:4px"><thead><tr style="background:var(--bg)">' +
-      '<th style="padding:4px 6px;text-align:left">名稱</th><th style="padding:4px 6px;text-align:left">聯絡人</th>' +
-      '<th style="padding:4px 6px;text-align:left">電話</th><th style="padding:4px 6px;text-align:left">傳真</th>' +
-      '<th style="padding:4px 6px;text-align:left">手機</th><th style="padding:4px 6px;text-align:left">地址</th>' +
-      '<th style="padding:4px 6px;width:40px"></th></tr></thead><tbody>' +
-      customers.map((c, i) => `<tr style="border-bottom:1px solid var(--border)">
-        <td style="padding:4px 6px">${esc(c.name)}</td>
-        <td style="padding:4px 6px">${esc(c.contact||'')}</td>
-        <td style="padding:4px 6px">${esc(c.phone||'')}</td>
-        <td style="padding:4px 6px">${esc(c.fax||'')}</td>
-        <td style="padding:4px 6px">${esc(c.mobile||'')}</td>
-        <td style="padding:4px 6px">${esc(c.address||'')}</td>
-        <td style="padding:4px 6px"><button class="btn-danger" style="font-size:14px;padding:2px 6px" onclick="deleteCustomer(${i})">×</button></td>
-      </tr>`).join('') + '</tbody></table>';
+    tbody.innerHTML = customers.map((c, i) => `<tr>
+      <td>${esc(c.name)}</td>
+      <td>${esc(c.contact||'')}</td>
+      <td>${esc(c.phone||'')}</td>
+      <td>${esc(c.fax||'')}</td>
+      <td>${esc(c.mobile||'')}</td>
+      <td>${esc(c.address||'')}</td>
+      <td><button class="btn-danger" style="font-size:14px;padding:2px 6px" onclick="deleteCustomer(${i})">×</button></td>
+    </tr>`).join('');
   }
   renderCustOptions();
-}
-function toggleCustMgmt() {
-  const body  = document.getElementById('cust-mgmt-body');
-  const arrow = document.getElementById('cust-arrow');
-  const open  = body.style.display === 'block';
-  body.style.display = open ? 'none' : 'block';
-  arrow.textContent  = open ? '▸' : '▾';
-  if (!open) renderCustList();
 }
 function addCustomer() {
   const name = document.getElementById('f-new-cust').value.trim();
@@ -1251,16 +1283,46 @@ function addCustomer() {
     address: document.getElementById('f-new-cust-address').value.trim()
   });
   save();
-  renderCustList();
+  renderCustPage();
   ['f-new-cust','f-new-cust-contact','f-new-cust-phone','f-new-cust-fax','f-new-cust-mobile','f-new-cust-address'].forEach(id => document.getElementById(id).value = '');
   toast('已新增客戶：' + name);
 }
 function deleteCustomer(idx) {
+  if (!confirm('確定要刪除客戶「' + customers[idx].name + '」？')) return;
   const name = customers[idx].name;
   customers.splice(idx, 1);
   save();
-  renderCustList();
+  renderCustPage();
   toast('已刪除客戶：' + name);
+}
+function printCustomers() {
+  if (!customers.length) { toast('沒有可列印的客戶'); return; }
+  const area = document.getElementById('print-area');
+  area.innerHTML = `
+    <h2 style="font-size:18px;text-align:center;margin-bottom:10px">客戶資料</h2>
+    <table class="print-items">
+      <thead><tr><th>名稱</th><th>聯絡人</th><th>電話</th><th>傳真</th><th>手機</th><th>地址</th></tr></thead>
+      <tbody>${customers.map(c => `<tr>
+        <td class="left">${esc(c.name)}</td>
+        <td class="left">${esc(c.contact||'')}</td>
+        <td>${esc(c.phone||'')}</td>
+        <td>${esc(c.fax||'')}</td>
+        <td>${esc(c.mobile||'')}</td>
+        <td class="left">${esc(c.address||'')}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  window.print();
+}
+function exportCustomersExcel() {
+  if (!customers.length) { toast('沒有可匯出的客戶'); return; }
+  const header = [['名稱', '聯絡人', '電話', '傳真', '手機', '地址']];
+  const data = customers.map(c => [c.name||'', c.contact||'', c.phone||'', c.fax||'', c.mobile||'', c.address||'']);
+  const ws = XLSX.utils.aoa_to_sheet([...header, ...data]);
+  ws['!cols'] = [{ wch:18 }, { wch:12 }, { wch:14 }, { wch:14 }, { wch:14 }, { wch:30 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '客戶資料');
+  XLSX.writeFile(wb, '客戶資料_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  toast('已匯出客戶資料');
 }
 
 // ── 案件管理 ──────────────────────────────────────────
@@ -1316,36 +1378,24 @@ function renderSuppOptions() {
     sel.innerHTML = '<option value="">選擇廠商</option>' + suppliers.map(s => `<option value="${esc(s.name)}"${s.name === cur ? ' selected' : ''}>${esc(s.name)}</option>`).join('');
   }
 }
-function renderSuppList() {
-  const el = document.getElementById('supp-list-area');
-  if (!el) return;
+function renderSuppPage() {
+  const tbody = document.getElementById('supp-tbody');
+  const countEl = document.getElementById('supp-count');
+  if (countEl) countEl.textContent = '共 ' + suppliers.length + ' 筆';
   if (!suppliers.length) {
-    el.innerHTML = '<span style="font-size:12px;color:var(--text-3)">尚無廠商，請新增</span>';
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">尚無廠商，請新增</div></td></tr>';
   } else {
-    el.innerHTML = '<table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:4px"><thead><tr style="background:var(--bg)">' +
-      '<th style="padding:4px 6px;text-align:left">名稱</th><th style="padding:4px 6px;text-align:left">聯絡人</th>' +
-      '<th style="padding:4px 6px;text-align:left">電話</th><th style="padding:4px 6px;text-align:left">傳真</th>' +
-      '<th style="padding:4px 6px;text-align:left">手機</th><th style="padding:4px 6px;text-align:left">地址</th>' +
-      '<th style="padding:4px 6px;width:40px"></th></tr></thead><tbody>' +
-      suppliers.map((s, i) => `<tr style="border-bottom:1px solid var(--border)">
-        <td style="padding:4px 6px">${esc(s.name)}</td>
-        <td style="padding:4px 6px">${esc(s.contact||'')}</td>
-        <td style="padding:4px 6px">${esc(s.phone||'')}</td>
-        <td style="padding:4px 6px">${esc(s.fax||'')}</td>
-        <td style="padding:4px 6px">${esc(s.mobile||'')}</td>
-        <td style="padding:4px 6px">${esc(s.address||'')}</td>
-        <td style="padding:4px 6px"><button class="btn-danger" style="font-size:14px;padding:2px 6px" onclick="deleteSupplier(${i})">×</button></td>
-      </tr>`).join('') + '</tbody></table>';
+    tbody.innerHTML = suppliers.map((s, i) => `<tr>
+      <td>${esc(s.name)}</td>
+      <td>${esc(s.contact||'')}</td>
+      <td>${esc(s.phone||'')}</td>
+      <td>${esc(s.fax||'')}</td>
+      <td>${esc(s.mobile||'')}</td>
+      <td>${esc(s.address||'')}</td>
+      <td><button class="btn-danger" style="font-size:14px;padding:2px 6px" onclick="deleteSupplier(${i})">×</button></td>
+    </tr>`).join('');
   }
   renderSuppOptions();
-}
-function toggleSuppMgmt() {
-  const body  = document.getElementById('supp-mgmt-body');
-  const arrow = document.getElementById('supp-arrow');
-  const open  = body.style.display === 'block';
-  body.style.display = open ? 'none' : 'block';
-  arrow.textContent  = open ? '▸' : '▾';
-  if (!open) renderSuppList();
 }
 function addSupplier() {
   const name = document.getElementById('f-new-supp').value.trim();
@@ -1360,16 +1410,46 @@ function addSupplier() {
     address: document.getElementById('f-new-supp-address').value.trim()
   });
   save();
-  renderSuppList();
+  renderSuppPage();
   ['f-new-supp','f-new-supp-contact','f-new-supp-phone','f-new-supp-fax','f-new-supp-mobile','f-new-supp-address'].forEach(id => document.getElementById(id).value = '');
   toast('已新增廠商：' + name);
 }
 function deleteSupplier(idx) {
+  if (!confirm('確定要刪除廠商「' + suppliers[idx].name + '」？')) return;
   const name = suppliers[idx].name;
   suppliers.splice(idx, 1);
   save();
-  renderSuppList();
+  renderSuppPage();
   toast('已刪除廠商：' + name);
+}
+function printSuppliers() {
+  if (!suppliers.length) { toast('沒有可列印的廠商'); return; }
+  const area = document.getElementById('print-area');
+  area.innerHTML = `
+    <h2 style="font-size:18px;text-align:center;margin-bottom:10px">廠商資料</h2>
+    <table class="print-items">
+      <thead><tr><th>名稱</th><th>聯絡人</th><th>電話</th><th>傳真</th><th>手機</th><th>地址</th></tr></thead>
+      <tbody>${suppliers.map(s => `<tr>
+        <td class="left">${esc(s.name)}</td>
+        <td class="left">${esc(s.contact||'')}</td>
+        <td>${esc(s.phone||'')}</td>
+        <td>${esc(s.fax||'')}</td>
+        <td>${esc(s.mobile||'')}</td>
+        <td class="left">${esc(s.address||'')}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  window.print();
+}
+function exportSuppliersExcel() {
+  if (!suppliers.length) { toast('沒有可匯出的廠商'); return; }
+  const header = [['名稱', '聯絡人', '電話', '傳真', '手機', '地址']];
+  const data = suppliers.map(s => [s.name||'', s.contact||'', s.phone||'', s.fax||'', s.mobile||'', s.address||'']);
+  const ws = XLSX.utils.aoa_to_sheet([...header, ...data]);
+  ws['!cols'] = [{ wch:18 }, { wch:12 }, { wch:14 }, { wch:14 }, { wch:14 }, { wch:30 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '廠商資料');
+  XLSX.writeFile(wb, '廠商資料_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  toast('已匯出廠商資料');
 }
 
 // ── 篩選按鈕（依類別動態產生）─────────────────────────
