@@ -2268,6 +2268,7 @@ function setSalesFilter(period, btn) {
 }
 
 function editSalesRecord(recordId) {
+  if (!confirm('確定要編輯此出貨紀錄？')) return;
   const r = salesRecords.find(x => x['紀錄ID'] === recordId);
   if (!r) return;
   currentInvoiceId = recordId;
@@ -2521,6 +2522,7 @@ function setPurchasesFilter(period, btn) {
 }
 
 function editPurchaseRecord(recordId) {
+  if (!confirm('確定要編輯此進貨紀錄？')) return;
   const r = purchaseRecords.find(x => x['紀錄ID'] === recordId);
   if (!r) return;
   currentPurchaseId = recordId;
