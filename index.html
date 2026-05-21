@@ -316,7 +316,8 @@
     <div class="btn-row">
       <button class="btn btn-primary" onclick="addMaterial()">＋ 新增</button>
       <button class="btn" onclick="clearForm()">清除</button>
-      <button class="btn" onclick="document.getElementById('excel-file').click()" style="margin-left:auto;background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📥 匯入 Excel</button>
+      <button class="btn" onclick="exportMasterExcel()" style="margin-left:auto;background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
+      <button class="btn" onclick="document.getElementById('excel-file').click()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📥 匯入 Excel</button>
       <button class="btn btn-sm" onclick="showImportHelp()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light);padding:8px 10px" title="匯入格式說明">❓</button>
       <input type="file" id="excel-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(this)">
     </div>
@@ -1491,6 +1492,34 @@ function renderTableRows() {
 function showImportHelp() {
   const el = document.getElementById('import-help');
   el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function exportMasterExcel() {
+  const rows = filteredRows.length ? filteredRows : materials;
+  if (!rows.length) { toast('沒有資料可匯出'); return; }
+
+  const header = ['料號', '廠牌', '型號 / 規格', '類別', '單價'];
+  const data = rows.map(m => [m.id || '', m.brand || '', m.model || '', m.cat || '', m.price || 0]);
+  const wsData = [header, ...data];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  ws['!cols'] = [
+    { wch: 10 },  // 料號
+    { wch: 14 },  // 廠牌
+    { wch: 35 },  // 型號
+    { wch: 12 },  // 類別
+    { wch: 10 }   // 單價
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '材料主檔');
+
+  const suffix = filterCat ? '_' + filterCat : '';
+  const q = (document.getElementById('search').value || '').trim();
+  const searchSuffix = q ? '_' + q : '';
+  const filename = '材料主檔' + suffix + searchSuffix + '_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+  XLSX.writeFile(wb, filename);
+  toast('已匯出 ' + rows.length + ' 筆材料');
 }
 
 function importExcel(input) {
