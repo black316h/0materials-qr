@@ -562,7 +562,7 @@
           <th>傳真</th>
           <th>手機</th>
           <th>地址</th>
-          <th style="width:40px"></th>
+          <th style="width:90px"></th>
         </tr>
       </thead>
       <tbody id="cust-tbody"></tbody>
@@ -600,7 +600,7 @@
           <th>傳真</th>
           <th>手機</th>
           <th>地址</th>
-          <th style="width:40px"></th>
+          <th style="width:90px"></th>
         </tr>
       </thead>
       <tbody id="supp-tbody"></tbody>
@@ -1251,24 +1251,64 @@ function renderCustOptions() {
     sel.innerHTML = '<option value="">選擇客戶</option>' + customers.map(c => `<option value="${esc(c.name)}"${c.name === cur ? ' selected' : ''}>${esc(c.name)}</option>`).join('');
   });
 }
+let editingCustIdx = -1;
 function renderCustPage() {
   const tbody = document.getElementById('cust-tbody');
   const countEl = document.getElementById('cust-count');
   if (countEl) countEl.textContent = '共 ' + customers.length + ' 筆';
   if (!customers.length) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">尚無客戶，請新增</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">尚無客戶，請新增</div></td></tr>';
   } else {
-    tbody.innerHTML = customers.map((c, i) => `<tr>
-      <td>${esc(c.name)}</td>
-      <td>${esc(c.contact||'')}</td>
-      <td>${esc(c.phone||'')}</td>
-      <td>${esc(c.fax||'')}</td>
-      <td>${esc(c.mobile||'')}</td>
-      <td>${esc(c.address||'')}</td>
-      <td><button class="btn-danger" style="font-size:14px;padding:2px 6px" onclick="deleteCustomer(${i})">×</button></td>
-    </tr>`).join('');
+    tbody.innerHTML = customers.map((c, i) => {
+      if (i === editingCustIdx) {
+        return `<tr class="editing">
+          <td><input class="edit-inp" id="ec-name" value="${esc(c.name)}"></td>
+          <td><input class="edit-inp" id="ec-contact" value="${esc(c.contact||'')}"></td>
+          <td><input class="edit-inp" id="ec-phone" value="${esc(c.phone||'')}"></td>
+          <td><input class="edit-inp" id="ec-fax" value="${esc(c.fax||'')}"></td>
+          <td><input class="edit-inp" id="ec-mobile" value="${esc(c.mobile||'')}"></td>
+          <td><input class="edit-inp" id="ec-address" value="${esc(c.address||'')}"></td>
+          <td style="white-space:nowrap">
+            <button class="btn btn-sm btn-primary" onclick="saveCustEdit(${i})" style="padding:3px 8px;font-size:11px">儲存</button>
+            <button class="btn btn-sm" onclick="cancelCustEdit()" style="padding:3px 8px;font-size:11px">取消</button>
+          </td>
+        </tr>`;
+      }
+      return `<tr>
+        <td>${esc(c.name)}</td>
+        <td>${esc(c.contact||'')}</td>
+        <td>${esc(c.phone||'')}</td>
+        <td>${esc(c.fax||'')}</td>
+        <td>${esc(c.mobile||'')}</td>
+        <td>${esc(c.address||'')}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-sm" onclick="editCustomer(${i})" style="padding:3px 8px;font-size:11px">編輯</button>
+          <button class="btn-danger" style="font-size:14px;padding:2px 6px" onclick="deleteCustomer(${i})">×</button>
+        </td>
+      </tr>`;
+    }).join('');
   }
   renderCustOptions();
+}
+function editCustomer(idx) { editingCustIdx = idx; renderCustPage(); }
+function cancelCustEdit() { editingCustIdx = -1; renderCustPage(); }
+function saveCustEdit(idx) {
+  const name = document.getElementById('ec-name').value.trim();
+  if (!name) { toast('客戶名稱不可為空'); return; }
+  const dup = customers.findIndex((c, j) => j !== idx && c.name === name);
+  if (dup >= 0) { toast('客戶名稱重複'); return; }
+  customers[idx] = {
+    name: name,
+    contact: document.getElementById('ec-contact').value.trim(),
+    phone:   document.getElementById('ec-phone').value.trim(),
+    fax:     document.getElementById('ec-fax').value.trim(),
+    mobile:  document.getElementById('ec-mobile').value.trim(),
+    address: document.getElementById('ec-address').value.trim()
+  };
+  save();
+  editingCustIdx = -1;
+  renderCustPage();
+  toast('已更新客戶：' + name);
 }
 function addCustomer() {
   const name = document.getElementById('f-new-cust').value.trim();
@@ -1378,24 +1418,64 @@ function renderSuppOptions() {
     sel.innerHTML = '<option value="">選擇廠商</option>' + suppliers.map(s => `<option value="${esc(s.name)}"${s.name === cur ? ' selected' : ''}>${esc(s.name)}</option>`).join('');
   }
 }
+let editingSuppIdx = -1;
 function renderSuppPage() {
   const tbody = document.getElementById('supp-tbody');
   const countEl = document.getElementById('supp-count');
   if (countEl) countEl.textContent = '共 ' + suppliers.length + ' 筆';
   if (!suppliers.length) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">尚無廠商，請新增</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">尚無廠商，請新增</div></td></tr>';
   } else {
-    tbody.innerHTML = suppliers.map((s, i) => `<tr>
-      <td>${esc(s.name)}</td>
-      <td>${esc(s.contact||'')}</td>
-      <td>${esc(s.phone||'')}</td>
-      <td>${esc(s.fax||'')}</td>
-      <td>${esc(s.mobile||'')}</td>
-      <td>${esc(s.address||'')}</td>
-      <td><button class="btn-danger" style="font-size:14px;padding:2px 6px" onclick="deleteSupplier(${i})">×</button></td>
-    </tr>`).join('');
+    tbody.innerHTML = suppliers.map((s, i) => {
+      if (i === editingSuppIdx) {
+        return `<tr class="editing">
+          <td><input class="edit-inp" id="es-name" value="${esc(s.name)}"></td>
+          <td><input class="edit-inp" id="es-contact" value="${esc(s.contact||'')}"></td>
+          <td><input class="edit-inp" id="es-phone" value="${esc(s.phone||'')}"></td>
+          <td><input class="edit-inp" id="es-fax" value="${esc(s.fax||'')}"></td>
+          <td><input class="edit-inp" id="es-mobile" value="${esc(s.mobile||'')}"></td>
+          <td><input class="edit-inp" id="es-address" value="${esc(s.address||'')}"></td>
+          <td style="white-space:nowrap">
+            <button class="btn btn-sm btn-primary" onclick="saveSuppEdit(${i})" style="padding:3px 8px;font-size:11px">儲存</button>
+            <button class="btn btn-sm" onclick="cancelSuppEdit()" style="padding:3px 8px;font-size:11px">取消</button>
+          </td>
+        </tr>`;
+      }
+      return `<tr>
+        <td>${esc(s.name)}</td>
+        <td>${esc(s.contact||'')}</td>
+        <td>${esc(s.phone||'')}</td>
+        <td>${esc(s.fax||'')}</td>
+        <td>${esc(s.mobile||'')}</td>
+        <td>${esc(s.address||'')}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-sm" onclick="editSupplier(${i})" style="padding:3px 8px;font-size:11px">編輯</button>
+          <button class="btn-danger" style="font-size:14px;padding:2px 6px" onclick="deleteSupplier(${i})">×</button>
+        </td>
+      </tr>`;
+    }).join('');
   }
   renderSuppOptions();
+}
+function editSupplier(idx) { editingSuppIdx = idx; renderSuppPage(); }
+function cancelSuppEdit() { editingSuppIdx = -1; renderSuppPage(); }
+function saveSuppEdit(idx) {
+  const name = document.getElementById('es-name').value.trim();
+  if (!name) { toast('廠商名稱不可為空'); return; }
+  const dup = suppliers.findIndex((s, j) => j !== idx && s.name === name);
+  if (dup >= 0) { toast('廠商名稱重複'); return; }
+  suppliers[idx] = {
+    name: name,
+    contact: document.getElementById('es-contact').value.trim(),
+    phone:   document.getElementById('es-phone').value.trim(),
+    fax:     document.getElementById('es-fax').value.trim(),
+    mobile:  document.getElementById('es-mobile').value.trim(),
+    address: document.getElementById('es-address').value.trim()
+  };
+  save();
+  editingSuppIdx = -1;
+  renderSuppPage();
+  toast('已更新廠商：' + name);
 }
 function addSupplier() {
   const name = document.getElementById('f-new-supp').value.trim();
