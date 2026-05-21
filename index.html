@@ -393,6 +393,7 @@
           <th>型號 / 規格</th>
           <th style="width:95px">類別</th>
           <th style="width:75px">單價</th>
+          <th style="width:60px">庫存</th>
           <th style="width:185px"></th>
         </tr>
       </thead>
@@ -928,7 +929,8 @@ function normalizeMat(m) {
     brand: m.brand || m['廠牌'] || '',
     model: m.model || m['型號'] || '',
     price: Number(m.price ?? m['單價'] ?? 0),
-    cat:   m.cat   || m['類別'] || ''
+    cat:   m.cat   || m['類別'] || '',
+    stock: Number(m.stock ?? m['庫存'] ?? 0)
   };
 }
 
@@ -1399,7 +1401,7 @@ function startEdit(id) {
   const m = materials.find(x => x.id === id);
   if (!m) return;
   editingId = id;
-  editBuf   = { brand: m.brand, model: m.model, cat: m.cat, price: m.price };
+  editBuf   = { brand: m.brand, model: m.model, cat: m.cat, price: m.price, stock: m.stock };
   renderTable();
 }
 function cancelEdit() {
@@ -1411,7 +1413,7 @@ function saveEdit(id) {
   if (idx < 0) return;
   const model = editBuf.model ? editBuf.model.trim() : '';
   if (!model) { toast('型號 / 規格不能為空'); return; }
-  materials[idx] = { ...materials[idx], brand: editBuf.brand, model, cat: editBuf.cat, price: Number(editBuf.price) || 0 };
+  materials[idx] = { ...materials[idx], brand: editBuf.brand, model, cat: editBuf.cat, price: Number(editBuf.price) || 0, stock: Number(editBuf.stock) || 0 };
   save(); editingId = null; editBuf = {};
   renderTable(); toast('已儲存 ' + id);
 }
@@ -1444,7 +1446,7 @@ function showMoreMats() {
 function renderTableRows() {
   const tbody = document.getElementById('mat-tbody');
   if (!filteredRows.length) {
-    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state">沒有符合的材料</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">沒有符合的材料</div></td></tr>';
     document.getElementById('load-more-row').style.display = 'none';
     return;
   }
@@ -1458,17 +1460,20 @@ function renderTableRows() {
         <td><input class="edit-inp" value="${esc(editBuf.model)}" oninput="editBuf.model=this.value" style="min-width:160px"></td>
         <td><select class="edit-sel" onchange="editBuf.cat=this.value">${catOpts}</select></td>
         <td><input class="edit-inp" type="number" value="${editBuf.price}" oninput="editBuf.price=this.value" style="width:72px;text-align:right"></td>
+        <td><input class="edit-inp" type="number" value="${editBuf.stock}" oninput="editBuf.stock=this.value" style="width:52px;text-align:center"></td>
         <td>
           <button class="btn btn-primary btn-sm" onclick="saveEdit('${m.id}')">儲存</button>
           <button class="btn btn-sm" onclick="cancelEdit()">取消</button>
         </td>
       </tr>`;
     }
+    const stockStyle = m.stock <= 0 ? 'color:var(--red);font-weight:700' : m.stock <= 5 ? 'color:#e67e22;font-weight:600' : 'font-weight:500';
     return `<tr data-id="${m.id}">
       <td>${esc(m.brand || '—')}</td>
       <td style="font-size:12px">${esc(m.model)}</td>
       <td><span class="badge badge-green">${m.cat}</span></td>
       <td style="font-weight:500">$${(m.price || 0).toLocaleString()}</td>
+      <td style="${stockStyle};text-align:center">${m.stock}</td>
       <td>
         <button class="btn btn-sm" onclick="startEdit('${m.id}')">編輯</button>
         <button class="btn btn-danger btn-sm" onclick="deleteMat('${m.id}')">刪除</button>
@@ -1498,8 +1503,8 @@ function exportMasterExcel() {
   const rows = filteredRows.length ? filteredRows : materials;
   if (!rows.length) { toast('沒有資料可匯出'); return; }
 
-  const header = ['料號', '廠牌', '型號 / 規格', '類別', '單價'];
-  const data = rows.map(m => [m.id || '', m.brand || '', m.model || '', m.cat || '', m.price || 0]);
+  const header = ['料號', '廠牌', '型號 / 規格', '類別', '單價', '庫存'];
+  const data = rows.map(m => [m.id || '', m.brand || '', m.model || '', m.cat || '', m.price || 0, m.stock || 0]);
   const wsData = [header, ...data];
   const ws = XLSX.utils.aoa_to_sheet(wsData);
 
@@ -1508,7 +1513,8 @@ function exportMasterExcel() {
     { wch: 14 },  // 廠牌
     { wch: 35 },  // 型號
     { wch: 12 },  // 類別
-    { wch: 10 }   // 單價
+    { wch: 10 },  // 單價
+    { wch: 8 }    // 庫存
   ];
 
   const wb = XLSX.utils.book_new();
@@ -1618,7 +1624,7 @@ function addToInvoice(id) {
   if (!m) return;
   let idx = invoiceItems.findIndex(it => !it.name && !it.qty && !it.amount);
   if (idx < 0) { idx = invoiceItems.length; invoiceItems.push({}); }
-  invoiceItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '' };
+  invoiceItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '', matId: m.id };
   renderInvItems();
   calcInvTotal();
   toast('已加入出貨單：' + m.brand + ' ' + m.model);
@@ -1629,7 +1635,7 @@ function addToPurchase(id) {
   if (!m) return;
   let idx = purchaseItems.findIndex(it => !it.name && !it.qty && !it.amount);
   if (idx < 0) { idx = purchaseItems.length; purchaseItems.push({}); }
-  purchaseItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '' };
+  purchaseItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '', matId: m.id };
   renderPurItems();
   calcPurTotal();
   toast('已加入進貨單：' + m.brand + ' ' + m.model);
@@ -1896,6 +1902,7 @@ const INV_EMPTY_ROWS = 5;
 
 function newInvoice() {
   currentInvoiceId = null;
+  _oldInvItems = [];
   document.getElementById('inv-no').value = '';
   document.getElementById('inv-date').value = new Date().toISOString().slice(0, 10);
   document.getElementById('inv-customer').value = '';
@@ -2052,6 +2059,38 @@ function exportInvoiceExcel() {
   toast('已匯出 ' + fileName);
 }
 
+// ── 庫存調整 ─────────────────────────────────────────
+let _oldInvItems = [];   // 編輯出貨單時暫存舊品項
+let _oldPurItems = [];   // 編輯進貨單時暫存舊品項
+
+function findMaterialForItem(item) {
+  if (item.matId) return materials.find(m => m.id === item.matId);
+  if (!item.name) return null;
+  const n = item.name.trim().toLowerCase();
+  return materials.find(m => {
+    const fullName = ((m.brand || '') + ' ' + m.model).trim().toLowerCase();
+    return fullName === n || m.model.toLowerCase() === n;
+  });
+}
+
+function adjustStock(items, direction, oldItems) {
+  // direction: +1 = 進貨(加庫存), -1 = 銷貨(減庫存)
+  let changed = false;
+  // 如果有舊品項（編輯模式），先反向還原
+  if (oldItems && oldItems.length) {
+    oldItems.forEach(it => {
+      const m = findMaterialForItem(it);
+      if (m) { m.stock = (m.stock || 0) - direction * (Number(it.qty) || 0); changed = true; }
+    });
+  }
+  // 套用新品項
+  items.forEach(it => {
+    const m = findMaterialForItem(it);
+    if (m) { m.stock = (m.stock || 0) + direction * (Number(it.qty) || 0); changed = true; }
+  });
+  if (changed) save();
+}
+
 async function saveInvoice() {
   const invoiceNo = document.getElementById('inv-no').value.trim();
   const date = document.getElementById('inv-date').value;
@@ -2067,13 +2106,17 @@ async function saveInvoice() {
       body: JSON.stringify({
         action: 'saveInvoice', recordId: currentInvoiceId,
         invoiceNo, date, customer,
-        items: items.map((it, i) => ({ seq: i+1, name: it.name, qty: Number(it.qty)||0, amount: Number(it.amount)||0, note: it.note||'' })),
+        items: items.map((it, i) => ({ seq: i+1, name: it.name, qty: Number(it.qty)||0, amount: Number(it.amount)||0, note: it.note||'', matId: it.matId||'' })),
         totalAmount
       })
     });
     const result = await resp.json();
     if (result.ok) {
+      // 銷貨 → 減庫存（direction = -1）
+      adjustStock(items, -1, currentInvoiceId ? _oldInvItems : []);
+      _oldInvItems = [];
       currentInvoiceId = result.recordId;
+      renderTable();
       toast('已儲存：' + result.recordId);
       if (statusEl) statusEl.textContent = '已儲存 ' + result.recordId;
     } else {
@@ -2123,14 +2166,14 @@ function pickMaterial(matId) {
   } else if (pickerTarget === 'purchase') {
     let idx = purchaseItems.findIndex(it => !it.name && !it.qty && !it.amount);
     if (idx < 0) { idx = purchaseItems.length; purchaseItems.push({}); }
-    purchaseItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '' };
+    purchaseItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '', matId: m.id };
     renderPurItems();
     calcPurTotal();
     toast('已加入進貨單：' + m.brand + ' ' + m.model);
   } else {
     let idx = invoiceItems.findIndex(it => !it.name && !it.qty && !it.amount);
     if (idx < 0) { idx = invoiceItems.length; invoiceItems.push({}); }
-    invoiceItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '' };
+    invoiceItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '', matId: m.id };
     renderInvItems();
     calcInvTotal();
     toast('已加入出貨單：' + m.brand + ' ' + m.model);
@@ -2240,6 +2283,7 @@ function editSalesRecord(recordId) {
   if (!r) return;
   hideSalesDetail();
   currentInvoiceId = recordId;
+  try { _oldInvItems = JSON.parse(r['品項JSON'] || '[]'); } catch(e) { _oldInvItems = []; }
   document.getElementById('inv-no').value = r['出貨單號'] || '';
   var dv = r['日期'] || '';
   if (dv) { var dd = new Date(dv); if (!isNaN(dd)) dv = dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0'); }
@@ -2261,6 +2305,7 @@ const PUR_EMPTY_ROWS = 5;
 
 function newPurchase() {
   currentPurchaseId = null;
+  _oldPurItems = [];
   document.getElementById('pur-no').value = '';
   document.getElementById('pur-date').value = new Date().toISOString().slice(0, 10);
   document.getElementById('pur-supplier').value = '';
@@ -2384,13 +2429,17 @@ async function savePurchase() {
       body: JSON.stringify({
         action: 'savePurchase', recordId: currentPurchaseId,
         purchaseNo: purNo, date, supplier,
-        items: items.map((it, i) => ({ seq: i+1, name: it.name, qty: Number(it.qty)||0, amount: Number(it.amount)||0, note: it.note||'' })),
+        items: items.map((it, i) => ({ seq: i+1, name: it.name, qty: Number(it.qty)||0, amount: Number(it.amount)||0, note: it.note||'', matId: it.matId||'' })),
         totalAmount
       })
     });
     const result = await resp.json();
     if (result.ok) {
+      // 進貨 → 加庫存（direction = +1）
+      adjustStock(items, +1, currentPurchaseId ? _oldPurItems : []);
+      _oldPurItems = [];
       currentPurchaseId = result.recordId;
+      renderTable();
       toast('已儲存：' + result.recordId);
       if (statusEl) statusEl.textContent = '已儲存 ' + result.recordId;
     } else {
@@ -2500,6 +2549,7 @@ function editPurchaseRecord(recordId) {
   if (!r) return;
   hidePurchaseDetail();
   currentPurchaseId = recordId;
+  try { _oldPurItems = JSON.parse(r['品項JSON'] || '[]'); } catch(e) { _oldPurItems = []; }
   document.getElementById('pur-no').value = r['進貨單號'] || '';
   var dv = r['日期'] || '';
   if (dv) { var dd = new Date(dv); if (!isNaN(dd)) dv = dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0'); }
