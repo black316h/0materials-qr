@@ -761,10 +761,14 @@
     <span id="quotation-status" style="font-size:12px;color:var(--text-3);align-self:center"></span>
   </div>
   <div class="card">
-    <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr">
       <div class="form-group">
         <label>客戶名稱</label>
         <select id="quo-customer"><option value="">選擇客戶</option></select>
+      </div>
+      <div class="form-group">
+        <label>訂單名稱</label>
+        <select id="quo-project"><option value="">選擇訂單</option></select>
       </div>
       <div class="form-group">
         <label>報價單號</label>
@@ -1534,12 +1538,15 @@ function migrateProjects(arr) {
 }
 
 function renderProjOptions() {
-  const sel = document.getElementById('card-project');
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">選擇訂單</option>' + projects.map(p => {
-    const label = typeof p === 'string' ? p : p.name;
-    return `<option value="${esc(label)}"${label === cur ? ' selected' : ''}>${esc(label)}</option>`;
-  }).join('');
+  ['card-project', 'quo-project'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">選擇訂單</option>' + projects.map(p => {
+      const label = typeof p === 'string' ? p : p.name;
+      return `<option value="${esc(label)}"${label === cur ? ' selected' : ''}>${esc(label)}</option>`;
+    }).join('');
+  });
 }
 
 function renderOrderCustOptions() {
@@ -2821,6 +2828,7 @@ function newQuotation() {
   document.getElementById('quo-no').value = '';
   document.getElementById('quo-date').value = new Date().toISOString().slice(0, 10);
   document.getElementById('quo-customer').value = '';
+  document.getElementById('quo-project').value = '';
   document.getElementById('quotation-status').textContent = '';
   quotationItems = [];
   for (let i = 0; i < QUO_EMPTY_ROWS; i++) quotationItems.push({ seq: i+1, name: '', qty: '', amount: '', note: '' });
@@ -2868,6 +2876,7 @@ async function saveQuotation() {
   const quoNo = document.getElementById('quo-no').value.trim();
   const date = document.getElementById('quo-date').value;
   const customer = document.getElementById('quo-customer').value.trim();
+  const orderName = document.getElementById('quo-project').value.trim();
   const items = quotationItems.filter(it => it.name);
   if (!items.length) { toast('請至少填寫一筆品項'); return; }
   const totalAmount = items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
@@ -2878,7 +2887,7 @@ async function saveQuotation() {
       method: 'POST', headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
         action: 'saveQuotation', recordId: currentQuotationId,
-        quotationNo: quoNo, date, customer,
+        quotationNo: quoNo, date, customer, orderName,
         items: items.map((it, i) => ({ seq: i+1, name: it.name, qty: Number(it.qty)||0, amount: Number(it.amount)||0, note: it.note||'', matId: it.matId||'' })),
         totalAmount
       })
@@ -2901,6 +2910,8 @@ async function saveQuotation() {
 function printQuotation() {
   const customer = document.getElementById('quo-customer');
   const customerName = customer.options[customer.selectedIndex] ? customer.options[customer.selectedIndex].text : '';
+  const project = document.getElementById('quo-project');
+  const orderName = project.options[project.selectedIndex] ? project.options[project.selectedIndex].text : '';
   const quoNo = document.getElementById('quo-no').value.trim();
   const date = document.getElementById('quo-date').value;
   const items = quotationItems.filter(it => it.name);
@@ -2912,8 +2923,8 @@ function printQuotation() {
   const area = document.getElementById('print-area');
   area.innerHTML = `
     <table class="print-header">
-      <tr><td class="lbl">客戶名稱</td><td class="val" colspan="2">${esc(customerName||'')}</td><td class="lbl">報價單號</td><td class="val">${esc(quoNo)}</td></tr>
-      <tr><td class="lbl">日期</td><td class="val" colspan="4">${esc(date)}</td></tr>
+      <tr><td class="lbl">客戶名稱</td><td class="val">${esc(customerName||'')}</td><td class="lbl">訂單名稱</td><td class="val">${esc(orderName||'')}</td></tr>
+      <tr><td class="lbl">報價單號</td><td class="val">${esc(quoNo)}</td><td class="lbl">日期</td><td class="val">${esc(date)}</td></tr>
     </table>
     <table class="print-items">
       <thead><tr><th style="width:45px">項次</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:80px">備註</th></tr></thead>
@@ -2926,12 +2937,14 @@ function printQuotation() {
 function exportQuotationExcel() {
   const customer = document.getElementById('quo-customer');
   const customerName = customer.options[customer.selectedIndex] ? customer.options[customer.selectedIndex].text : '';
+  const project = document.getElementById('quo-project');
+  const orderName = project.options[project.selectedIndex] ? project.options[project.selectedIndex].text : '';
   const quoNo = document.getElementById('quo-no').value.trim();
   const date = document.getElementById('quo-date').value;
   const items = quotationItems.filter(it => it.name);
   if (!items.length) { toast('沒有資料可匯出'); return; }
   const total = items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
-  const headerData = [['客戶名稱', customerName, '', '報價單號', quoNo], ['日期', date], [], ['項次', '品名規格', '數量', '金額', '備註']];
+  const headerData = [['客戶名稱', customerName, '', '報價單號', quoNo], ['訂單名稱', orderName, '', '日期', date], [], ['項次', '品名規格', '數量', '金額', '備註']];
   const itemData = items.map((it, i) => [i+1, it.name||'', Number(it.qty)||0, Number(it.amount)||0, it.note||'']);
   const footerData = [[], ['', '', '合計', total, '']];
   const wsData = [...headerData, ...itemData, ...footerData];
@@ -3000,6 +3013,7 @@ function renderQuotationsTable() {
           <span>單號：<strong>${esc(r['報價單號']||'—')}</strong></span>
           <span class="record-divider">|</span>
           <span>客戶：<strong>${esc(r['客戶']||'—')}</strong></span>
+          ${r['訂單名稱'] ? `<span class="record-divider">|</span><span>訂單：<strong>${esc(r['訂單名稱'])}</strong></span>` : ''}
         </div>
         <button class="btn btn-sm" onclick="editQuotationRecord('${esc(r['紀錄ID']||'')}')">編輯</button>
       </div>
@@ -3094,6 +3108,7 @@ function editQuotationRecord(recordId) {
   if (dv) { var dd = new Date(dv); if (!isNaN(dd)) dv = dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0'); }
   document.getElementById('quo-date').value = dv;
   document.getElementById('quo-customer').value = r['客戶'] || '';
+  document.getElementById('quo-project').value = r['訂單名稱'] || '';
   let items = [];
   try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
   quotationItems = items.length ? items : [{ seq:1, name:'', qty:'', amount:'', note:'' }];
