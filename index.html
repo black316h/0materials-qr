@@ -125,6 +125,15 @@
   }
   .edit-inp[type=number] { width: 80px; text-align: right; }
 
+  .stock-inline {
+    width: 56px; text-align: center; border: 1.5px solid transparent; border-radius: var(--radius);
+    background: transparent; font-family: var(--font-body); font-size: 13px; padding: 2px 4px;
+    -moz-appearance: textfield; cursor: pointer; transition: all 0.15s;
+  }
+  .stock-inline::-webkit-inner-spin-button, .stock-inline::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .stock-inline:hover { border-color: var(--border); background: var(--bg-2); }
+  .stock-inline:focus { border-color: var(--accent); background: var(--surface); outline: none; box-shadow: 0 0 0 2px rgba(46,125,50,0.15); cursor: text; }
+
   .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 500; }
   .badge-green { background: var(--accent-light); color: var(--accent-text); }
   .badge-blue { background: var(--blue-light); color: var(--blue-text); }
@@ -1708,6 +1717,20 @@ function saveEdit(id) {
   renderTable(); toast('已儲存 ' + id);
 }
 
+function quickUpdateStock(id, el) {
+  const idx = materials.findIndex(x => x.id === id);
+  if (idx < 0) return;
+  const newVal = Number(el.value) || 0;
+  const oldVal = materials[idx].stock;
+  if (newVal === oldVal) return;
+  materials[idx].stock = newVal;
+  save();
+  // 更新顏色
+  el.style.color = newVal <= 0 ? 'var(--red)' : newVal <= 5 ? '#e67e22' : '';
+  el.style.fontWeight = newVal <= 0 ? '700' : newVal <= 5 ? '600' : '500';
+  toast((newVal > oldVal ? '📈 ' : '📉 ') + (materials[idx].brand||'') + ' ' + materials[idx].model + ' 庫存：' + oldVal + ' → ' + newVal);
+}
+
 // ── 渲染資料表 ────────────────────────────────────────
 let _searchTimer;
 function debounceRender() {
@@ -1763,7 +1786,7 @@ function renderTableRows() {
       <td style="font-size:12px">${esc(m.model)}</td>
       <td><span class="badge badge-green">${m.cat}</span></td>
       <td style="font-weight:500">$${(m.price || 0).toLocaleString()}</td>
-      <td style="${stockStyle};text-align:center">${m.stock}</td>
+      <td style="text-align:center"><input type="number" class="stock-inline" value="${m.stock}" style="${stockStyle}" onfocus="this.select()" onchange="quickUpdateStock('${m.id}',this)" onkeydown="if(event.key==='Enter'){this.blur()}"></td>
       <td>
         <button class="btn btn-sm" onclick="startEdit('${m.id}')">編輯</button>
         <button class="btn btn-danger btn-sm" onclick="deleteMat('${m.id}')">刪除</button>
