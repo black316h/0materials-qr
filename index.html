@@ -649,6 +649,10 @@
     </div>
     <span id="sales-count" style="font-size:12px;color:var(--text-3)"></span>
   </div>
+  <div class="btn-row" style="margin-bottom:12px">
+    <button class="btn btn-primary" onclick="printSalesRecords()">🖨️ 列印</button>
+    <button class="btn" onclick="exportSalesRecordsExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
+  </div>
   <div id="sales-loading" style="display:none;text-align:center;padding:2rem">
     <div style="font-size:14px;color:var(--text-2)">載入中…</div>
   </div>
@@ -725,6 +729,10 @@
       <button class="filter-btn" onclick="setPurchasesFilter('week',this)">本週</button>
     </div>
     <span id="purchases-count" style="font-size:12px;color:var(--text-3)"></span>
+  </div>
+  <div class="btn-row" style="margin-bottom:12px">
+    <button class="btn btn-primary" onclick="printPurchaseRecords()">🖨️ 列印</button>
+    <button class="btn" onclick="exportPurchaseRecordsExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
   </div>
   <div id="purchases-loading" style="display:none;text-align:center;padding:2rem">
     <div style="font-size:14px;color:var(--text-2)">載入中…</div>
@@ -2267,6 +2275,80 @@ function setSalesFilter(period, btn) {
   renderSalesTable();
 }
 
+function getFilteredSalesRows() {
+  const q = (document.getElementById('sales-search').value || '').toLowerCase();
+  const now = new Date();
+  return salesRecords.filter(r => {
+    if (q) {
+      const match = String(r['客戶']||'').toLowerCase().includes(q) || String(r['出貨單號']||'').toLowerCase().includes(q) || String(r['紀錄ID']||'').toLowerCase().includes(q) || String(r['日期']||'').toLowerCase().includes(q) || fmtDate(r['日期']).toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    if (salesFilterPeriod !== 'all' && r['日期']) {
+      const d = new Date(r['日期']);
+      if (salesFilterPeriod === 'month') { if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return false; }
+      if (salesFilterPeriod === 'week') { const diff = (now - d) / 86400000; if (diff > 7 || diff < 0) return false; }
+    }
+    return true;
+  });
+}
+
+function printSalesRecords() {
+  const rows = getFilteredSalesRows();
+  if (!rows.length) { toast('沒有可列印的紀錄'); return; }
+  const area = document.getElementById('print-area');
+  area.innerHTML = rows.map(r => {
+    let items = [];
+    try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
+    const total = Number(r['合計金額']) || 0;
+    const MIN_ROWS = 25;
+    const printRows = items.map((it, i) => ({ seq: i+1, name: it.name||'', qty: it.qty||'', amount: it.amount||'', note: it.note||'' }));
+    while (printRows.length < MIN_ROWS) printRows.push({ seq:'', name:'', qty:'', amount:'', note:'' });
+    return `
+      <div style="page-break-after:always">
+        <table class="print-header">
+          <tr><td class="lbl">客戶名稱</td><td class="val" colspan="2">${esc(r['客戶']||'')}</td><td class="lbl">出貨單號</td><td class="val">${esc(r['出貨單號']||'')}</td></tr>
+          <tr><td class="lbl">日期</td><td class="val" colspan="4">${fmtDate(r['日期'])}</td></tr>
+        </table>
+        <table class="print-items">
+          <thead><tr><th style="width:45px">項次</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:80px">備註</th></tr></thead>
+          <tbody>${printRows.map(pr => `<tr><td>${pr.seq}</td><td class="left">${esc(pr.name)}</td><td>${pr.qty}</td><td class="right">${pr.amount ? '$'+Number(pr.amount).toLocaleString() : ''}</td><td class="left">${esc(pr.note)}</td></tr>`).join('')}</tbody>
+          <tfoot><tr><td colspan="2" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td><td style="border:none"></td></tr></tfoot>
+        </table>
+      </div>`;
+  }).join('');
+  window.print();
+}
+
+function exportSalesRecordsExcel() {
+  const rows = getFilteredSalesRows();
+  if (!rows.length) { toast('沒有可匯出的紀錄'); return; }
+  const wb = XLSX.utils.book_new();
+  // 總覽 sheet
+  const summaryHeader = [['日期', '客戶', '出貨單號', '合計金額']];
+  const summaryData = rows.map(r => [fmtDate(r['日期']), r['客戶']||'', r['出貨單號']||'', Number(r['合計金額'])||0]);
+  const grandTotal = summaryData.reduce((s, d) => s + d[3], 0);
+  const summaryAll = [...summaryHeader, ...summaryData, [], ['', '', '總計', grandTotal]];
+  const wsSummary = XLSX.utils.aoa_to_sheet(summaryAll);
+  wsSummary['!cols'] = [{ wch:12 }, { wch:18 }, { wch:16 }, { wch:12 }];
+  XLSX.utils.book_append_sheet(wb, wsSummary, '銷貨總覽');
+  // 明細 sheet
+  const detailHeader = [['日期', '客戶', '出貨單號', '項次', '品名規格', '數量', '金額', '備註']];
+  const detailData = [];
+  rows.forEach(r => {
+    let items = [];
+    try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
+    items.forEach((it, i) => {
+      detailData.push([fmtDate(r['日期']), r['客戶']||'', r['出貨單號']||'', i+1, it.name||'', Number(it.qty)||0, Number(it.amount)||0, it.note||'']);
+    });
+  });
+  const wsDetail = XLSX.utils.aoa_to_sheet([...detailHeader, ...detailData]);
+  wsDetail['!cols'] = [{ wch:12 }, { wch:18 }, { wch:16 }, { wch:6 }, { wch:30 }, { wch:8 }, { wch:10 }, { wch:12 }];
+  XLSX.utils.book_append_sheet(wb, wsDetail, '銷貨明細');
+  const fileName = '銷貨紀錄_' + new Date().toISOString().slice(0,10) + '.xlsx';
+  XLSX.writeFile(wb, fileName);
+  toast('已匯出 ' + fileName);
+}
+
 function editSalesRecord(recordId) {
   if (!confirm('確定要編輯此出貨紀錄？')) return;
   const r = salesRecords.find(x => x['紀錄ID'] === recordId);
@@ -2519,6 +2601,80 @@ function setPurchasesFilter(period, btn) {
   document.querySelectorAll('#purchases-filter-row .filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   renderPurchasesTable();
+}
+
+function getFilteredPurchaseRows() {
+  const q = (document.getElementById('purchases-search').value || '').toLowerCase();
+  const now = new Date();
+  return purchaseRecords.filter(r => {
+    if (q) {
+      const match = String(r['廠商']||'').toLowerCase().includes(q) || String(r['進貨單號']||'').toLowerCase().includes(q) || String(r['紀錄ID']||'').toLowerCase().includes(q) || String(r['日期']||'').toLowerCase().includes(q) || fmtDate(r['日期']).toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    if (purchasesFilterPeriod !== 'all' && r['日期']) {
+      const d = new Date(r['日期']);
+      if (purchasesFilterPeriod === 'month') { if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return false; }
+      if (purchasesFilterPeriod === 'week') { const diff = (now - d) / 86400000; if (diff > 7 || diff < 0) return false; }
+    }
+    return true;
+  });
+}
+
+function printPurchaseRecords() {
+  const rows = getFilteredPurchaseRows();
+  if (!rows.length) { toast('沒有可列印的紀錄'); return; }
+  const area = document.getElementById('print-area');
+  area.innerHTML = rows.map(r => {
+    let items = [];
+    try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
+    const total = Number(r['合計金額']) || 0;
+    const MIN_ROWS = 25;
+    const printRows = items.map((it, i) => ({ seq: i+1, name: it.name||'', qty: it.qty||'', amount: it.amount||'', note: it.note||'' }));
+    while (printRows.length < MIN_ROWS) printRows.push({ seq:'', name:'', qty:'', amount:'', note:'' });
+    return `
+      <div style="page-break-after:always">
+        <table class="print-header">
+          <tr><td class="lbl">廠商名稱</td><td class="val" colspan="2">${esc(r['廠商']||'')}</td><td class="lbl">進貨單號</td><td class="val">${esc(r['進貨單號']||'')}</td></tr>
+          <tr><td class="lbl">日期</td><td class="val" colspan="4">${fmtDate(r['日期'])}</td></tr>
+        </table>
+        <table class="print-items">
+          <thead><tr><th style="width:45px">項次</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:80px">備註</th></tr></thead>
+          <tbody>${printRows.map(pr => `<tr><td>${pr.seq}</td><td class="left">${esc(pr.name)}</td><td>${pr.qty}</td><td class="right">${pr.amount ? '$'+Number(pr.amount).toLocaleString() : ''}</td><td class="left">${esc(pr.note)}</td></tr>`).join('')}</tbody>
+          <tfoot><tr><td colspan="2" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td><td style="border:none"></td></tr></tfoot>
+        </table>
+      </div>`;
+  }).join('');
+  window.print();
+}
+
+function exportPurchaseRecordsExcel() {
+  const rows = getFilteredPurchaseRows();
+  if (!rows.length) { toast('沒有可匯出的紀錄'); return; }
+  const wb = XLSX.utils.book_new();
+  // 總覽 sheet
+  const summaryHeader = [['日期', '廠商', '進貨單號', '合計金額']];
+  const summaryData = rows.map(r => [fmtDate(r['日期']), r['廠商']||'', r['進貨單號']||'', Number(r['合計金額'])||0]);
+  const grandTotal = summaryData.reduce((s, d) => s + d[3], 0);
+  const summaryAll = [...summaryHeader, ...summaryData, [], ['', '', '總計', grandTotal]];
+  const wsSummary = XLSX.utils.aoa_to_sheet(summaryAll);
+  wsSummary['!cols'] = [{ wch:12 }, { wch:18 }, { wch:16 }, { wch:12 }];
+  XLSX.utils.book_append_sheet(wb, wsSummary, '進貨總覽');
+  // 明細 sheet
+  const detailHeader = [['日期', '廠商', '進貨單號', '項次', '品名規格', '數量', '金額', '備註']];
+  const detailData = [];
+  rows.forEach(r => {
+    let items = [];
+    try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
+    items.forEach((it, i) => {
+      detailData.push([fmtDate(r['日期']), r['廠商']||'', r['進貨單號']||'', i+1, it.name||'', Number(it.qty)||0, Number(it.amount)||0, it.note||'']);
+    });
+  });
+  const wsDetail = XLSX.utils.aoa_to_sheet([...detailHeader, ...detailData]);
+  wsDetail['!cols'] = [{ wch:12 }, { wch:18 }, { wch:16 }, { wch:6 }, { wch:30 }, { wch:8 }, { wch:10 }, { wch:12 }];
+  XLSX.utils.book_append_sheet(wb, wsDetail, '進貨明細');
+  const fileName = '進貨紀錄_' + new Date().toISOString().slice(0,10) + '.xlsx';
+  XLSX.writeFile(wb, fileName);
+  toast('已匯出 ' + fileName);
 }
 
 function editPurchaseRecord(recordId) {
