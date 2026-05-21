@@ -340,6 +340,16 @@
       <div class="home-label">銷貨紀錄</div>
       <div class="home-desc">查詢出貨歷史紀錄</div>
     </div>
+    <div class="home-card" onclick="showPage('quotation')">
+      <div class="home-icon">📝</div>
+      <div class="home-label">報價單</div>
+      <div class="home-desc">新增、編輯報價單</div>
+    </div>
+    <div class="home-card" onclick="showPage('quotations')">
+      <div class="home-icon">📑</div>
+      <div class="home-label">報價紀錄</div>
+      <div class="home-desc">查詢報價歷史紀錄</div>
+    </div>
     <div class="home-card" onclick="showPage('purchase')">
       <div class="home-icon">📥</div>
       <div class="home-label">進貨單</div>
@@ -702,6 +712,87 @@
     <div style="font-size:14px;color:var(--text-2)">載入中…</div>
   </div>
   <div id="sales-list"></div>
+</div>
+
+<!-- ── 報價單 ── -->
+<div id="page-quotation" class="page">
+  <div class="page-title">報價單</div>
+  <div class="btn-row" style="margin-bottom:1rem">
+    <span id="quotation-status" style="font-size:12px;color:var(--text-3);align-self:center"></span>
+  </div>
+  <div class="card">
+    <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="form-group">
+        <label>客戶名稱</label>
+        <select id="quo-customer"><option value="">選擇客戶</option></select>
+      </div>
+      <div class="form-group">
+        <label>報價單號</label>
+        <input id="quo-no" placeholder="單號">
+      </div>
+      <div class="form-group">
+        <label>日期</label>
+        <input id="quo-date" type="date">
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:1rem">
+    <div class="card-title">品項明細</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:28px">項次</th>
+            <th>品名規格</th>
+            <th style="width:48px">數量</th>
+            <th style="width:58px">金額</th>
+            <th style="width:58px">備註</th>
+            <th style="width:22px"></th>
+          </tr>
+        </thead>
+        <tbody id="quo-items-tbody"></tbody>
+        <tfoot>
+          <tr style="background:var(--bg)">
+            <td colspan="3" style="text-align:right;font-weight:700;border-bottom:none">合計</td>
+            <td style="font-weight:700;text-align:right;border-bottom:none" id="quo-total-cell">$0</td>
+            <td colspan="2" style="border-bottom:none"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="btn-row" style="margin-top:10px">
+      <button class="btn btn-sm" onclick="addQuoItem()">＋ 新增行</button>
+      <button class="btn btn-sm" onclick="showMaterialPicker('quotation')" style="background:var(--accent-light);color:var(--accent-text);border-color:var(--accent-light)">＋ 從材料主檔選取</button>
+    </div>
+  </div>
+  <div class="btn-row" style="margin-top:1rem">
+    <button class="btn btn-primary" onclick="saveQuotation()">儲存報價單</button>
+    <button class="btn" onclick="newQuotation()">清除</button>
+    <button class="btn btn-primary" onclick="printQuotation()">🖨️ 列印</button>
+    <button class="btn" onclick="exportQuotationExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
+  </div>
+</div>
+
+<!-- ── 報價紀錄 ── -->
+<div id="page-quotations" class="page">
+  <div class="page-title">報價紀錄</div>
+  <div class="search-row">
+    <input id="quotations-search" placeholder="搜尋客戶、單號、日期…" oninput="renderQuotationsTable()">
+    <div class="filter-row" id="quotations-filter-row">
+      <button class="filter-btn active" onclick="setQuotationsFilter('all',this)">全部</button>
+      <button class="filter-btn" onclick="setQuotationsFilter('month',this)">本月</button>
+      <button class="filter-btn" onclick="setQuotationsFilter('week',this)">本週</button>
+    </div>
+    <span id="quotations-count" style="font-size:12px;color:var(--text-3)"></span>
+  </div>
+  <div class="btn-row" style="margin-bottom:12px">
+    <button class="btn btn-primary" onclick="printQuotationRecords()">🖨️ 列印</button>
+    <button class="btn" onclick="exportQuotationRecordsExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
+  </div>
+  <div id="quotations-loading" style="display:none;text-align:center;padding:2rem">
+    <div style="font-size:14px;color:var(--text-2)">載入中…</div>
+  </div>
+  <div id="quotations-list"></div>
 </div>
 
 <!-- ── 進貨單 ── -->
@@ -1135,6 +1226,7 @@ function showPage(name) {
   document.getElementById('header-back').classList.toggle('clickable', !isHome);
   if (name === 'card') loadQueuedItems();
   if (name === 'sales') loadSalesRecords();
+  if (name === 'quotations') loadQuotationRecords();
   if (name === 'purchases') loadPurchaseRecords();
   if (name === 'customers') renderCustPage();
   if (name === 'suppliers') renderSuppPage();
@@ -1249,7 +1341,7 @@ function deleteCat(idx) {
 
 // ── 客戶管理 ──────────────────────────────────────────
 function renderCustOptions() {
-  ['card-customer', 'inv-customer'].forEach(id => {
+  ['card-customer', 'inv-customer', 'quo-customer'].forEach(id => {
     const sel = document.getElementById(id);
     if (!sel) return;
     const cur = sel.value;
@@ -2337,6 +2429,9 @@ function pickMaterial(matId) {
     renderCardTable();
     calcCardTotal();
     toast('已加入材料卡：' + m.brand + ' ' + m.model);
+  } else if (pickerTarget === 'quotation') {
+    addToQuotation(m);
+    toast('已加入報價單：' + m.brand + ' ' + m.model);
   } else if (pickerTarget === 'purchase') {
     let idx = purchaseItems.findIndex(it => !it.name && !it.qty && !it.amount);
     if (idx < 0) { idx = purchaseItems.length; purchaseItems.push({}); }
@@ -2531,6 +2626,298 @@ function editSalesRecord(recordId) {
   renderInvItems();
   calcInvTotal();
   showPage('invoice');
+  toast('已載入 ' + recordId + ' 編輯中');
+}
+
+// ── 報價單 ───────────────────────────────────────────
+let quotationItems = [];
+let currentQuotationId = null;
+const QUO_EMPTY_ROWS = 5;
+
+function newQuotation() {
+  currentQuotationId = null;
+  document.getElementById('quo-no').value = '';
+  document.getElementById('quo-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('quo-customer').value = '';
+  document.getElementById('quotation-status').textContent = '';
+  quotationItems = [];
+  for (let i = 0; i < QUO_EMPTY_ROWS; i++) quotationItems.push({ seq: i+1, name: '', qty: '', amount: '', note: '' });
+  renderQuoItems();
+  calcQuoTotal();
+  toast('已清空，可開始填寫新報價單');
+}
+
+function renderQuoItems() {
+  const tbody = document.getElementById('quo-items-tbody');
+  tbody.innerHTML = quotationItems.map((it, i) => `<tr>
+    <td style="text-align:center;font-size:12px;color:var(--text-3)">${i+1}</td>
+    <td><input class="card-inp" value="${esc(it.name||'')}" onchange="quotationItems[${i}].name=this.value"></td>
+    <td><input class="card-inp" type="number" value="${it.qty||''}" min="0" onchange="quotationItems[${i}].qty=this.value;calcQuoTotal()"></td>
+    <td><input class="card-inp" type="number" value="${it.amount||''}" min="0" onchange="quotationItems[${i}].amount=this.value;calcQuoTotal()"></td>
+    <td><input class="card-inp" value="${esc(it.note||'')}" onchange="quotationItems[${i}].note=this.value"></td>
+    <td><button class="btn-danger" onclick="quotationItems.splice(${i},1);renderQuoItems();calcQuoTotal()">×</button></td>
+  </tr>`).join('');
+}
+
+function calcQuoTotal() {
+  const total = quotationItems.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+  document.getElementById('quo-total-cell').textContent = '$' + total.toLocaleString();
+}
+
+function addQuoItem() {
+  quotationItems.push({ seq: quotationItems.length+1, name: '', qty: '', amount: '', note: '' });
+  renderQuoItems();
+}
+
+function addToQuotation(m) {
+  const name = ((m.brand || '') + ' ' + m.model).trim();
+  let empty = quotationItems.findIndex(it => !it.name);
+  if (empty < 0) { quotationItems.push({ seq: quotationItems.length+1, name: '', qty: '', amount: '', note: '' }); empty = quotationItems.length - 1; }
+  quotationItems[empty].name = name;
+  quotationItems[empty].qty = 1;
+  quotationItems[empty].amount = m.price || 0;
+  quotationItems[empty].matId = m.id;
+  renderQuoItems();
+  calcQuoTotal();
+  toast('已加入：' + name);
+}
+
+async function saveQuotation() {
+  const quoNo = document.getElementById('quo-no').value.trim();
+  const date = document.getElementById('quo-date').value;
+  const customer = document.getElementById('quo-customer').value.trim();
+  const items = quotationItems.filter(it => it.name);
+  if (!items.length) { toast('請至少填寫一筆品項'); return; }
+  const totalAmount = items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+  const statusEl = document.getElementById('quotation-status');
+  if (statusEl) statusEl.textContent = '儲存中…';
+  try {
+    const resp = await fetch(GAS_URL, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'saveQuotation', recordId: currentQuotationId,
+        quotationNo: quoNo, date, customer,
+        items: items.map((it, i) => ({ seq: i+1, name: it.name, qty: Number(it.qty)||0, amount: Number(it.amount)||0, note: it.note||'', matId: it.matId||'' })),
+        totalAmount
+      })
+    });
+    const result = await resp.json();
+    if (result.ok) {
+      currentQuotationId = result.recordId;
+      toast('已儲存：' + result.recordId);
+      if (statusEl) statusEl.textContent = '已儲存 ' + result.recordId;
+    } else {
+      toast('儲存失敗：' + (result.error || '未知錯誤'));
+      if (statusEl) statusEl.textContent = '儲存失敗';
+    }
+  } catch(e) {
+    toast('儲存失敗');
+    if (statusEl) statusEl.textContent = '儲存失敗';
+  }
+}
+
+function printQuotation() {
+  const customer = document.getElementById('quo-customer');
+  const customerName = customer.options[customer.selectedIndex] ? customer.options[customer.selectedIndex].text : '';
+  const quoNo = document.getElementById('quo-no').value.trim();
+  const date = document.getElementById('quo-date').value;
+  const items = quotationItems.filter(it => it.name);
+  if (!items.length) { toast('請至少填寫一筆品項'); return; }
+  const total = items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+  const MIN_ROWS = 25;
+  const rows = items.map((it, i) => ({ seq: i+1, name: it.name||'', qty: it.qty||'', amount: it.amount||'', note: it.note||'' }));
+  while (rows.length < MIN_ROWS) rows.push({ seq:'', name:'', qty:'', amount:'', note:'' });
+  const area = document.getElementById('print-area');
+  area.innerHTML = `
+    <table class="print-header">
+      <tr><td class="lbl">客戶名稱</td><td class="val" colspan="2">${esc(customerName||'')}</td><td class="lbl">報價單號</td><td class="val">${esc(quoNo)}</td></tr>
+      <tr><td class="lbl">日期</td><td class="val" colspan="4">${esc(date)}</td></tr>
+    </table>
+    <table class="print-items">
+      <thead><tr><th style="width:45px">項次</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:80px">備註</th></tr></thead>
+      <tbody>${rows.map(r => `<tr><td>${r.seq}</td><td class="left">${esc(r.name)}</td><td>${r.qty}</td><td class="right">${r.amount ? '$'+Number(r.amount).toLocaleString() : ''}</td><td class="left">${esc(r.note)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="2" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td><td style="border:none"></td></tr></tfoot>
+    </table>`;
+  window.print();
+}
+
+function exportQuotationExcel() {
+  const customer = document.getElementById('quo-customer');
+  const customerName = customer.options[customer.selectedIndex] ? customer.options[customer.selectedIndex].text : '';
+  const quoNo = document.getElementById('quo-no').value.trim();
+  const date = document.getElementById('quo-date').value;
+  const items = quotationItems.filter(it => it.name);
+  if (!items.length) { toast('沒有資料可匯出'); return; }
+  const total = items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+  const headerData = [['客戶名稱', customerName, '', '報價單號', quoNo], ['日期', date], [], ['項次', '品名規格', '數量', '金額', '備註']];
+  const itemData = items.map((it, i) => [i+1, it.name||'', Number(it.qty)||0, Number(it.amount)||0, it.note||'']);
+  const footerData = [[], ['', '', '合計', total, '']];
+  const wsData = [...headerData, ...itemData, ...footerData];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [{ wch:6 }, { wch:30 }, { wch:8 }, { wch:10 }, { wch:12 }];
+  ws['!merges'] = [{ s:{r:0,c:1}, e:{r:0,c:2} }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '報價單');
+  const fileName = '報價單_' + (quoNo || customerName || date || 'export') + '.xlsx';
+  XLSX.writeFile(wb, fileName);
+  toast('已匯出 ' + fileName);
+}
+
+// ── 報價紀錄 ─────────────────────────────────────────
+let quotationRecords = [];
+let quotationsFilterPeriod = 'all';
+
+async function loadQuotationRecords() {
+  document.getElementById('quotations-loading').style.display = 'block';
+  try {
+    const resp = await fetch(GAS_URL + '?include=quotations');
+    const data = await resp.json();
+    quotationRecords = data.quotations || [];
+    renderQuotationsTable();
+    document.getElementById('quotations-loading').style.display = 'none';
+  } catch(e) {
+    document.getElementById('quotations-loading').style.display = 'none';
+    toast('載入報價紀錄失敗');
+  }
+}
+
+function getFilteredQuotationRows() {
+  const q = (document.getElementById('quotations-search').value || '').toLowerCase();
+  const now = new Date();
+  return quotationRecords.filter(r => {
+    if (q) {
+      const match = String(r['客戶']||'').toLowerCase().includes(q) || String(r['報價單號']||'').toLowerCase().includes(q) || String(r['紀錄ID']||'').toLowerCase().includes(q) || String(r['日期']||'').toLowerCase().includes(q) || fmtDate(r['日期']).toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    if (quotationsFilterPeriod !== 'all' && r['日期']) {
+      const d = new Date(r['日期']);
+      if (quotationsFilterPeriod === 'month') { if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return false; }
+      if (quotationsFilterPeriod === 'week') { const diff = (now - d) / 86400000; if (diff > 7 || diff < 0) return false; }
+    }
+    return true;
+  });
+}
+
+function renderQuotationsTable() {
+  const rows = getFilteredQuotationRows();
+  document.getElementById('quotations-count').textContent = '共 ' + rows.length + ' 筆';
+  const container = document.getElementById('quotations-list');
+  if (!rows.length) {
+    container.innerHTML = '<div class="empty-state">沒有符合的紀錄</div>';
+    return;
+  }
+  container.innerHTML = rows.map(r => {
+    let items = [];
+    try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
+    return `
+    <div class="record-card">
+      <div class="record-header">
+        <div class="record-info">
+          <span class="record-date">${fmtDate(r['日期'])}</span>
+          <span class="record-divider">|</span>
+          <span>單號：<strong>${esc(r['報價單號']||'—')}</strong></span>
+          <span class="record-divider">|</span>
+          <span>客戶：<strong>${esc(r['客戶']||'—')}</strong></span>
+        </div>
+        <button class="btn btn-sm" onclick="editQuotationRecord('${esc(r['紀錄ID']||'')}')">編輯</button>
+      </div>
+      <div class="table-wrap" style="margin-top:8px">
+        <table>
+          <thead><tr><th>項次</th><th>品名規格</th><th>數量</th><th>金額</th><th>備註</th></tr></thead>
+          <tbody>${items.map((it,i) => `
+            <tr>
+              <td style="text-align:center">${it.seq || (i+1)}</td>
+              <td>${esc(it.name||'')}</td>
+              <td style="text-align:center">${it.qty||''}</td>
+              <td style="text-align:right">$${(Number(it.amount)||0).toLocaleString()}</td>
+              <td>${esc(it.note||'')}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="record-total">合計：$${(Number(r['合計金額'])||0).toLocaleString()}</div>
+    </div>`;
+  }).join('');
+}
+
+function setQuotationsFilter(period, btn) {
+  quotationsFilterPeriod = period;
+  document.querySelectorAll('#quotations-filter-row .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderQuotationsTable();
+}
+
+function printQuotationRecords() {
+  const rows = getFilteredQuotationRows();
+  if (!rows.length) { toast('沒有可列印的紀錄'); return; }
+  const area = document.getElementById('print-area');
+  area.innerHTML = rows.map(r => {
+    let items = [];
+    try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
+    const total = Number(r['合計金額']) || 0;
+    const MIN_ROWS = 25;
+    const printRows = items.map((it, i) => ({ seq: i+1, name: it.name||'', qty: it.qty||'', amount: it.amount||'', note: it.note||'' }));
+    while (printRows.length < MIN_ROWS) printRows.push({ seq:'', name:'', qty:'', amount:'', note:'' });
+    return `
+      <div style="page-break-after:always">
+        <table class="print-header">
+          <tr><td class="lbl">客戶名稱</td><td class="val" colspan="2">${esc(r['客戶']||'')}</td><td class="lbl">報價單號</td><td class="val">${esc(r['報價單號']||'')}</td></tr>
+          <tr><td class="lbl">日期</td><td class="val" colspan="4">${fmtDate(r['日期'])}</td></tr>
+        </table>
+        <table class="print-items">
+          <thead><tr><th style="width:45px">項次</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:80px">備註</th></tr></thead>
+          <tbody>${printRows.map(pr => `<tr><td>${pr.seq}</td><td class="left">${esc(pr.name)}</td><td>${pr.qty}</td><td class="right">${pr.amount ? '$'+Number(pr.amount).toLocaleString() : ''}</td><td class="left">${esc(pr.note)}</td></tr>`).join('')}</tbody>
+          <tfoot><tr><td colspan="2" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td><td style="border:none"></td></tr></tfoot>
+        </table>
+      </div>`;
+  }).join('');
+  window.print();
+}
+
+function exportQuotationRecordsExcel() {
+  const rows = getFilteredQuotationRows();
+  if (!rows.length) { toast('沒有可匯出的紀錄'); return; }
+  const wb = XLSX.utils.book_new();
+  const summaryHeader = [['日期', '客戶', '報價單號', '合計金額']];
+  const summaryData = rows.map(r => [fmtDate(r['日期']), r['客戶']||'', r['報價單號']||'', Number(r['合計金額'])||0]);
+  const grandTotal = summaryData.reduce((s, d) => s + d[3], 0);
+  const summaryAll = [...summaryHeader, ...summaryData, [], ['', '', '總計', grandTotal]];
+  const wsSummary = XLSX.utils.aoa_to_sheet(summaryAll);
+  wsSummary['!cols'] = [{ wch:12 }, { wch:18 }, { wch:16 }, { wch:12 }];
+  XLSX.utils.book_append_sheet(wb, wsSummary, '報價總覽');
+  const detailHeader = [['日期', '客戶', '報價單號', '項次', '品名規格', '數量', '金額', '備註']];
+  const detailData = [];
+  rows.forEach(r => {
+    let items = [];
+    try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
+    items.forEach((it, i) => {
+      detailData.push([fmtDate(r['日期']), r['客戶']||'', r['報價單號']||'', i+1, it.name||'', Number(it.qty)||0, Number(it.amount)||0, it.note||'']);
+    });
+  });
+  const wsDetail = XLSX.utils.aoa_to_sheet([...detailHeader, ...detailData]);
+  wsDetail['!cols'] = [{ wch:12 }, { wch:18 }, { wch:16 }, { wch:6 }, { wch:30 }, { wch:8 }, { wch:10 }, { wch:12 }];
+  XLSX.utils.book_append_sheet(wb, wsDetail, '報價明細');
+  const fileName = '報價紀錄_' + new Date().toISOString().slice(0,10) + '.xlsx';
+  XLSX.writeFile(wb, fileName);
+  toast('已匯出 ' + fileName);
+}
+
+function editQuotationRecord(recordId) {
+  if (!confirm('確定要編輯此報價紀錄？')) return;
+  const r = quotationRecords.find(x => x['紀錄ID'] === recordId);
+  if (!r) return;
+  currentQuotationId = recordId;
+  document.getElementById('quo-no').value = r['報價單號'] || '';
+  var dv = r['日期'] || '';
+  if (dv) { var dd = new Date(dv); if (!isNaN(dd)) dv = dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0'); }
+  document.getElementById('quo-date').value = dv;
+  document.getElementById('quo-customer').value = r['客戶'] || '';
+  let items = [];
+  try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
+  quotationItems = items.length ? items : [{ seq:1, name:'', qty:'', amount:'', note:'' }];
+  renderQuoItems();
+  calcQuoTotal();
+  showPage('quotation');
   toast('已載入 ' + recordId + ' 編輯中');
 }
 
@@ -2878,6 +3265,7 @@ document.getElementById('card-no').value = todayStr + 'A';
 loadFromCloud();
 loadQueuedItems();
 newInvoice();
+newQuotation();
 newPurchase();
 
 document.addEventListener('visibilitychange', function() {
