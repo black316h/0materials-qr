@@ -156,6 +156,24 @@
   .modal-content { background:var(--surface);border-radius:var(--radius-lg);padding:1.5rem;max-width:700px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.15); }
   .modal-content .card-title { margin-bottom:1rem; }
 
+  /* Home directory */
+  .home-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:16px; }
+  .home-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:1.5rem; cursor:pointer; transition:all 0.15s; text-align:center; }
+  .home-card:hover { border-color:var(--accent); box-shadow:0 2px 12px rgba(0,0,0,0.08); transform:translateY(-2px); }
+  .home-icon { font-size:36px; margin-bottom:8px; }
+  .home-label { font-size:16px; font-weight:600; color:var(--text); margin-bottom:4px; }
+  .home-desc { font-size:12px; color:var(--text-3); }
+  .btn-back { background:none; border:none; color:#fff; font-size:20px; cursor:pointer; padding:4px 8px; border-radius:var(--radius); transition:background 0.15s; line-height:1; }
+  .btn-back:hover { background:rgba(255,255,255,0.15); }
+
+  /* Record cards */
+  .record-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:1rem 1.25rem; margin-bottom:12px; }
+  .record-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+  .record-info { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text); flex-wrap:wrap; }
+  .record-date { font-weight:500; }
+  .record-divider { color:var(--border-dark); }
+  .record-total { text-align:right; font-size:15px; font-weight:700; color:var(--accent-text); margin-top:8px; padding-top:8px; border-top:1px solid var(--border); }
+
   /* ── 登入畫面 ── */
   #login-screen {
     position: fixed; inset: 0; z-index: 9999;
@@ -273,23 +291,57 @@
 </div>
 
 <header>
-  <h1>竑記專用進銷存系統</h1>
+  <div style="display:flex;align-items:center;gap:12px">
+    <button id="btn-back" class="btn-back" onclick="goHome()" style="display:none" title="返回目錄">←</button>
+    <h1>竑記專用進銷存系統</h1>
+  </div>
   <nav>
-    <a href="#" class="active" onclick="showPage('master',this);return false">材料主檔</a>
-    <a href="#" onclick="showPage('card',this);return false">材料卡</a>
-    <a href="#" onclick="showPage('invoice',this);return false">出貨單</a>
-    <a href="#" onclick="showPage('sales',this);return false">銷貨紀錄</a>
-    <a href="#" onclick="showPage('purchase',this);return false">進貨單</a>
-    <a href="#" onclick="showPage('purchases',this);return false">進貨紀錄</a>
-    <a href="#" onclick="showChangePwd();return false" style="margin-left:auto;font-size:11px;opacity:0.6" title="修改密碼">⚙️</a>
+    <a href="#" onclick="showChangePwd();return false" style="font-size:11px;opacity:0.6" title="修改密碼">⚙️</a>
     <a href="#" onclick="doLogout();return false" style="font-size:11px;opacity:0.6" title="登出">登出</a>
   </nav>
 </header>
 
 <div class="main">
 
+<!-- ── 目錄頁 ── -->
+<div id="page-home" class="page active">
+  <div class="page-title">功能目錄</div>
+  <div class="home-grid">
+    <div class="home-card" onclick="showPage('master')">
+      <div class="home-icon">📦</div>
+      <div class="home-label">材料主檔</div>
+      <div class="home-desc">管理材料、廠牌、類別、庫存</div>
+    </div>
+    <div class="home-card" onclick="showPage('card')">
+      <div class="home-icon">📋</div>
+      <div class="home-label">材料卡</div>
+      <div class="home-desc">材料卡片管理、客戶/廠商/案件</div>
+    </div>
+    <div class="home-card" onclick="showPage('invoice')">
+      <div class="home-icon">📤</div>
+      <div class="home-label">出貨單</div>
+      <div class="home-desc">新增、編輯出貨單</div>
+    </div>
+    <div class="home-card" onclick="showPage('sales')">
+      <div class="home-icon">📊</div>
+      <div class="home-label">銷貨紀錄</div>
+      <div class="home-desc">查詢出貨歷史紀錄</div>
+    </div>
+    <div class="home-card" onclick="showPage('purchase')">
+      <div class="home-icon">📥</div>
+      <div class="home-label">進貨單</div>
+      <div class="home-desc">新增、編輯進貨單</div>
+    </div>
+    <div class="home-card" onclick="showPage('purchases')">
+      <div class="home-icon">📈</div>
+      <div class="home-label">進貨紀錄</div>
+      <div class="home-desc">查詢進貨歷史紀錄</div>
+    </div>
+  </div>
+</div>
+
 <!-- ── 材料主檔 ── -->
-<div id="page-master" class="page active">
+<div id="page-master" class="page">
   <div class="page-title">材料主檔管理</div>
 
   <!-- 新增表單 -->
@@ -600,21 +652,7 @@
   <div id="sales-loading" style="display:none;text-align:center;padding:2rem">
     <div style="font-size:14px;color:var(--text-2)">載入中…</div>
   </div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th style="width:90px">紀錄ID</th>
-          <th style="width:90px">日期</th>
-          <th>客戶名稱</th>
-          <th style="width:90px">單號</th>
-          <th style="width:90px">合計</th>
-          <th style="width:50px"></th>
-        </tr>
-      </thead>
-      <tbody id="sales-tbody"></tbody>
-    </table>
-  </div>
+  <div id="sales-list"></div>
 </div>
 
 <!-- ── 進貨單 ── -->
@@ -691,33 +729,7 @@
   <div id="purchases-loading" style="display:none;text-align:center;padding:2rem">
     <div style="font-size:14px;color:var(--text-2)">載入中…</div>
   </div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th style="width:90px">紀錄ID</th>
-          <th style="width:90px">日期</th>
-          <th>廠商名稱</th>
-          <th style="width:90px">單號</th>
-          <th style="width:90px">合計</th>
-          <th style="width:50px"></th>
-        </tr>
-      </thead>
-      <tbody id="purchases-tbody"></tbody>
-    </table>
-  </div>
-</div>
-
-<!-- 進貨詳情 Modal -->
-<div id="purchase-detail-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)hidePurchaseDetail()">
-  <div class="modal-content">
-    <div class="card-title">進貨單詳情</div>
-    <div id="purchase-detail-content"></div>
-    <div class="btn-row" style="margin-top:1rem;justify-content:flex-end">
-      <button class="btn" onclick="hidePurchaseDetail()">關閉</button>
-      <button class="btn btn-primary" id="purchase-edit-btn" onclick="">編輯</button>
-    </div>
-  </div>
+  <div id="purchases-list"></div>
 </div>
 
 <!-- 材料選取 Modal -->
@@ -743,17 +755,6 @@
   </div>
 </div>
 
-<!-- 銷貨詳情 Modal -->
-<div id="sales-detail-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)hideSalesDetail()">
-  <div class="modal-content">
-    <div class="card-title">出貨單詳情</div>
-    <div id="sales-detail-content"></div>
-    <div class="btn-row" style="margin-top:1rem;justify-content:flex-end">
-      <button class="btn" onclick="hideSalesDetail()">關閉</button>
-      <button class="btn btn-primary" id="sales-edit-btn" onclick="">編輯</button>
-    </div>
-  </div>
-</div>
 
 </div><!-- /.main -->
 <datalist id="model-list"></datalist>
@@ -1073,15 +1074,15 @@ function toast(msg, duration) {
 }
 
 // ── 頁面切換 ──────────────────────────────────────────
-function showPage(name, el) {
+function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('header nav a').forEach(a => a.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
-  if (el) el.classList.add('active');
+  document.getElementById('btn-back').style.display = (name === 'home') ? 'none' : 'inline-block';
   if (name === 'card') loadQueuedItems();
   if (name === 'sales') loadSalesRecords();
   if (name === 'purchases') loadPurchaseRecords();
 }
+function goHome() { showPage('home'); }
 function setFilter(cat, btn) {
   filterCat = cat;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -2220,20 +2221,43 @@ function renderSalesTable() {
     return true;
   });
   document.getElementById('sales-count').textContent = '共 ' + rows.length + ' 筆';
-  const tbody = document.getElementById('sales-tbody');
+  const container = document.getElementById('sales-list');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">沒有符合的紀錄</div></td></tr>';
+    container.innerHTML = '<div class="empty-state">沒有符合的紀錄</div>';
     return;
   }
-  tbody.innerHTML = rows.map(r => `
-    <tr>
-      <td><span class="badge badge-blue">${esc(r['紀錄ID']||'')}</span></td>
-      <td>${fmtDate(r['日期'])}</td>
-      <td>${esc(r['客戶']||'')}</td>
-      <td>${esc(r['出貨單號']||'')}</td>
-      <td style="text-align:right;font-weight:500">$${(Number(r['合計金額'])||0).toLocaleString()}</td>
-      <td><button class="btn btn-sm" onclick="viewSalesDetail('${esc(r['紀錄ID']||'')}')">檢視</button></td>
-    </tr>`).join('');
+  container.innerHTML = rows.map(r => {
+    let items = [];
+    try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
+    return `
+    <div class="record-card">
+      <div class="record-header">
+        <div class="record-info">
+          <span class="record-date">${fmtDate(r['日期'])}</span>
+          <span class="record-divider">|</span>
+          <span>單號：<strong>${esc(r['出貨單號']||'—')}</strong></span>
+          <span class="record-divider">|</span>
+          <span>客戶：<strong>${esc(r['客戶']||'—')}</strong></span>
+        </div>
+        <button class="btn btn-sm" onclick="editSalesRecord('${esc(r['紀錄ID']||'')}')">編輯</button>
+      </div>
+      <div class="table-wrap" style="margin-top:8px">
+        <table>
+          <thead><tr><th>項次</th><th>品名規格</th><th>數量</th><th>金額</th><th>備註</th></tr></thead>
+          <tbody>${items.map((it,i) => `
+            <tr>
+              <td style="text-align:center">${it.seq || (i+1)}</td>
+              <td>${esc(it.name||'')}</td>
+              <td style="text-align:center">${it.qty||''}</td>
+              <td style="text-align:right">$${(Number(it.amount)||0).toLocaleString()}</td>
+              <td>${esc(it.note||'')}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="record-total">合計：$${(Number(r['合計金額'])||0).toLocaleString()}</div>
+    </div>`;
+  }).join('');
 }
 
 function setSalesFilter(period, btn) {
@@ -2243,45 +2267,9 @@ function setSalesFilter(period, btn) {
   renderSalesTable();
 }
 
-function viewSalesDetail(recordId) {
-  const r = salesRecords.find(x => x['紀錄ID'] === recordId);
-  if (!r) return;
-  let items = [];
-  try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
-  const content = document.getElementById('sales-detail-content');
-  content.innerHTML = `
-    <div class="form-grid" style="margin-bottom:1rem;grid-template-columns:1fr 1fr 1fr">
-      <div class="form-group"><label>客戶名稱</label><div style="padding:8px 0;font-weight:500">${esc(r['客戶']||'—')}</div></div>
-      <div class="form-group"><label>出貨單號</label><div style="padding:8px 0;font-weight:500">${esc(r['出貨單號']||'—')}</div></div>
-      <div class="form-group"><label>日期</label><div style="padding:8px 0;font-weight:500">${fmtDate(r['日期'])}</div></div>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>項次</th><th>品名規格</th><th>數量</th><th>金額</th><th>備註</th></tr></thead>
-        <tbody>${items.map((it,i) => `
-          <tr>
-            <td style="text-align:center">${it.seq || (i+1)}</td>
-            <td>${esc(it.name||'')}</td>
-            <td style="text-align:center">${it.qty||''}</td>
-            <td style="text-align:right">$${(Number(it.amount)||0).toLocaleString()}</td>
-            <td>${esc(it.note||'')}</td>
-          </tr>`).join('')}
-        </tbody>
-        <tfoot><tr style="background:var(--bg)"><td colspan="3" style="text-align:right;font-weight:700">合計</td><td style="text-align:right;font-weight:700">$${(Number(r['合計金額'])||0).toLocaleString()}</td><td></td></tr></tfoot>
-      </table>
-    </div>`;
-  document.getElementById('sales-edit-btn').setAttribute('onclick', `editSalesRecord('${esc(recordId)}')`);
-  document.getElementById('sales-detail-modal').style.display = 'flex';
-}
-
-function hideSalesDetail() {
-  document.getElementById('sales-detail-modal').style.display = 'none';
-}
-
 function editSalesRecord(recordId) {
   const r = salesRecords.find(x => x['紀錄ID'] === recordId);
   if (!r) return;
-  hideSalesDetail();
   currentInvoiceId = recordId;
   try { _oldInvItems = JSON.parse(r['品項JSON'] || '[]'); } catch(e) { _oldInvItems = []; }
   document.getElementById('inv-no').value = r['出貨單號'] || '';
@@ -2294,7 +2282,7 @@ function editSalesRecord(recordId) {
   invoiceItems = items.length ? items : [{ seq:1, name:'', qty:'', amount:'', note:'' }];
   renderInvItems();
   calcInvTotal();
-  showPage('invoice', document.querySelectorAll('header nav a')[2]);
+  showPage('invoice');
   toast('已載入 ' + recordId + ' 編輯中');
 }
 
@@ -2486,20 +2474,43 @@ function renderPurchasesTable() {
     return true;
   });
   document.getElementById('purchases-count').textContent = '共 ' + rows.length + ' 筆';
-  const tbody = document.getElementById('purchases-tbody');
+  const container = document.getElementById('purchases-list');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">沒有符合的紀錄</div></td></tr>';
+    container.innerHTML = '<div class="empty-state">沒有符合的紀錄</div>';
     return;
   }
-  tbody.innerHTML = rows.map(r => `
-    <tr>
-      <td><span class="badge badge-blue">${esc(r['紀錄ID']||'')}</span></td>
-      <td>${fmtDate(r['日期'])}</td>
-      <td>${esc(r['廠商']||'')}</td>
-      <td>${esc(r['進貨單號']||'')}</td>
-      <td style="text-align:right;font-weight:500">$${(Number(r['合計金額'])||0).toLocaleString()}</td>
-      <td><button class="btn btn-sm" onclick="viewPurchaseDetail('${esc(r['紀錄ID']||'')}')">檢視</button></td>
-    </tr>`).join('');
+  container.innerHTML = rows.map(r => {
+    let items = [];
+    try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
+    return `
+    <div class="record-card">
+      <div class="record-header">
+        <div class="record-info">
+          <span class="record-date">${fmtDate(r['日期'])}</span>
+          <span class="record-divider">|</span>
+          <span>單號：<strong>${esc(r['進貨單號']||'—')}</strong></span>
+          <span class="record-divider">|</span>
+          <span>廠商：<strong>${esc(r['廠商']||'—')}</strong></span>
+        </div>
+        <button class="btn btn-sm" onclick="editPurchaseRecord('${esc(r['紀錄ID']||'')}')">編輯</button>
+      </div>
+      <div class="table-wrap" style="margin-top:8px">
+        <table>
+          <thead><tr><th>項次</th><th>品名規格</th><th>數量</th><th>金額</th><th>備註</th></tr></thead>
+          <tbody>${items.map((it,i) => `
+            <tr>
+              <td style="text-align:center">${it.seq || (i+1)}</td>
+              <td>${esc(it.name||'')}</td>
+              <td style="text-align:center">${it.qty||''}</td>
+              <td style="text-align:right">$${(Number(it.amount)||0).toLocaleString()}</td>
+              <td>${esc(it.note||'')}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="record-total">合計：$${(Number(r['合計金額'])||0).toLocaleString()}</div>
+    </div>`;
+  }).join('');
 }
 
 function setPurchasesFilter(period, btn) {
@@ -2509,45 +2520,9 @@ function setPurchasesFilter(period, btn) {
   renderPurchasesTable();
 }
 
-function viewPurchaseDetail(recordId) {
-  const r = purchaseRecords.find(x => x['紀錄ID'] === recordId);
-  if (!r) return;
-  let items = [];
-  try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
-  const content = document.getElementById('purchase-detail-content');
-  content.innerHTML = `
-    <div class="form-grid" style="margin-bottom:1rem;grid-template-columns:1fr 1fr 1fr">
-      <div class="form-group"><label>廠商名稱</label><div style="padding:8px 0;font-weight:500">${esc(r['廠商']||'—')}</div></div>
-      <div class="form-group"><label>進貨單號</label><div style="padding:8px 0;font-weight:500">${esc(r['進貨單號']||'—')}</div></div>
-      <div class="form-group"><label>日期</label><div style="padding:8px 0;font-weight:500">${fmtDate(r['日期'])}</div></div>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>項次</th><th>品名規格</th><th>數量</th><th>金額</th><th>備註</th></tr></thead>
-        <tbody>${items.map((it,i) => `
-          <tr>
-            <td style="text-align:center">${it.seq || (i+1)}</td>
-            <td>${esc(it.name||'')}</td>
-            <td style="text-align:center">${it.qty||''}</td>
-            <td style="text-align:right">$${(Number(it.amount)||0).toLocaleString()}</td>
-            <td>${esc(it.note||'')}</td>
-          </tr>`).join('')}
-        </tbody>
-        <tfoot><tr style="background:var(--bg)"><td colspan="3" style="text-align:right;font-weight:700">合計</td><td style="text-align:right;font-weight:700">$${(Number(r['合計金額'])||0).toLocaleString()}</td><td></td></tr></tfoot>
-      </table>
-    </div>`;
-  document.getElementById('purchase-edit-btn').setAttribute('onclick', `editPurchaseRecord('${esc(recordId)}')`);
-  document.getElementById('purchase-detail-modal').style.display = 'flex';
-}
-
-function hidePurchaseDetail() {
-  document.getElementById('purchase-detail-modal').style.display = 'none';
-}
-
 function editPurchaseRecord(recordId) {
   const r = purchaseRecords.find(x => x['紀錄ID'] === recordId);
   if (!r) return;
-  hidePurchaseDetail();
   currentPurchaseId = recordId;
   try { _oldPurItems = JSON.parse(r['品項JSON'] || '[]'); } catch(e) { _oldPurItems = []; }
   document.getElementById('pur-no').value = r['進貨單號'] || '';
@@ -2560,7 +2535,7 @@ function editPurchaseRecord(recordId) {
   purchaseItems = items.length ? items : [{ seq:1, name:'', qty:'', amount:'', note:'' }];
   renderPurItems();
   calcPurTotal();
-  showPage('purchase', document.querySelectorAll('header nav a')[4]);
+  showPage('purchase');
   toast('已載入 ' + recordId + ' 編輯中');
 }
 
