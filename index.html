@@ -1218,6 +1218,9 @@ function doResetPwd() {
 
 initAuth();
 
+// ── 本地日期 ─────────────────────────────────────────
+function todayStr() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+
 // ── 常數 ──────────────────────────────────────────────
 const STORAGE_KEY_MAT    = 'mat_master_v2';
 const STORAGE_KEY_BRANDS = 'mat_brands_v1';
@@ -1620,7 +1623,7 @@ function exportCustomersExcel() {
   ws['!cols'] = [{ wch:18 }, { wch:12 }, { wch:14 }, { wch:14 }, { wch:14 }, { wch:30 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '客戶資料');
-  XLSX.writeFile(wb, '客戶資料_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  XLSX.writeFile(wb, '客戶資料_' + todayStr() + '.xlsx');
   toast('已匯出客戶資料');
 }
 
@@ -1661,7 +1664,7 @@ function renderOrderPage() {
   renderOrderCustOptions();
   // 預設新增日期為今天
   const dateInput = document.getElementById('f-new-order-date');
-  if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
+  if (dateInput && !dateInput.value) dateInput.value = todayStr();
 
   if (!projects.length) {
     tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">尚無訂單，請新增</div></td></tr>';
@@ -1725,7 +1728,7 @@ function addOrder() {
   const maxSeq = projects.reduce((mx, p) => Math.max(mx, p.seq || 0), 0);
   projects.push({
     seq: maxSeq + 1,
-    date: document.getElementById('f-new-order-date').value || new Date().toISOString().slice(0, 10),
+    date: document.getElementById('f-new-order-date').value || todayStr(),
     customer: document.getElementById('f-new-order-cust').value,
     name: name,
     deliveryDate: document.getElementById('f-new-order-delivery').value,
@@ -1773,7 +1776,7 @@ function exportOrdersExcel() {
   const ws = XLSX.utils.aoa_to_sheet([header, ...data]);
   ws['!cols'] = [{ wch:6 }, { wch:12 }, { wch:16 }, { wch:24 }, { wch:12 }, { wch:20 }];
   XLSX.utils.book_append_sheet(wb, ws, '訂單管理');
-  XLSX.writeFile(wb, '訂單管理_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  XLSX.writeFile(wb, '訂單管理_' + todayStr() + '.xlsx');
   toast('已匯出訂單資料');
 }
 
@@ -1897,7 +1900,7 @@ function exportSuppliersExcel() {
   ws['!cols'] = [{ wch:18 }, { wch:12 }, { wch:14 }, { wch:14 }, { wch:14 }, { wch:30 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '廠商資料');
-  XLSX.writeFile(wb, '廠商資料_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  XLSX.writeFile(wb, '廠商資料_' + todayStr() + '.xlsx');
   toast('已匯出廠商資料');
 }
 
@@ -2075,7 +2078,7 @@ function exportMasterExcel() {
   const suffix = filterCat ? '_' + filterCat : '';
   const q = (document.getElementById('search').value || '').trim();
   const searchSuffix = q ? '_' + q : '';
-  const filename = '材料主檔' + suffix + searchSuffix + '_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+  const filename = '材料主檔' + suffix + searchSuffix + '_' + todayStr() + '.xlsx';
   XLSX.writeFile(wb, filename);
   toast('已匯出 ' + rows.length + ' 筆材料');
 }
@@ -2401,7 +2404,7 @@ function clearCard() {
   const t = new Date();
   document.getElementById('card-no').value = t.getFullYear() + String(t.getMonth()+1).padStart(2,'0') + String(t.getDate()).padStart(2,'0') + 'A';
   document.getElementById('card-project').value = '';
-  document.getElementById('card-date').value = t.toISOString().slice(0, 10);
+  document.getElementById('card-date').value = todayStr();
   document.getElementById('card-status').textContent = '';
   toast('已清空');
 }
@@ -2456,7 +2459,7 @@ function newInvoice() {
   currentInvoiceId = null;
   _oldInvItems = [];
   document.getElementById('inv-no').value = '';
-  document.getElementById('inv-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('inv-date').value = todayStr();
   document.getElementById('inv-customer').value = '';
   document.getElementById('invoice-status').textContent = '';
   invoiceItems = [];
@@ -2893,7 +2896,7 @@ function exportSalesRecordsExcel() {
   const wsDetail = XLSX.utils.aoa_to_sheet([...detailHeader, ...detailData]);
   wsDetail['!cols'] = [{ wch:12 }, { wch:18 }, { wch:16 }, { wch:6 }, { wch:30 }, { wch:8 }, { wch:10 }, { wch:12 }];
   XLSX.utils.book_append_sheet(wb, wsDetail, '銷貨明細');
-  const fileName = '銷貨紀錄_' + new Date().toISOString().slice(0,10) + '.xlsx';
+  const fileName = '銷貨紀錄_' + todayStr() + '.xlsx';
   XLSX.writeFile(wb, fileName);
   toast('已匯出 ' + fileName);
 }
@@ -2926,7 +2929,7 @@ const QUO_EMPTY_ROWS = 5;
 function newQuotation() {
   currentQuotationId = null;
   document.getElementById('quo-no').value = '';
-  document.getElementById('quo-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('quo-date').value = todayStr();
   document.getElementById('quo-customer').value = '';
   document.getElementById('quo-project').value = '';
   document.getElementById('quotation-status').textContent = '';
@@ -3199,7 +3202,7 @@ function exportQuotationRecordsExcel() {
   const wsDetail = XLSX.utils.aoa_to_sheet([...detailHeader, ...detailData]);
   wsDetail['!cols'] = [{ wch:12 }, { wch:18 }, { wch:16 }, { wch:6 }, { wch:30 }, { wch:8 }, { wch:10 }, { wch:12 }];
   XLSX.utils.book_append_sheet(wb, wsDetail, '報價明細');
-  const fileName = '報價紀錄_' + new Date().toISOString().slice(0,10) + '.xlsx';
+  const fileName = '報價紀錄_' + todayStr() + '.xlsx';
   XLSX.writeFile(wb, fileName);
   toast('已匯出 ' + fileName);
 }
@@ -3261,7 +3264,7 @@ async function toggleDeal(recordId, checkbox) {
           const maxSeq = projects.reduce((mx, p) => Math.max(mx, p.seq || 0), 0);
           projects.push({
             seq: maxSeq + 1,
-            date: new Date().toISOString().slice(0, 10),
+            date: todayStr(),
             customer: r['客戶'] || '',
             name: orderName,
             deliveryDate: '',
@@ -3296,7 +3299,7 @@ const CST_EMPTY_ROWS = 5;
 function newCosting() {
   currentCostingId = null;
   document.getElementById('cst-no').value = '';
-  document.getElementById('cst-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('cst-date').value = todayStr();
   document.getElementById('cst-customer').value = '';
   document.getElementById('cst-project').value = '';
   document.getElementById('costing-status').textContent = '';
@@ -3630,7 +3633,7 @@ function exportCostingRecordsExcel() {
   const wsDetail = XLSX.utils.aoa_to_sheet([...detailHeader, ...detailData]);
   wsDetail['!cols'] = [{ wch:12 }, { wch:14 }, { wch:16 }, { wch:6 }, { wch:28 }, { wch:8 }, { wch:10 }, { wch:6 }, { wch:10 }, { wch:12 }];
   XLSX.utils.book_append_sheet(wb, wsDetail, '試算明細');
-  XLSX.writeFile(wb, '成本試算紀錄_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  XLSX.writeFile(wb, '成本試算紀錄_' + todayStr() + '.xlsx');
   toast('已匯出成本試算紀錄');
 }
 
@@ -3643,7 +3646,7 @@ function newPurchase() {
   currentPurchaseId = null;
   _oldPurItems = [];
   document.getElementById('pur-no').value = '';
-  document.getElementById('pur-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('pur-date').value = todayStr();
   document.getElementById('pur-supplier').value = '';
   document.getElementById('purchase-status').textContent = '';
   purchaseItems = [];
@@ -3937,7 +3940,7 @@ function exportPurchaseRecordsExcel() {
   const wsDetail = XLSX.utils.aoa_to_sheet([...detailHeader, ...detailData]);
   wsDetail['!cols'] = [{ wch:12 }, { wch:18 }, { wch:16 }, { wch:6 }, { wch:30 }, { wch:8 }, { wch:10 }, { wch:12 }];
   XLSX.utils.book_append_sheet(wb, wsDetail, '進貨明細');
-  const fileName = '進貨紀錄_' + new Date().toISOString().slice(0,10) + '.xlsx';
+  const fileName = '進貨紀錄_' + todayStr() + '.xlsx';
   XLSX.writeFile(wb, fileName);
   toast('已匯出 ' + fileName);
 }
@@ -4178,7 +4181,7 @@ renderProjOptions();
 renderSuppOptions();
 const today = new Date();
 const todayStr = today.getFullYear() + String(today.getMonth()+1).padStart(2,'0') + String(today.getDate()).padStart(2,'0');
-document.getElementById('card-date').value = today.toISOString().slice(0, 10);
+document.getElementById('card-date').value = todayStr();
 document.getElementById('card-no').value = todayStr + 'A';
 loadFromCloud();
 loadQueuedItems();
