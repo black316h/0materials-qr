@@ -2231,10 +2231,11 @@ function addToInvoice(id) {
   if (!m) return;
   let idx = invoiceItems.findIndex(it => !it.name && !it.qty && !it.amount);
   if (idx < 0) { idx = invoiceItems.length; invoiceItems.push({}); }
-  invoiceItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '', matId: m.id, cat: m.cat || '' };
+  const invName = ((m.brand ? m.brand+' ' : '') + m.model + (m.cat ? ' ('+m.cat+')' : '')).trim();
+  invoiceItems[idx] = { seq: idx+1, name: invName, qty: 1, amount: '', note: '', matId: m.id, cat: m.cat || '' };
   renderInvItems();
   calcInvTotal();
-  toast('已加入出貨單：' + m.brand + ' ' + m.model);
+  toast('已加入出貨單：' + invName);
 }
 
 function addToPurchase(id) {
@@ -2242,7 +2243,8 @@ function addToPurchase(id) {
   if (!m) return;
   let idx = purchaseItems.findIndex(it => !it.name && !it.qty && !it.amount);
   if (idx < 0) { idx = purchaseItems.length; purchaseItems.push({}); }
-  purchaseItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '', matId: m.id, cat: m.cat || '' };
+  const purName = ((m.brand ? m.brand+' ' : '') + m.model + (m.cat ? ' ('+m.cat+')' : '')).trim();
+  purchaseItems[idx] = { seq: idx+1, name: purName, qty: 1, amount: '', note: '', matId: m.id, cat: m.cat || '' };
   renderPurItems();
   calcPurTotal();
   toast('已加入進貨單：' + m.brand + ' ' + m.model);
@@ -2780,17 +2782,19 @@ function pickMaterial(matId) {
   } else if (pickerTarget === 'purchase') {
     let idx = purchaseItems.findIndex(it => !it.name && !it.qty && !it.amount);
     if (idx < 0) { idx = purchaseItems.length; purchaseItems.push({}); }
-    purchaseItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '', matId: m.id, cat: m.cat || '' };
+    const pName = ((m.brand ? m.brand+' ' : '') + m.model + (m.cat ? ' ('+m.cat+')' : '')).trim();
+    purchaseItems[idx] = { seq: idx+1, name: pName, qty: 1, amount: '', note: '', matId: m.id, cat: m.cat || '' };
     renderPurItems();
     calcPurTotal();
-    toast('已加入進貨單：' + m.brand + ' ' + m.model);
+    toast('已加入進貨單：' + pName);
   } else {
     let idx = invoiceItems.findIndex(it => !it.name && !it.qty && !it.amount);
     if (idx < 0) { idx = invoiceItems.length; invoiceItems.push({}); }
-    invoiceItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '', matId: m.id, cat: m.cat || '' };
+    const iName = ((m.brand ? m.brand+' ' : '') + m.model + (m.cat ? ' ('+m.cat+')' : '')).trim();
+    invoiceItems[idx] = { seq: idx+1, name: iName, qty: 1, amount: '', note: '', matId: m.id, cat: m.cat || '' };
     renderInvItems();
     calcInvTotal();
-    toast('已加入出貨單：' + m.brand + ' ' + m.model);
+    toast('已加入出貨單：' + iName);
   }
 }
 
