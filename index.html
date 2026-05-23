@@ -718,10 +718,10 @@
         <thead>
           <tr>
             <th style="width:28px">項次</th>
-            <th>品名規格</th>
+            <th style="width:45%">品名規格</th>
             <th style="width:48px">數量</th>
             <th style="width:58px">金額</th>
-            <th style="width:58px">備註</th>
+            <th style="width:20%">備註</th>
             <th style="width:22px"></th>
           </tr>
         </thead>
@@ -807,10 +807,10 @@
         <thead>
           <tr>
             <th style="width:28px">項次</th>
-            <th>品名規格</th>
+            <th style="width:45%">品名規格</th>
             <th style="width:48px">數量</th>
             <th style="width:58px">金額</th>
-            <th style="width:58px">備註</th>
+            <th style="width:20%">備註</th>
             <th style="width:22px"></th>
           </tr>
         </thead>
@@ -978,10 +978,10 @@
         <thead>
           <tr>
             <th style="width:28px">項次</th>
-            <th>品名規格</th>
+            <th style="width:45%">品名規格</th>
             <th style="width:48px">數量</th>
             <th style="width:58px">金額</th>
-            <th style="width:58px">備註</th>
+            <th style="width:20%">備註</th>
             <th style="width:22px"></th>
           </tr>
         </thead>
@@ -2592,7 +2592,7 @@ function printInvoice() {
     </table>
     <table class="print-items">
       <thead>
-        <tr><th style="width:45px">項次</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:80px">備註</th></tr>
+        <tr><th style="width:45px">項次</th><th style="width:45%">品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:18%">備註</th></tr>
       </thead>
       <tbody>
         ${rows.map(r => `<tr>
@@ -2846,7 +2846,7 @@ function renderSalesTable() {
       </div>
       <div class="table-wrap" style="margin-top:8px">
         <table>
-          <thead><tr><th style="width:45px;text-align:center">項次</th><th>品名規格</th><th style="width:60px;text-align:center">數量</th><th style="width:80px;text-align:right">金額</th><th style="width:80px">備註</th></tr></thead>
+          <thead><tr><th style="width:45px;text-align:center">項次</th><th style="width:45%">品名規格</th><th style="width:60px;text-align:center">數量</th><th style="width:80px;text-align:right">金額</th><th style="width:18%">備註</th></tr></thead>
           <tbody>${items.map((it,i) => `
             <tr>
               <td style="text-align:center">${it.seq || (i+1)}</td>
@@ -2905,7 +2905,7 @@ function printSalesRecords() {
           <tr><td class="lbl">日期</td><td class="val" colspan="4">${fmtDate(r['日期'])}</td></tr>
         </table>
         <table class="print-items">
-          <thead><tr><th style="width:45px">項次</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:80px">備註</th></tr></thead>
+          <thead><tr><th style="width:45px">項次</th><th style="width:45%">品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:18%">備註</th></tr></thead>
           <tbody>${printRows.map(pr => `<tr><td>${pr.seq}</td><td class="left">${esc(pr.name)}</td><td>${pr.qty}</td><td class="right">${pr.amount ? '$'+Number(pr.amount).toLocaleString() : ''}</td><td class="left">${esc(pr.note)}</td></tr>`).join('')}</tbody>
           <tfoot><tr><td colspan="2" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td><td style="border:none"></td></tr></tfoot>
         </table>
@@ -3074,7 +3074,7 @@ function printQuotation() {
       <tr><td class="lbl">報價單號</td><td class="val">${esc(quoNo)}</td><td class="lbl">日期</td><td class="val">${esc(date)}</td></tr>
     </table>
     <table class="print-items">
-      <thead><tr><th style="width:45px">項次</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:80px">備註</th></tr></thead>
+      <thead><tr><th style="width:45px">項次</th><th style="width:45%">品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:18%">備註</th></tr></thead>
       <tbody>${rows.map(r => `<tr><td>${r.seq}</td><td class="left">${esc(r.name)}</td><td>${r.qty}</td><td class="right">${r.amount ? '$'+Number(r.amount).toLocaleString() : ''}</td><td class="left">${esc(r.note)}</td></tr>`).join('')}</tbody>
       <tfoot><tr><td colspan="2" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td><td style="border:none"></td></tr></tfoot>
     </table>`;
@@ -3172,7 +3172,7 @@ function renderQuotationsTable() {
       </div>
       <div class="table-wrap" style="margin-top:8px">
         <table>
-          <thead><tr><th style="width:45px;text-align:center">項次</th><th>品名規格</th><th style="width:60px;text-align:center">數量</th><th style="width:80px;text-align:right">金額</th><th style="width:80px">備註</th></tr></thead>
+          <thead><tr><th style="width:45px;text-align:center">項次</th><th style="width:45%">品名規格</th><th style="width:60px;text-align:center">數量</th><th style="width:80px;text-align:right">金額</th><th style="width:18%">備註</th></tr></thead>
           <tbody>${items.map((it,i) => `
             <tr>
               <td style="text-align:center">${it.seq || (i+1)}</td>
@@ -3214,7 +3214,7 @@ function printQuotationRecords() {
           <tr><td class="lbl">日期</td><td class="val" colspan="4">${fmtDate(r['日期'])}</td></tr>
         </table>
         <table class="print-items">
-          <thead><tr><th style="width:45px">項次</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:80px">備註</th></tr></thead>
+          <thead><tr><th style="width:45px">項次</th><th style="width:45%">品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:18%">備註</th></tr></thead>
           <tbody>${printRows.map(pr => `<tr><td>${pr.seq}</td><td class="left">${esc(pr.name)}</td><td>${pr.qty}</td><td class="right">${pr.amount ? '$'+Number(pr.amount).toLocaleString() : ''}</td><td class="left">${esc(pr.note)}</td></tr>`).join('')}</tbody>
           <tfoot><tr><td colspan="2" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td><td style="border:none"></td></tr></tfoot>
         </table>
@@ -3770,7 +3770,7 @@ function printPurchase() {
       <tr><td class="lbl">日期</td><td class="val" colspan="4">${esc(date)}</td></tr>
     </table>
     <table class="print-items">
-      <thead><tr><th style="width:45px">項次</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:80px">備註</th></tr></thead>
+      <thead><tr><th style="width:45px">項次</th><th style="width:45%">品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:18%">備註</th></tr></thead>
       <tbody>${rows.map(r => `<tr><td>${r.seq}</td><td class="left">${esc(r.name)}</td><td>${r.qty}</td><td class="right">${r.amount ? '$'+Number(r.amount).toLocaleString() : ''}</td><td class="left">${esc(r.note)}</td></tr>`).join('')}</tbody>
       <tfoot><tr><td colspan="2" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td><td style="border:none"></td></tr></tfoot>
     </table>`;
@@ -3893,7 +3893,7 @@ function renderPurchasesTable() {
       </div>
       <div class="table-wrap" style="margin-top:8px">
         <table>
-          <thead><tr><th style="width:45px;text-align:center">項次</th><th>品名規格</th><th style="width:60px;text-align:center">數量</th><th style="width:80px;text-align:right">金額</th><th style="width:80px">備註</th></tr></thead>
+          <thead><tr><th style="width:45px;text-align:center">項次</th><th style="width:45%">品名規格</th><th style="width:60px;text-align:center">數量</th><th style="width:80px;text-align:right">金額</th><th style="width:18%">備註</th></tr></thead>
           <tbody>${items.map((it,i) => `
             <tr>
               <td style="text-align:center">${it.seq || (i+1)}</td>
@@ -3952,7 +3952,7 @@ function printPurchaseRecords() {
           <tr><td class="lbl">日期</td><td class="val" colspan="4">${fmtDate(r['日期'])}</td></tr>
         </table>
         <table class="print-items">
-          <thead><tr><th style="width:45px">項次</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:80px">備註</th></tr></thead>
+          <thead><tr><th style="width:45px">項次</th><th style="width:45%">品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:18%">備註</th></tr></thead>
           <tbody>${printRows.map(pr => `<tr><td>${pr.seq}</td><td class="left">${esc(pr.name)}</td><td>${pr.qty}</td><td class="right">${pr.amount ? '$'+Number(pr.amount).toLocaleString() : ''}</td><td class="left">${esc(pr.note)}</td></tr>`).join('')}</tbody>
           <tfoot><tr><td colspan="2" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td><td style="border:none"></td></tr></tfoot>
         </table>
