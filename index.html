@@ -516,7 +516,6 @@
 <div id="page-card" class="page">
   <div class="page-title">材料卡</div>
   <div class="card">
-    <div class="card-title">卡片資訊</div>
     <div class="form-grid">
       <div class="form-group">
         <label>客戶名稱 <span style="color:var(--red)">*</span></label>
@@ -528,7 +527,7 @@
       </div>
       <div class="form-group" style="grid-column:span 2">
         <label>訂單名稱 <span style="color:var(--red)">*</span></label>
-        <select id="card-project"><option value="">選擇訂單</option></select>
+        <input id="card-project" list="card-project-dl" placeholder="輸入搜尋訂單"><datalist id="card-project-dl"></datalist>
       </div>
       <div class="form-group">
         <label>日期</label>
@@ -790,7 +789,7 @@
       </div>
       <div class="form-group">
         <label>訂單名稱</label>
-        <select id="quo-project"><option value="">選擇訂單</option></select>
+        <input id="quo-project" list="quo-project-dl" placeholder="輸入搜尋訂單"><datalist id="quo-project-dl"></datalist>
       </div>
       <div class="form-group">
         <label>報價單號</label>
@@ -878,7 +877,7 @@
       </div>
       <div class="form-group">
         <label>訂單名稱</label>
-        <select id="cst-project"><option value="">選擇訂單</option></select>
+        <input id="cst-project" list="cst-project-dl" placeholder="輸入搜尋訂單"><datalist id="cst-project-dl"></datalist>
       </div>
       <div class="form-group">
         <label>試算單號</label>
@@ -1680,12 +1679,11 @@ function migrateProjects(arr) {
 
 function renderProjOptions() {
   ['card-project', 'quo-project', 'cst-project'].forEach(id => {
-    const sel = document.getElementById(id);
-    if (!sel) return;
-    const cur = sel.value;
-    sel.innerHTML = '<option value="">選擇訂單</option>' + projects.map(p => {
+    const dl = document.getElementById(id + '-dl');
+    if (!dl) return;
+    dl.innerHTML = projects.map(p => {
       const label = typeof p === 'string' ? p : p.name;
-      return `<option value="${esc(label)}"${label === cur ? ' selected' : ''}>${esc(label)}</option>`;
+      return `<option value="${esc(label)}">`;
     }).join('');
   });
 }
