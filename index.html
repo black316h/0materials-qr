@@ -453,6 +453,7 @@
       <span id="brand-arrow" style="font-size:14px;font-weight:normal">▸</span>
     </div>
     <div id="brand-mgmt-body" style="display:none;margin-top:1rem">
+      <input id="brand-search" placeholder="搜尋廠牌…" oninput="renderBrandChips()" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;font-size:13px">
       <div id="brand-chips"></div>
       <div class="brand-add-row">
         <input id="f-new-brand" placeholder="輸入新廠牌名稱">
@@ -468,6 +469,7 @@
       <span id="cat-arrow" style="font-size:14px;font-weight:normal">▸</span>
     </div>
     <div id="cat-mgmt-body" style="display:none;margin-top:1rem">
+      <input id="cat-search" placeholder="搜尋類別…" oninput="renderCatChips()" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;font-size:13px">
       <div id="cat-chips"></div>
       <div class="brand-add-row">
         <input id="f-new-cat" placeholder="輸入新類別名稱">
@@ -572,7 +574,10 @@
   <div class="btn-row" style="margin-bottom:12px">
     <button class="btn btn-primary" onclick="printCustomers()">🖨️ 列印</button>
     <button class="btn" onclick="exportCustomersExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
-    <span id="cust-count" style="font-size:12px;color:var(--text-3);align-self:center;margin-left:auto"></span>
+  </div>
+  <div class="search-row">
+    <input id="cust-search" placeholder="搜尋客戶名稱、聯絡人、電話、地址…" oninput="renderCustPage()">
+    <span id="cust-count" style="font-size:12px;color:var(--text-3);margin-left:auto"></span>
   </div>
   <div class="table-wrap">
     <table>
@@ -610,7 +615,10 @@
   <div class="btn-row" style="margin-bottom:12px">
     <button class="btn btn-primary" onclick="printSuppliers()">🖨️ 列印</button>
     <button class="btn" onclick="exportSuppliersExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
-    <span id="supp-count" style="font-size:12px;color:var(--text-3);align-self:center;margin-left:auto"></span>
+  </div>
+  <div class="search-row">
+    <input id="supp-search" placeholder="搜尋廠商名稱、聯絡人、電話、地址…" oninput="renderSuppPage()">
+    <span id="supp-count" style="font-size:12px;color:var(--text-3);margin-left:auto"></span>
   </div>
   <div class="table-wrap">
     <table>
@@ -1411,13 +1419,17 @@ function renderBrandOptions(selectedVal) {
   return list.map(b => `<option value="${esc(b)}"${b === selectedVal ? ' selected' : ''}>${esc(b)}</option>`).join('');
 }
 function renderBrandChips() {
+  const q = (document.getElementById('brand-search')?.value || '').toLowerCase();
+  const filtered = q ? brands.filter(b => b.toLowerCase().includes(q)) : brands;
   document.getElementById('brand-chips').innerHTML =
     brands.length
-      ? brands.map((b, i) => `
-          <span class="brand-chip">
-            ${esc(b)}
-            <button class="chip-del" title="刪除" onclick="deleteBrand(${i})">×</button>
-          </span>`).join('')
+      ? (filtered.length
+          ? filtered.map(b => { const i = brands.indexOf(b); return `
+              <span class="brand-chip">
+                ${esc(b)}
+                <button class="chip-del" title="刪除" onclick="deleteBrand(${i})">×</button>
+              </span>`; }).join('') + `<span style="font-size:11px;color:var(--text-3);align-self:center;margin-left:4px">${q ? '搜尋到 ' + filtered.length + ' / ' : ''}共 ${brands.length} 個</span>`
+          : '<span style="font-size:12px;color:var(--text-3)">找不到符合的廠牌</span>')
       : '<span style="font-size:12px;color:var(--text-3)">尚無廠牌，請新增</span>';
   // 同步更新新增表單的廠牌下拉
   const sel = document.getElementById('f-brand');
@@ -1459,13 +1471,17 @@ function renderCatOptions(selectedVal) {
   return list.map(c => `<option value="${esc(c)}"${c === selectedVal ? ' selected' : ''}>${esc(c)}</option>`).join('');
 }
 function renderCatChips() {
+  const q = (document.getElementById('cat-search')?.value || '').toLowerCase();
+  const filtered = q ? cats.filter(c => c.toLowerCase().includes(q)) : cats;
   document.getElementById('cat-chips').innerHTML =
     cats.length
-      ? cats.map((c, i) => `
-          <span class="brand-chip" style="background:var(--accent-light);color:var(--accent-text)">
-            ${esc(c)}
-            <button class="chip-del" style="color:var(--accent-text)" title="刪除" onclick="deleteCat(${i})">×</button>
-          </span>`).join('')
+      ? (filtered.length
+          ? filtered.map(c => { const i = cats.indexOf(c); return `
+              <span class="brand-chip" style="background:var(--accent-light);color:var(--accent-text)">
+                ${esc(c)}
+                <button class="chip-del" style="color:var(--accent-text)" title="刪除" onclick="deleteCat(${i})">×</button>
+              </span>`; }).join('') + `<span style="font-size:11px;color:var(--text-3);align-self:center;margin-left:4px">${q ? '搜尋到 ' + filtered.length + ' / ' : ''}共 ${cats.length} 個</span>`
+          : '<span style="font-size:12px;color:var(--text-3)">找不到符合的類別</span>')
       : '<span style="font-size:12px;color:var(--text-3)">尚無類別，請新增</span>';
   // 同步更新新增表單的類別下拉
   const sel = document.getElementById('f-cat');
@@ -1517,11 +1533,21 @@ let editingCustIdx = -1;
 function renderCustPage() {
   const tbody = document.getElementById('cust-tbody');
   const countEl = document.getElementById('cust-count');
-  if (countEl) countEl.textContent = '共 ' + customers.length + ' 筆';
-  if (!customers.length) {
-    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">尚無客戶，請新增</div></td></tr>';
+  const q = (document.getElementById('cust-search')?.value || '').toLowerCase();
+  const filtered = q ? customers.filter(c =>
+    (c.name||'').toLowerCase().includes(q) ||
+    (c.contact||'').toLowerCase().includes(q) ||
+    (c.phone||'').toLowerCase().includes(q) ||
+    (c.fax||'').toLowerCase().includes(q) ||
+    (c.mobile||'').toLowerCase().includes(q) ||
+    (c.address||'').toLowerCase().includes(q)
+  ) : customers;
+  if (countEl) countEl.textContent = (q ? '搜尋到 ' + filtered.length + ' / ' : '共 ') + customers.length + ' 筆';
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">' + (q ? '找不到符合的客戶' : '尚無客戶，請新增') + '</div></td></tr>';
   } else {
-    tbody.innerHTML = customers.map((c, i) => {
+    tbody.innerHTML = filtered.map(c => {
+      const i = customers.indexOf(c);
       if (i === editingCustIdx) {
         return `<tr class="editing">
           <td><input class="edit-inp" id="ec-name" value="${esc(c.name)}"></td>
@@ -1794,11 +1820,21 @@ let editingSuppIdx = -1;
 function renderSuppPage() {
   const tbody = document.getElementById('supp-tbody');
   const countEl = document.getElementById('supp-count');
-  if (countEl) countEl.textContent = '共 ' + suppliers.length + ' 筆';
-  if (!suppliers.length) {
-    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">尚無廠商，請新增</div></td></tr>';
+  const q = (document.getElementById('supp-search')?.value || '').toLowerCase();
+  const filtered = q ? suppliers.filter(s =>
+    (s.name||'').toLowerCase().includes(q) ||
+    (s.contact||'').toLowerCase().includes(q) ||
+    (s.phone||'').toLowerCase().includes(q) ||
+    (s.fax||'').toLowerCase().includes(q) ||
+    (s.mobile||'').toLowerCase().includes(q) ||
+    (s.address||'').toLowerCase().includes(q)
+  ) : suppliers;
+  if (countEl) countEl.textContent = (q ? '搜尋到 ' + filtered.length + ' / ' : '共 ') + suppliers.length + ' 筆';
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">' + (q ? '找不到符合的廠商' : '尚無廠商，請新增') + '</div></td></tr>';
   } else {
-    tbody.innerHTML = suppliers.map((s, i) => {
+    tbody.innerHTML = filtered.map(s => {
+      const i = suppliers.indexOf(s);
       if (i === editingSuppIdx) {
         return `<tr class="editing">
           <td><input class="edit-inp" id="es-name" value="${esc(s.name)}"></td>
