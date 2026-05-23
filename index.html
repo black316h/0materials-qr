@@ -519,7 +519,7 @@
     <div class="form-grid">
       <div class="form-group">
         <label>客戶名稱 <span style="color:var(--red)">*</span></label>
-        <input id="card-customer" list="card-customer-dl" placeholder="輸入搜尋客戶"><datalist id="card-customer-dl"></datalist>
+        <input id="card-customer" list="card-customer-dl" placeholder="輸入搜尋客戶" oninput="filterProjByCustomer('card')"><datalist id="card-customer-dl"></datalist>
       </div>
       <div class="form-group">
         <label>編號</label>
@@ -788,7 +788,7 @@
     <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr">
       <div class="form-group">
         <label>客戶名稱</label>
-        <input id="quo-customer" list="quo-customer-dl" placeholder="輸入搜尋客戶"><datalist id="quo-customer-dl"></datalist>
+        <input id="quo-customer" list="quo-customer-dl" placeholder="輸入搜尋客戶" oninput="filterProjByCustomer('quo')"><datalist id="quo-customer-dl"></datalist>
       </div>
       <div class="form-group">
         <label>訂單名稱</label>
@@ -876,7 +876,7 @@
     <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr">
       <div class="form-group">
         <label>客戶名稱</label>
-        <input id="cst-customer" list="cst-customer-dl" placeholder="輸入搜尋客戶"><datalist id="cst-customer-dl"></datalist>
+        <input id="cst-customer" list="cst-customer-dl" placeholder="輸入搜尋客戶" oninput="filterProjByCustomer('cst')"><datalist id="cst-customer-dl"></datalist>
       </div>
       <div class="form-group">
         <label>訂單名稱</label>
@@ -1681,14 +1681,30 @@ function migrateProjects(arr) {
 }
 
 function renderProjOptions() {
-  ['card-project', 'quo-project', 'cst-project'].forEach(id => {
-    const dl = document.getElementById(id + '-dl');
+  ['card', 'quo', 'cst'].forEach(prefix => {
+    const custVal = (document.getElementById(prefix + '-customer')?.value || '').trim();
+    const dl = document.getElementById(prefix + '-project-dl');
     if (!dl) return;
-    dl.innerHTML = projects.map(p => {
+    const filtered = custVal
+      ? projects.filter(p => (typeof p === 'string') || (p.customer || '') === custVal)
+      : projects;
+    dl.innerHTML = filtered.map(p => {
       const label = typeof p === 'string' ? p : p.name;
       return `<option value="${esc(label)}">`;
     }).join('');
   });
+}
+function filterProjByCustomer(prefix) {
+  const custVal = (document.getElementById(prefix + '-customer')?.value || '').trim();
+  const dl = document.getElementById(prefix + '-project-dl');
+  if (!dl) return;
+  const filtered = custVal
+    ? projects.filter(p => (typeof p === 'string') || (p.customer || '') === custVal)
+    : projects;
+  dl.innerHTML = filtered.map(p => {
+    const label = typeof p === 'string' ? p : p.name;
+    return `<option value="${esc(label)}">`;
+  }).join('');
 }
 
 function renderOrderCustOptions() {
