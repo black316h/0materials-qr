@@ -1976,7 +1976,7 @@ function addMaterial() {
   const price = parseFloat(document.getElementById('f-price').value) || 0;
   const cat   = document.getElementById('f-cat').value;
   const id    = 'M' + pad(nextNum++);
-  materials.push({ id, brand, model, price, cat });
+  materials.push({ id, brand, model, price, cat, stock: 0 });
   save(); renderTable(); clearForm(); toast('已新增：' + brand + ' ' + model);
 }
 function clearForm() {
