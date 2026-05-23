@@ -152,8 +152,10 @@
   .card-inp[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
   #inv-items-tbody td, #pur-items-tbody td { padding: 4px 4px; }
   #inv-items-tbody td:first-child, #pur-items-tbody td:first-child { padding-left: 8px; }
-  textarea.card-inp { resize: none; overflow: hidden; min-height: 30px; line-height: 1.5; font-family: inherit; white-space: pre; overflow-wrap: normal; }
-  .card-inp[type=number] { max-width: 100%; box-sizing: border-box; }
+  textarea.card-inp { resize: none; overflow: hidden; min-height: 30px; line-height: 1.5; font-family: inherit; white-space: pre-wrap; word-break: break-all; }
+  .card-inp[type=number] { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
+  .fixed-col-table { table-layout: fixed !important; }
+  .fixed-col-table td, .fixed-col-table th { overflow: hidden; text-overflow: ellipsis; }
   .record-card td { white-space: pre-wrap; word-break: break-word; }
 
   .toast {
@@ -715,15 +717,15 @@
   <div class="card" style="margin-top:1rem">
     <div class="card-title">品項明細</div>
     <div class="table-wrap">
-      <table>
+      <table class="fixed-col-table">
         <thead>
           <tr>
-            <th style="width:28px;max-width:28px">項次</th>
+            <th style="width:35px">項次</th>
             <th>品名規格</th>
-            <th style="width:48px;max-width:48px">數量</th>
-            <th style="width:58px;max-width:58px">金額</th>
-            <th>備註</th>
-            <th style="width:22px;max-width:22px"></th>
+            <th style="width:50px">數量</th>
+            <th style="width:65px">金額</th>
+            <th style="width:120px">備註</th>
+            <th style="width:28px"></th>
           </tr>
         </thead>
         <tbody id="inv-items-tbody"></tbody>
@@ -804,15 +806,15 @@
   <div class="card" style="margin-top:1rem">
     <div class="card-title">品項明細</div>
     <div class="table-wrap">
-      <table>
+      <table class="fixed-col-table">
         <thead>
           <tr>
-            <th style="width:28px;max-width:28px">項次</th>
+            <th style="width:35px">項次</th>
             <th>品名規格</th>
-            <th style="width:48px;max-width:48px">數量</th>
-            <th style="width:58px;max-width:58px">金額</th>
-            <th>備註</th>
-            <th style="width:22px;max-width:22px"></th>
+            <th style="width:50px">數量</th>
+            <th style="width:65px">金額</th>
+            <th style="width:120px">備註</th>
+            <th style="width:28px"></th>
           </tr>
         </thead>
         <tbody id="quo-items-tbody"></tbody>
@@ -975,15 +977,15 @@
   <div class="card" style="margin-top:1rem">
     <div class="card-title">品項明細</div>
     <div class="table-wrap">
-      <table>
+      <table class="fixed-col-table">
         <thead>
           <tr>
-            <th style="width:28px;max-width:28px">項次</th>
+            <th style="width:35px">項次</th>
             <th>品名規格</th>
-            <th style="width:48px;max-width:48px">數量</th>
-            <th style="width:58px;max-width:58px">金額</th>
-            <th>備註</th>
-            <th style="width:22px;max-width:22px"></th>
+            <th style="width:50px">數量</th>
+            <th style="width:65px">金額</th>
+            <th style="width:120px">備註</th>
+            <th style="width:28px"></th>
           </tr>
         </thead>
         <tbody id="pur-items-tbody"></tbody>
