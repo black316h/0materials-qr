@@ -153,6 +153,7 @@
   #inv-items-tbody td, #pur-items-tbody td { padding: 4px 4px; }
   #inv-items-tbody td:first-child, #pur-items-tbody td:first-child { padding-left: 8px; }
   textarea.card-inp { resize: none; overflow: hidden; min-height: 30px; line-height: 1.5; font-family: inherit; white-space: pre; overflow-wrap: normal; }
+  .card-inp[type=number] { max-width: 100%; box-sizing: border-box; }
   .record-card td { white-space: pre-wrap; word-break: break-word; }
 
   .toast {
@@ -717,12 +718,12 @@
       <table>
         <thead>
           <tr>
-            <th style="width:28px">項次</th>
+            <th style="width:28px;max-width:28px">項次</th>
             <th>品名規格</th>
-            <th style="width:48px">數量</th>
-            <th style="width:58px">金額</th>
+            <th style="width:48px;max-width:48px">數量</th>
+            <th style="width:58px;max-width:58px">金額</th>
             <th>備註</th>
-            <th style="width:22px"></th>
+            <th style="width:22px;max-width:22px"></th>
           </tr>
         </thead>
         <tbody id="inv-items-tbody"></tbody>
@@ -806,12 +807,12 @@
       <table>
         <thead>
           <tr>
-            <th style="width:28px">項次</th>
+            <th style="width:28px;max-width:28px">項次</th>
             <th>品名規格</th>
-            <th style="width:48px">數量</th>
-            <th style="width:58px">金額</th>
+            <th style="width:48px;max-width:48px">數量</th>
+            <th style="width:58px;max-width:58px">金額</th>
             <th>備註</th>
-            <th style="width:22px"></th>
+            <th style="width:22px;max-width:22px"></th>
           </tr>
         </thead>
         <tbody id="quo-items-tbody"></tbody>
@@ -977,12 +978,12 @@
       <table>
         <thead>
           <tr>
-            <th style="width:28px">項次</th>
+            <th style="width:28px;max-width:28px">項次</th>
             <th>品名規格</th>
-            <th style="width:48px">數量</th>
-            <th style="width:58px">金額</th>
+            <th style="width:48px;max-width:48px">數量</th>
+            <th style="width:58px;max-width:58px">金額</th>
             <th>備註</th>
-            <th style="width:22px"></th>
+            <th style="width:22px;max-width:22px"></th>
           </tr>
         </thead>
         <tbody id="pur-items-tbody"></tbody>
