@@ -718,10 +718,10 @@
         <thead>
           <tr>
             <th style="width:28px">項次</th>
-            <th style="width:45%">品名規格</th>
+            <th>品名規格</th>
             <th style="width:48px">數量</th>
             <th style="width:58px">金額</th>
-            <th style="width:20%">備註</th>
+            <th>備註</th>
             <th style="width:22px"></th>
           </tr>
         </thead>
@@ -807,10 +807,10 @@
         <thead>
           <tr>
             <th style="width:28px">項次</th>
-            <th style="width:45%">品名規格</th>
+            <th>品名規格</th>
             <th style="width:48px">數量</th>
             <th style="width:58px">金額</th>
-            <th style="width:20%">備註</th>
+            <th>備註</th>
             <th style="width:22px"></th>
           </tr>
         </thead>
@@ -978,10 +978,10 @@
         <thead>
           <tr>
             <th style="width:28px">項次</th>
-            <th style="width:45%">品名規格</th>
+            <th>品名規格</th>
             <th style="width:48px">數量</th>
             <th style="width:58px">金額</th>
-            <th style="width:20%">備註</th>
+            <th>備註</th>
             <th style="width:22px"></th>
           </tr>
         </thead>
@@ -1231,9 +1231,20 @@ initAuth();
 // ── 本地日期 ─────────────────────────────────────────
 function todayStr() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
 
-// ── textarea 自動高度 ────────────────────────────────
+// ── textarea 自動高度 + Shift+Enter 換行 ─────────────
 function autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
-function initAutoResize(container) { container.querySelectorAll('textarea.card-inp').forEach(ta => { autoResize(ta); ta.addEventListener('input', function() { autoResize(this); }); }); }
+function initAutoResize(container) {
+  container.querySelectorAll('textarea.card-inp').forEach(ta => {
+    autoResize(ta);
+    ta.addEventListener('input', function() { autoResize(this); });
+    ta.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault(); // 普通 Enter 不換行
+      }
+      // Shift+Enter 允許換行（瀏覽器預設行為），input 事件會自動觸發 autoResize
+    });
+  });
+}
 
 // ── 常數 ──────────────────────────────────────────────
 const STORAGE_KEY_MAT    = 'mat_master_v2';
@@ -2592,7 +2603,7 @@ function printInvoice() {
     </table>
     <table class="print-items">
       <thead>
-        <tr><th style="width:45px">項次</th><th style="width:45%">品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:18%">備註</th></tr>
+        <tr><th style="width:45px">項次</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th>備註</th></tr>
       </thead>
       <tbody>
         ${rows.map(r => `<tr>
@@ -2846,7 +2857,7 @@ function renderSalesTable() {
       </div>
       <div class="table-wrap" style="margin-top:8px">
         <table>
-          <thead><tr><th style="width:45px;text-align:center">項次</th><th style="width:45%">品名規格</th><th style="width:60px;text-align:center">數量</th><th style="width:80px;text-align:right">金額</th><th style="width:18%">備註</th></tr></thead>
+          <thead><tr><th style="width:45px;text-align:center">項次</th><th>品名規格</th><th style="width:60px;text-align:center">數量</th><th style="width:80px;text-align:right">金額</th><th>備註</th></tr></thead>
           <tbody>${items.map((it,i) => `
             <tr>
               <td style="text-align:center">${it.seq || (i+1)}</td>
@@ -2905,7 +2916,7 @@ function printSalesRecords() {
           <tr><td class="lbl">日期</td><td class="val" colspan="4">${fmtDate(r['日期'])}</td></tr>
         </table>
         <table class="print-items">
-          <thead><tr><th style="width:45px">項次</th><th style="width:45%">品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:18%">備註</th></tr></thead>
+          <thead><tr><th style="width:45px">項次</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th>備註</th></tr></thead>
           <tbody>${printRows.map(pr => `<tr><td>${pr.seq}</td><td class="left">${esc(pr.name)}</td><td>${pr.qty}</td><td class="right">${pr.amount ? '$'+Number(pr.amount).toLocaleString() : ''}</td><td class="left">${esc(pr.note)}</td></tr>`).join('')}</tbody>
           <tfoot><tr><td colspan="2" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td><td style="border:none"></td></tr></tfoot>
         </table>
@@ -3074,7 +3085,7 @@ function printQuotation() {
       <tr><td class="lbl">報價單號</td><td class="val">${esc(quoNo)}</td><td class="lbl">日期</td><td class="val">${esc(date)}</td></tr>
     </table>
     <table class="print-items">
-      <thead><tr><th style="width:45px">項次</th><th style="width:45%">品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:18%">備註</th></tr></thead>
+      <thead><tr><th style="width:45px">項次</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th>備註</th></tr></thead>
       <tbody>${rows.map(r => `<tr><td>${r.seq}</td><td class="left">${esc(r.name)}</td><td>${r.qty}</td><td class="right">${r.amount ? '$'+Number(r.amount).toLocaleString() : ''}</td><td class="left">${esc(r.note)}</td></tr>`).join('')}</tbody>
       <tfoot><tr><td colspan="2" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td><td style="border:none"></td></tr></tfoot>
     </table>`;
@@ -3172,7 +3183,7 @@ function renderQuotationsTable() {
       </div>
       <div class="table-wrap" style="margin-top:8px">
         <table>
-          <thead><tr><th style="width:45px;text-align:center">項次</th><th style="width:45%">品名規格</th><th style="width:60px;text-align:center">數量</th><th style="width:80px;text-align:right">金額</th><th style="width:18%">備註</th></tr></thead>
+          <thead><tr><th style="width:45px;text-align:center">項次</th><th>品名規格</th><th style="width:60px;text-align:center">數量</th><th style="width:80px;text-align:right">金額</th><th>備註</th></tr></thead>
           <tbody>${items.map((it,i) => `
             <tr>
               <td style="text-align:center">${it.seq || (i+1)}</td>
@@ -3214,7 +3225,7 @@ function printQuotationRecords() {
           <tr><td class="lbl">日期</td><td class="val" colspan="4">${fmtDate(r['日期'])}</td></tr>
         </table>
         <table class="print-items">
-          <thead><tr><th style="width:45px">項次</th><th style="width:45%">品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:18%">備註</th></tr></thead>
+          <thead><tr><th style="width:45px">項次</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th>備註</th></tr></thead>
           <tbody>${printRows.map(pr => `<tr><td>${pr.seq}</td><td class="left">${esc(pr.name)}</td><td>${pr.qty}</td><td class="right">${pr.amount ? '$'+Number(pr.amount).toLocaleString() : ''}</td><td class="left">${esc(pr.note)}</td></tr>`).join('')}</tbody>
           <tfoot><tr><td colspan="2" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td><td style="border:none"></td></tr></tfoot>
         </table>
@@ -3770,7 +3781,7 @@ function printPurchase() {
       <tr><td class="lbl">日期</td><td class="val" colspan="4">${esc(date)}</td></tr>
     </table>
     <table class="print-items">
-      <thead><tr><th style="width:45px">項次</th><th style="width:45%">品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:18%">備註</th></tr></thead>
+      <thead><tr><th style="width:45px">項次</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th>備註</th></tr></thead>
       <tbody>${rows.map(r => `<tr><td>${r.seq}</td><td class="left">${esc(r.name)}</td><td>${r.qty}</td><td class="right">${r.amount ? '$'+Number(r.amount).toLocaleString() : ''}</td><td class="left">${esc(r.note)}</td></tr>`).join('')}</tbody>
       <tfoot><tr><td colspan="2" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td><td style="border:none"></td></tr></tfoot>
     </table>`;
@@ -3893,7 +3904,7 @@ function renderPurchasesTable() {
       </div>
       <div class="table-wrap" style="margin-top:8px">
         <table>
-          <thead><tr><th style="width:45px;text-align:center">項次</th><th style="width:45%">品名規格</th><th style="width:60px;text-align:center">數量</th><th style="width:80px;text-align:right">金額</th><th style="width:18%">備註</th></tr></thead>
+          <thead><tr><th style="width:45px;text-align:center">項次</th><th>品名規格</th><th style="width:60px;text-align:center">數量</th><th style="width:80px;text-align:right">金額</th><th>備註</th></tr></thead>
           <tbody>${items.map((it,i) => `
             <tr>
               <td style="text-align:center">${it.seq || (i+1)}</td>
@@ -3952,7 +3963,7 @@ function printPurchaseRecords() {
           <tr><td class="lbl">日期</td><td class="val" colspan="4">${fmtDate(r['日期'])}</td></tr>
         </table>
         <table class="print-items">
-          <thead><tr><th style="width:45px">項次</th><th style="width:45%">品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th style="width:18%">備註</th></tr></thead>
+          <thead><tr><th style="width:45px">項次</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th>備註</th></tr></thead>
           <tbody>${printRows.map(pr => `<tr><td>${pr.seq}</td><td class="left">${esc(pr.name)}</td><td>${pr.qty}</td><td class="right">${pr.amount ? '$'+Number(pr.amount).toLocaleString() : ''}</td><td class="left">${esc(pr.note)}</td></tr>`).join('')}</tbody>
           <tfoot><tr><td colspan="2" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td><td style="border:none"></td></tr></tfoot>
         </table>
