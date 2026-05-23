@@ -150,8 +150,10 @@
   .card-inp::placeholder { color: var(--text-3); }
   .card-inp[type=number] { text-align: right; -moz-appearance: textfield; padding: 6px 4px; }
   .card-inp[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
-  #inv-items-tbody td { padding: 4px 4px; }
-  #inv-items-tbody td:first-child { padding-left: 8px; }
+  #inv-items-tbody td, #pur-items-tbody td { padding: 4px 4px; }
+  #inv-items-tbody td:first-child, #pur-items-tbody td:first-child { padding-left: 8px; }
+  textarea.card-inp { resize: none; overflow: hidden; min-height: 30px; line-height: 1.5; font-family: inherit; white-space: pre-wrap; word-break: break-all; }
+  .record-card td { white-space: pre-wrap; word-break: break-all; }
 
   .toast {
     position: fixed; bottom: 2rem; right: 2rem;
@@ -1228,6 +1230,10 @@ initAuth();
 
 // ── 本地日期 ─────────────────────────────────────────
 function todayStr() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+
+// ── textarea 自動高度 ────────────────────────────────
+function autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+function initAutoResize(container) { container.querySelectorAll('textarea.card-inp').forEach(ta => { autoResize(ta); ta.addEventListener('input', function() { autoResize(this); }); }); }
 
 // ── 常數 ──────────────────────────────────────────────
 const STORAGE_KEY_MAT    = 'mat_master_v2';
@@ -2510,13 +2516,14 @@ function renderInvItems() {
   tbody.innerHTML = invoiceItems.map((item, i) => `
     <tr>
       <td style="text-align:center;color:var(--text-3);font-size:12px">${i + 1}</td>
-      <td><input class="card-inp" data-field="name" data-idx="${i}" oninput="invoiceItems[${i}].name=this.value;autoFillQty(${i})"></td>
+      <td><textarea class="card-inp" data-field="name" data-idx="${i}" rows="1" oninput="invoiceItems[${i}].name=this.value;autoFillQty(${i});autoResize(this)"></textarea></td>
       <td><input class="card-inp" type="number" data-field="qty" data-idx="${i}" oninput="invoiceItems[${i}].qty=this.value" style="text-align:center"></td>
       <td><input class="card-inp" type="number" data-field="amount" data-idx="${i}" oninput="invoiceItems[${i}].amount=this.value;calcInvTotal()" style="text-align:right"></td>
       <td><input class="card-inp" data-field="note" data-idx="${i}" oninput="invoiceItems[${i}].note=this.value"></td>
       <td style="text-align:center"><button onclick="removeInvItem(${i})" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;opacity:0.4">×</button></td>
     </tr>`).join('');
   setInvInputValues();
+  initAutoResize(tbody);
 }
 function autoFillQty(i) {
   if (invoiceItems[i].name && !invoiceItems[i].qty) {
@@ -2526,12 +2533,12 @@ function autoFillQty(i) {
   }
 }
 function setInvInputValues() {
-  document.querySelectorAll('#inv-items-tbody input[data-field]').forEach(inp => {
+  document.querySelectorAll('#inv-items-tbody input[data-field], #inv-items-tbody textarea[data-field]').forEach(inp => {
     const idx = parseInt(inp.dataset.idx);
     const field = inp.dataset.field;
     const val = invoiceItems[idx] ? (invoiceItems[idx][field] || '') : '';
     inp.value = val;
-    inp.setAttribute('value', val);
+    if (inp.tagName === 'TEXTAREA') autoResize(inp); else inp.setAttribute('value', val);
   });
 }
 
@@ -2980,12 +2987,13 @@ function renderQuoItems() {
   const tbody = document.getElementById('quo-items-tbody');
   tbody.innerHTML = quotationItems.map((it, i) => `<tr>
     <td style="text-align:center;font-size:12px;color:var(--text-3)">${i+1}</td>
-    <td><input class="card-inp" value="${esc(it.name||'')}" onchange="quotationItems[${i}].name=this.value"></td>
+    <td><textarea class="card-inp" rows="1" oninput="quotationItems[${i}].name=this.value;autoResize(this)">${esc(it.name||'')}</textarea></td>
     <td><input class="card-inp" type="number" value="${it.qty||''}" min="0" onchange="quotationItems[${i}].qty=this.value;calcQuoTotal()"></td>
     <td><input class="card-inp" type="number" value="${it.amount||''}" min="0" onchange="quotationItems[${i}].amount=this.value;calcQuoTotal()"></td>
     <td><input class="card-inp" value="${esc(it.note||'')}" onchange="quotationItems[${i}].note=this.value"></td>
     <td><button class="btn-danger" onclick="quotationItems.splice(${i},1);renderQuoItems();calcQuoTotal()">×</button></td>
   </tr>`).join('');
+  initAutoResize(tbody);
 }
 
 function calcQuoTotal() {
@@ -3350,7 +3358,7 @@ function renderCstItems() {
   const tbody = document.getElementById('cst-items-tbody');
   tbody.innerHTML = costingItems.map((it, i) => `<tr>
     <td style="text-align:center;font-size:12px;color:var(--text-3)">${i+1}</td>
-    <td><input class="card-inp" value="${esc(it.name||'')}" onchange="costingItems[${i}].name=this.value"></td>
+    <td><textarea class="card-inp" rows="1" oninput="costingItems[${i}].name=this.value;autoResize(this)">${esc(it.name||'')}</textarea></td>
     <td><input class="card-inp" type="number" value="${it.qty||''}" min="0" onchange="costingItems[${i}].qty=this.value;calcCstRow(${i})"></td>
     <td><input class="card-inp" type="number" value="${it.cost||''}" min="0" onchange="costingItems[${i}].cost=this.value;calcCstRow(${i})"></td>
     <td><input class="card-inp" type="number" value="${it.markup||''}" min="0" step="0.1" onchange="costingItems[${i}].markup=this.value;calcCstRow(${i})" style="text-align:center"></td>
@@ -3358,6 +3366,7 @@ function renderCstItems() {
     <td style="text-align:right;font-weight:500" id="cst-sub-${i}">${it.subtotal ? '$'+Number(it.subtotal).toLocaleString() : ''}</td>
     <td><button class="btn-danger" style="font-size:14px;padding:0 4px" onclick="costingItems.splice(${i},1);renderCstItems();calcCstTotal()">×</button></td>
   </tr>`).join('');
+  initAutoResize(tbody);
 }
 
 function calcCstRow(i) {
@@ -3697,13 +3706,14 @@ function renderPurItems() {
   tbody.innerHTML = purchaseItems.map((item, i) => `
     <tr>
       <td style="text-align:center;color:var(--text-3);font-size:12px">${i + 1}</td>
-      <td><input class="card-inp" data-field="name" data-idx="${i}" oninput="purchaseItems[${i}].name=this.value;autoFillPurQty(${i})"></td>
+      <td><textarea class="card-inp" data-field="name" data-idx="${i}" rows="1" oninput="purchaseItems[${i}].name=this.value;autoFillPurQty(${i});autoResize(this)"></textarea></td>
       <td><input class="card-inp" type="number" data-field="qty" data-idx="${i}" oninput="purchaseItems[${i}].qty=this.value" style="text-align:center"></td>
       <td><input class="card-inp" type="number" data-field="amount" data-idx="${i}" oninput="purchaseItems[${i}].amount=this.value;calcPurTotal()" style="text-align:right"></td>
       <td><input class="card-inp" data-field="note" data-idx="${i}" oninput="purchaseItems[${i}].note=this.value"></td>
       <td style="text-align:center"><button onclick="removePurItem(${i})" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;opacity:0.4">×</button></td>
     </tr>`).join('');
   setPurInputValues();
+  initAutoResize(tbody);
 }
 function autoFillPurQty(i) {
   if (purchaseItems[i].name && !purchaseItems[i].qty) {
@@ -3713,12 +3723,12 @@ function autoFillPurQty(i) {
   }
 }
 function setPurInputValues() {
-  document.querySelectorAll('#pur-items-tbody input[data-field]').forEach(inp => {
+  document.querySelectorAll('#pur-items-tbody input[data-field], #pur-items-tbody textarea[data-field]').forEach(inp => {
     const idx = parseInt(inp.dataset.idx);
     const field = inp.dataset.field;
     const val = purchaseItems[idx] ? (purchaseItems[idx][field] || '') : '';
     inp.value = val;
-    inp.setAttribute('value', val);
+    if (inp.tagName === 'TEXTAREA') autoResize(inp); else inp.setAttribute('value', val);
   });
 }
 
