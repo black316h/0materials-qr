@@ -2231,7 +2231,7 @@ function addToInvoice(id) {
   if (!m) return;
   let idx = invoiceItems.findIndex(it => !it.name && !it.qty && !it.amount);
   if (idx < 0) { idx = invoiceItems.length; invoiceItems.push({}); }
-  invoiceItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '', matId: m.id };
+  invoiceItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '', matId: m.id, cat: m.cat || '' };
   renderInvItems();
   calcInvTotal();
   toast('已加入出貨單：' + m.brand + ' ' + m.model);
@@ -2242,7 +2242,7 @@ function addToPurchase(id) {
   if (!m) return;
   let idx = purchaseItems.findIndex(it => !it.name && !it.qty && !it.amount);
   if (idx < 0) { idx = purchaseItems.length; purchaseItems.push({}); }
-  purchaseItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '', matId: m.id };
+  purchaseItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '', matId: m.id, cat: m.cat || '' };
   renderPurItems();
   calcPurTotal();
   toast('已加入進貨單：' + m.brand + ' ' + m.model);
@@ -2714,7 +2714,7 @@ async function saveInvoice() {
       body: JSON.stringify({
         action: 'saveInvoice', recordId: currentInvoiceId,
         invoiceNo, date, customer,
-        items: items.map((it, i) => ({ seq: i+1, name: it.name, qty: Number(it.qty)||0, amount: Number(it.amount)||0, note: it.note||'', matId: it.matId||'' })),
+        items: items.map((it, i) => ({ seq: i+1, name: it.name, qty: Number(it.qty)||0, amount: Number(it.amount)||0, note: it.note||'', matId: it.matId||'', cat: it.cat||'' })),
         totalAmount
       })
     });
@@ -2780,14 +2780,14 @@ function pickMaterial(matId) {
   } else if (pickerTarget === 'purchase') {
     let idx = purchaseItems.findIndex(it => !it.name && !it.qty && !it.amount);
     if (idx < 0) { idx = purchaseItems.length; purchaseItems.push({}); }
-    purchaseItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '', matId: m.id };
+    purchaseItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '', matId: m.id, cat: m.cat || '' };
     renderPurItems();
     calcPurTotal();
     toast('已加入進貨單：' + m.brand + ' ' + m.model);
   } else {
     let idx = invoiceItems.findIndex(it => !it.name && !it.qty && !it.amount);
     if (idx < 0) { idx = invoiceItems.length; invoiceItems.push({}); }
-    invoiceItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '', matId: m.id };
+    invoiceItems[idx] = { seq: idx+1, name: (m.brand ? m.brand+' ' : '') + m.model, qty: 1, amount: '', note: '', matId: m.id, cat: m.cat || '' };
     renderInvItems();
     calcInvTotal();
     toast('已加入出貨單：' + m.brand + ' ' + m.model);
@@ -3824,7 +3824,7 @@ async function savePurchase() {
       body: JSON.stringify({
         action: 'savePurchase', recordId: currentPurchaseId,
         purchaseNo: purNo, date, supplier,
-        items: items.map((it, i) => ({ seq: i+1, name: it.name, qty: Number(it.qty)||0, amount: Number(it.amount)||0, note: it.note||'', matId: it.matId||'' })),
+        items: items.map((it, i) => ({ seq: i+1, name: it.name, qty: Number(it.qty)||0, amount: Number(it.amount)||0, note: it.note||'', matId: it.matId||'', cat: it.cat||'' })),
         totalAmount
       })
     });
