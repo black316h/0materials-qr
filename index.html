@@ -2225,11 +2225,11 @@ function addToCard(id) {
   if (!m) return;
   let idx = cardItems.findIndex(item => !item.supplier && !item.name && !item.qty && !item.amount);
   if (idx < 0) { idx = cardItems.length; cardItems.push({ supplier: '', name: '', qty: '', amount: '', note: '' }); }
-  const cardName = ((m.brand ? m.brand+' ' : '') + m.model + (m.cat ? ' '+m.cat : '')).trim();
-  cardItems[idx] = { supplier: '', name: cardName, qty: 1, amount: m.price || 0, note: '', matId: m.id, cat: m.cat || '' };
+  const cardName = (m.model + (m.cat ? ' '+m.cat : '')).trim();
+  cardItems[idx] = { supplier: m.brand || '', name: cardName, qty: 1, amount: m.price || 0, note: '', matId: m.id, cat: m.cat || '' };
   renderCardTable();
   calcCardTotal();
-  toast('已加入材料卡：' + cardName);
+  toast('已加入材料卡：' + (m.brand ? m.brand+' ' : '') + cardName);
 }
 
 function addToInvoice(id) {
@@ -2763,11 +2763,11 @@ function pickMaterial(matId) {
   if (pickerTarget === 'card') {
     let idx = cardItems.findIndex(item => !item.supplier && !item.name && !item.qty && !item.amount);
     if (idx < 0) { idx = cardItems.length; cardItems.push({ supplier: '', name: '', qty: '', amount: '', note: '' }); }
-    const cName = ((m.brand ? m.brand+' ' : '') + m.model + (m.cat ? ' '+m.cat : '')).trim();
-    cardItems[idx] = { supplier: '', name: cName, qty: 1, amount: m.price || 0, note: '', matId: m.id, cat: m.cat || '' };
+    const cName = (m.model + (m.cat ? ' '+m.cat : '')).trim();
+    cardItems[idx] = { supplier: m.brand || '', name: cName, qty: 1, amount: m.price || 0, note: '', matId: m.id, cat: m.cat || '' };
     renderCardTable();
     calcCardTotal();
-    toast('已加入材料卡：' + cName);
+    toast('已加入材料卡：' + (m.brand ? m.brand+' ' : '') + cName);
   } else if (pickerTarget === 'costing') {
     addToCostingFromMat(m);
     toast('已加入成本試算：' + m.brand + ' ' + m.model);
