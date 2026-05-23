@@ -629,11 +629,13 @@
       <thead>
         <tr>
           <th>名稱</th>
+          <th>簡稱</th>
           <th>聯絡人</th>
           <th>電話</th>
           <th>傳真</th>
           <th>手機</th>
           <th>地址</th>
+          <th>備註</th>
           <th style="width:90px"></th>
         </tr>
       </thead>
@@ -644,11 +646,13 @@
     <div class="card-title">新增廠商</div>
     <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
       <div class="form-group"><label>廠商名稱 <span style="color:var(--red)">*</span></label><input id="f-new-supp" placeholder="名稱"></div>
+      <div class="form-group"><label>簡稱</label><input id="f-new-supp-alias" placeholder="簡稱"></div>
       <div class="form-group"><label>聯絡人</label><input id="f-new-supp-contact" placeholder="聯絡人"></div>
       <div class="form-group"><label>電話</label><input id="f-new-supp-phone" placeholder="電話"></div>
       <div class="form-group"><label>傳真</label><input id="f-new-supp-fax" placeholder="傳真"></div>
       <div class="form-group"><label>手機</label><input id="f-new-supp-mobile" placeholder="手機"></div>
       <div class="form-group"><label>地址</label><input id="f-new-supp-address" placeholder="地址"></div>
+      <div class="form-group"><label>備註</label><input id="f-new-supp-note" placeholder="備註"></div>
     </div>
     <button class="btn btn-primary btn-sm" onclick="addSupplier()">＋ 新增廠商</button>
   </div>
@@ -1832,25 +1836,29 @@ function renderSuppPage() {
   const filtered = q ? suppliers.filter(s =>
     (s.name||'').toLowerCase().includes(q) ||
     (s.contact||'').toLowerCase().includes(q) ||
+    (s.alias||'').toLowerCase().includes(q) ||
     (s.phone||'').toLowerCase().includes(q) ||
     (s.fax||'').toLowerCase().includes(q) ||
     (s.mobile||'').toLowerCase().includes(q) ||
-    (s.address||'').toLowerCase().includes(q)
+    (s.address||'').toLowerCase().includes(q) ||
+    (s.note||'').toLowerCase().includes(q)
   ) : suppliers;
   if (countEl) countEl.textContent = (q ? '搜尋到 ' + filtered.length + ' / ' : '共 ') + suppliers.length + ' 筆';
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">' + (q ? '找不到符合的廠商' : '尚無廠商，請新增') + '</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state">' + (q ? '找不到符合的廠商' : '尚無廠商，請新增') + '</div></td></tr>';
   } else {
     tbody.innerHTML = filtered.map(s => {
       const i = suppliers.indexOf(s);
       if (i === editingSuppIdx) {
         return `<tr class="editing">
           <td><input class="edit-inp" id="es-name" value="${esc(s.name)}"></td>
+          <td><input class="edit-inp" id="es-alias" value="${esc(s.alias||'')}"></td>
           <td><input class="edit-inp" id="es-contact" value="${esc(s.contact||'')}"></td>
           <td><input class="edit-inp" id="es-phone" value="${esc(s.phone||'')}"></td>
           <td><input class="edit-inp" id="es-fax" value="${esc(s.fax||'')}"></td>
           <td><input class="edit-inp" id="es-mobile" value="${esc(s.mobile||'')}"></td>
           <td><input class="edit-inp" id="es-address" value="${esc(s.address||'')}"></td>
+          <td><input class="edit-inp" id="es-note" value="${esc(s.note||'')}"></td>
           <td style="white-space:nowrap">
             <button class="btn btn-sm btn-primary" onclick="saveSuppEdit(${i})" style="padding:3px 8px;font-size:11px">儲存</button>
             <button class="btn btn-sm" onclick="cancelSuppEdit()" style="padding:3px 8px;font-size:11px">取消</button>
@@ -1859,11 +1867,13 @@ function renderSuppPage() {
       }
       return `<tr>
         <td>${esc(s.name)}</td>
+        <td>${esc(s.alias||'')}</td>
         <td>${esc(s.contact||'')}</td>
         <td>${esc(s.phone||'')}</td>
         <td>${esc(s.fax||'')}</td>
         <td>${esc(s.mobile||'')}</td>
         <td>${esc(s.address||'')}</td>
+        <td>${esc(s.note||'')}</td>
         <td style="white-space:nowrap">
           <button class="btn btn-sm" onclick="editSupplier(${i})" style="padding:3px 8px;font-size:11px">編輯</button>
           <button class="btn-danger" style="font-size:14px;padding:2px 6px" onclick="deleteSupplier(${i})">×</button>
@@ -1882,11 +1892,13 @@ function saveSuppEdit(idx) {
   if (dup >= 0) { toast('廠商名稱重複'); return; }
   suppliers[idx] = {
     name: name,
+    alias:   document.getElementById('es-alias').value.trim(),
     contact: document.getElementById('es-contact').value.trim(),
     phone:   document.getElementById('es-phone').value.trim(),
     fax:     document.getElementById('es-fax').value.trim(),
     mobile:  document.getElementById('es-mobile').value.trim(),
-    address: document.getElementById('es-address').value.trim()
+    address: document.getElementById('es-address').value.trim(),
+    note:    document.getElementById('es-note').value.trim()
   };
   save();
   editingSuppIdx = -1;
@@ -1899,15 +1911,17 @@ function addSupplier() {
   if (suppliers.some(s => s.name === name)) { toast('廠商已存在'); return; }
   suppliers.push({
     name: name,
+    alias:   document.getElementById('f-new-supp-alias').value.trim(),
     contact: document.getElementById('f-new-supp-contact').value.trim(),
     phone:   document.getElementById('f-new-supp-phone').value.trim(),
     fax:     document.getElementById('f-new-supp-fax').value.trim(),
     mobile:  document.getElementById('f-new-supp-mobile').value.trim(),
-    address: document.getElementById('f-new-supp-address').value.trim()
+    address: document.getElementById('f-new-supp-address').value.trim(),
+    note:    document.getElementById('f-new-supp-note').value.trim()
   });
   save();
   renderSuppPage();
-  ['f-new-supp','f-new-supp-contact','f-new-supp-phone','f-new-supp-fax','f-new-supp-mobile','f-new-supp-address'].forEach(id => document.getElementById(id).value = '');
+  ['f-new-supp','f-new-supp-alias','f-new-supp-contact','f-new-supp-phone','f-new-supp-fax','f-new-supp-mobile','f-new-supp-address','f-new-supp-note'].forEach(id => document.getElementById(id).value = '');
   toast('已新增廠商：' + name);
 }
 function deleteSupplier(idx) {
