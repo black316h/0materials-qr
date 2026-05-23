@@ -1824,7 +1824,7 @@ function exportOrdersExcel() {
 // ── 廠商管理 ─────────────────────────────────────────
 function renderSuppOptions() {
   const dl = document.getElementById('supp-list');
-  if (dl) dl.innerHTML = suppliers.map(s => `<option value="${esc(s.name)}">`).join('');
+  if (dl) dl.innerHTML = suppliers.map(s => `<option value="${esc(s.alias || s.name)}">`).join('');
   const purDl = document.getElementById('pur-supplier-dl');
   if (purDl) purDl.innerHTML = suppliers.map(s => `<option value="${esc(s.name)}">`).join('');
 }
