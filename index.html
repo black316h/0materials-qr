@@ -2287,7 +2287,7 @@ function renderCardTable() {
   tbody.innerHTML = cardItems.map((item, i) => `
     <tr>
       <td style="text-align:center;color:var(--text-3);font-size:12px">${i + 1}</td>
-      <td><input class="card-inp" value="${esc(item.supplier || '')}" oninput="cardItems[${i}].supplier=this.value" list="supp-list"></td>
+      <td><input class="card-inp" value="${esc(item.supplier || '')}" oninput="cardItems[${i}].supplier=this.value" list="supp-list" style="text-align:center"></td>
       <td><textarea class="card-inp" rows="1" oninput="cardItems[${i}].name=this.value;autoResize(this)">${esc(item.name||'')}</textarea></td>
       <td><input class="card-inp" type="number" value="${item.qty}" oninput="cardItems[${i}].qty=this.value;calcCardTotal()" style="text-align:center"></td>
       <td><input class="card-inp" type="number" value="${item.amount}" oninput="cardItems[${i}].amount=this.value;calcCardTotal()" style="text-align:center"></td>
