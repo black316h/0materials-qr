@@ -2241,8 +2241,8 @@ function addToCard(id) {
   if (!m) return;
   let idx = cardItems.findIndex(item => !item.supplier && !item.name && !item.qty && !item.amount);
   if (idx < 0) { idx = cardItems.length; cardItems.push({ supplier: '', name: '', qty: '', amount: '', note: '' }); }
-  const cardName = (m.model + (m.cat ? ' '+m.cat : '')).trim();
-  cardItems[idx] = { supplier: m.brand || '', name: cardName, qty: 1, amount: m.price || 0, note: '', matId: m.id, cat: m.cat || '' };
+  const cardName = ((m.brand ? m.brand+' ' : '') + m.model + (m.cat ? ' '+m.cat : '')).trim();
+  cardItems[idx] = { supplier: '', name: cardName, qty: 1, amount: m.price || 0, note: '', matId: m.id, cat: m.cat || '' };
   renderCardTable();
   calcCardTotal();
   toast('已加入材料卡：' + (m.brand ? m.brand+' ' : '') + cardName);
