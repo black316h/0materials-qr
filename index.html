@@ -2583,8 +2583,7 @@ function removeInvItem(i) {
 }
 
 function printInvoice() {
-  const customer = document.getElementById('inv-customer');
-  const customerName = customer.options[customer.selectedIndex] ? customer.options[customer.selectedIndex].text : '';
+  const customerName = (document.getElementById('inv-customer').value || '').trim();
   const invoiceNo = document.getElementById('inv-no').value.trim();
   const date = document.getElementById('inv-date').value;
   const items = invoiceItems.filter(it => it.name);
@@ -2639,8 +2638,7 @@ function printInvoice() {
 }
 
 function exportInvoiceExcel() {
-  const customer = document.getElementById('inv-customer');
-  const customerName = customer.options[customer.selectedIndex] ? customer.options[customer.selectedIndex].text : '';
+  const customerName = (document.getElementById('inv-customer').value || '').trim();
   const invoiceNo = document.getElementById('inv-no').value.trim();
   const date = document.getElementById('inv-date').value;
   const items = invoiceItems.filter(it => it.name);
@@ -3080,10 +3078,8 @@ async function saveQuotation() {
 }
 
 function printQuotation() {
-  const customer = document.getElementById('quo-customer');
-  const customerName = customer.options[customer.selectedIndex] ? customer.options[customer.selectedIndex].text : '';
-  const project = document.getElementById('quo-project');
-  const orderName = project.options[project.selectedIndex] ? project.options[project.selectedIndex].text : '';
+  const customerName = (document.getElementById('quo-customer').value || '').trim();
+  const orderName = (document.getElementById('quo-project').value || '').trim();
   const quoNo = document.getElementById('quo-no').value.trim();
   const date = document.getElementById('quo-date').value;
   const items = quotationItems.filter(it => it.name);
@@ -3107,10 +3103,8 @@ function printQuotation() {
 }
 
 function exportQuotationExcel() {
-  const customer = document.getElementById('quo-customer');
-  const customerName = customer.options[customer.selectedIndex] ? customer.options[customer.selectedIndex].text : '';
-  const project = document.getElementById('quo-project');
-  const orderName = project.options[project.selectedIndex] ? project.options[project.selectedIndex].text : '';
+  const customerName = (document.getElementById('quo-customer').value || '').trim();
+  const orderName = (document.getElementById('quo-project').value || '').trim();
   const quoNo = document.getElementById('quo-no').value.trim();
   const date = document.getElementById('quo-date').value;
   const items = quotationItems.filter(it => it.name);
@@ -3494,10 +3488,8 @@ function costingToQuotation() {
 }
 
 function printCosting() {
-  const customer = document.getElementById('cst-customer');
-  const customerName = customer.options[customer.selectedIndex] ? customer.options[customer.selectedIndex].text : '';
-  const project = document.getElementById('cst-project');
-  const orderName = project.options[project.selectedIndex] ? project.options[project.selectedIndex].text : '';
+  const customerName = (document.getElementById('cst-customer').value || '').trim();
+  const orderName = (document.getElementById('cst-project').value || '').trim();
   const cstNo = document.getElementById('cst-no').value.trim();
   const date = document.getElementById('cst-date').value;
   const items = costingItems.filter(it => it.name);
@@ -3524,10 +3516,8 @@ function printCosting() {
 }
 
 function exportCostingExcel() {
-  const customer = document.getElementById('cst-customer');
-  const customerName = customer.options[customer.selectedIndex] ? customer.options[customer.selectedIndex].text : '';
-  const project = document.getElementById('cst-project');
-  const orderName = project.options[project.selectedIndex] ? project.options[project.selectedIndex].text : '';
+  const customerName = (document.getElementById('cst-customer').value || '').trim();
+  const orderName = (document.getElementById('cst-project').value || '').trim();
   const cstNo = document.getElementById('cst-no').value.trim();
   const date = document.getElementById('cst-date').value;
   const items = costingItems.filter(it => it.name);
@@ -3776,8 +3766,7 @@ function removePurItem(i) {
 }
 
 function printPurchase() {
-  const supplier = document.getElementById('pur-supplier');
-  const supplierName = supplier.options[supplier.selectedIndex] ? supplier.options[supplier.selectedIndex].text : '';
+  const supplierName = (document.getElementById('pur-supplier').value || '').trim();
   const purNo = document.getElementById('pur-no').value.trim();
   const date = document.getElementById('pur-date').value;
   const items = purchaseItems.filter(it => it.name);
@@ -3803,8 +3792,7 @@ function printPurchase() {
 }
 
 function exportPurchaseExcel() {
-  const supplier = document.getElementById('pur-supplier');
-  const supplierName = supplier.options[supplier.selectedIndex] ? supplier.options[supplier.selectedIndex].text : '';
+  const supplierName = (document.getElementById('pur-supplier').value || '').trim();
   const purNo = document.getElementById('pur-no').value.trim();
   const date = document.getElementById('pur-date').value;
   const items = purchaseItems.filter(it => it.name);
