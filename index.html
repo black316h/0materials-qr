@@ -3019,7 +3019,7 @@ function filterPickerMaterials() {
 function pickMaterial(matId) {
   const m = materials.find(x => x.id === matId);
   if (!m) return;
-  hideMaterialPicker();
+  if (pickerTarget !== 'card') hideMaterialPicker();
   if (pickerTarget === 'card') {
     let idx = cardItems.findIndex(item => !item.supplier && !item.name && !item.qty && !item.amount);
     if (idx < 0) { idx = cardItems.length; cardItems.push({ supplier: '', name: '', qty: '', amount: '', note: '' }); }
