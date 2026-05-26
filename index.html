@@ -334,6 +334,11 @@
       <div class="home-label">材料卡</div>
       <div class="home-desc">材料卡片管理</div>
     </div>
+    <div class="home-card" onclick="showPage('cardRecords')">
+      <div class="home-icon">📄</div>
+      <div class="home-label">用料紀錄</div>
+      <div class="home-desc">查詢材料卡歷史紀錄</div>
+    </div>
     <div class="home-card" onclick="showPage('customers')">
       <div class="home-icon">👥</div>
       <div class="home-label">客戶管理</div>
@@ -538,6 +543,7 @@
       <button class="btn" onclick="addCardRow()">＋ 新增行</button>
       <button class="btn" onclick="showMaterialPicker('card')" style="background:var(--accent-light);color:var(--accent-text);border-color:var(--accent-light)">＋ 從材料主檔選取</button>
       <button class="btn" onclick="clearCard()">清空</button>
+      <button class="btn btn-primary" onclick="saveCard()">💾 儲存</button>
       <button class="btn btn-primary" onclick="printCard()">🖨️ 列印</button>
       <button class="btn" onclick="exportCardExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
       <!-- <button class="btn btn-primary" onclick="createCardSheet()">建立 Google Sheet</button> -->
@@ -569,6 +575,28 @@
       </tfoot>
     </table>
   </div>
+</div>
+
+<!-- ── 用料紀錄 ── -->
+<div id="page-cardRecords" class="page">
+  <div class="page-title">用料紀錄</div>
+  <div class="search-row">
+    <input id="cardRecords-search" placeholder="搜尋客戶、訂單、編號、日期…" oninput="renderCardRecordsTable()">
+    <div class="filter-row" id="cardRecords-filter-row">
+      <button class="filter-btn active" onclick="setCardRecordsFilter('all',this)">全部</button>
+      <button class="filter-btn" onclick="setCardRecordsFilter('month',this)">本月</button>
+      <button class="filter-btn" onclick="setCardRecordsFilter('week',this)">本週</button>
+    </div>
+    <span id="cardRecords-count" style="font-size:12px;color:var(--text-3)"></span>
+  </div>
+  <div class="btn-row" style="margin-bottom:12px">
+    <button class="btn btn-primary" onclick="printCardRecords()">🖨️ 列印</button>
+    <button class="btn" onclick="exportCardRecordsExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
+  </div>
+  <div id="cardRecords-loading" style="display:none;text-align:center;padding:2rem">
+    <div style="font-size:14px;color:var(--text-2)">載入中…</div>
+  </div>
+  <div id="cardRecords-list"></div>
 </div>
 
 <!-- ── 客戶管理 ── -->
@@ -1391,6 +1419,7 @@ async function loadFromCloud() {
       if (data.quotations) quotationRecords = data.quotations;
       if (data.purchases) purchaseRecords = data.purchases;
       if (data.costings) costingRecords = data.costings;
+      if (data.cardRecords) cardRecordsList = data.cardRecords;
       _recordsLoaded = true;
       toast('已從雲端載入資料');
     } else {
@@ -1428,6 +1457,7 @@ function showPage(name) {
   if (name === 'suppliers') renderSuppPage();
   if (name === 'orders') renderOrderPage();
   if (name === 'costings') loadCostingRecords();
+  if (name === 'cardRecords') loadCardRecords();
 }
 function goHome() { showPage('home'); }
 function setFilter(cat, btn) {
@@ -2467,8 +2497,215 @@ function exportCardExcel() {
   toast('已匯出 ' + fileName);
 }
 
+let currentCardRecordId = null;
+
+async function saveCard() {
+  const customer = document.getElementById('card-customer').value.trim();
+  const orderName = document.getElementById('card-project').value.trim();
+  const cardNo = document.getElementById('card-no').value.trim();
+  const date = document.getElementById('card-date').value;
+  if (!customer) { toast('請填寫客戶名稱'); return; }
+  if (!orderName) { toast('請填寫訂單名稱'); return; }
+  const items = cardItems.filter(it => it.name);
+  if (!items.length) { toast('請至少填寫一筆品項'); return; }
+  const totalAmount = items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+  const statusEl = document.getElementById('card-status');
+  if (statusEl) statusEl.textContent = '儲存中…';
+  try {
+    const resp = await fetch(GAS_URL, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'saveCard', recordId: currentCardRecordId,
+        cardNo, date, customer, orderName,
+        items: items.map((it, i) => ({ seq: i+1, supplier: it.supplier||'', name: it.name, qty: Number(it.qty)||0, amount: Number(it.amount)||0, note: it.note||'' })),
+        totalAmount
+      })
+    });
+    const result = await resp.json();
+    if (result.ok) {
+      currentCardRecordId = result.recordId;
+      _recordsLoaded = false;
+      toast('已儲存：' + result.recordId);
+      if (statusEl) statusEl.textContent = '已儲存 ' + result.recordId;
+    } else {
+      toast('儲存失敗：' + (result.error || '未知錯誤'));
+      if (statusEl) statusEl.textContent = '儲存失敗';
+    }
+  } catch(e) {
+    toast('儲存失敗');
+    if (statusEl) statusEl.textContent = '儲存失敗';
+  }
+}
+
+// ── 用料紀錄 ─────────────────────────────────────────
+let cardRecordsList = [];
+let cardRecordsFilterPeriod = 'all';
+
+async function loadCardRecords(forceRefresh) {
+  if (_recordsLoaded && cardRecordsList.length && !forceRefresh) {
+    renderCardRecordsTable();
+    return;
+  }
+  document.getElementById('cardRecords-loading').style.display = 'block';
+  try {
+    const resp = await fetch(GAS_URL + '?include=cardRecords');
+    const data = await resp.json();
+    cardRecordsList = data.cardRecords || [];
+    renderCardRecordsTable();
+    document.getElementById('cardRecords-loading').style.display = 'none';
+  } catch(e) {
+    document.getElementById('cardRecords-loading').style.display = 'none';
+    toast('載入用料紀錄失敗');
+  }
+}
+
+function getFilteredCardRecordRows() {
+  const q = (document.getElementById('cardRecords-search').value || '').toLowerCase();
+  const now = new Date();
+  return cardRecordsList.filter(r => {
+    if (q) {
+      const match = String(r['客戶']||'').toLowerCase().includes(q) || String(r['訂單名稱']||'').toLowerCase().includes(q) || String(r['編號']||'').toLowerCase().includes(q) || String(r['紀錄ID']||'').toLowerCase().includes(q) || String(r['日期']||'').toLowerCase().includes(q) || fmtDate(r['日期']).toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    if (cardRecordsFilterPeriod !== 'all' && r['日期']) {
+      const d = new Date(r['日期']);
+      if (cardRecordsFilterPeriod === 'month') { if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return false; }
+      if (cardRecordsFilterPeriod === 'week') { const diff = (now - d) / 86400000; if (diff > 7 || diff < 0) return false; }
+    }
+    return true;
+  });
+}
+
+function renderCardRecordsTable() {
+  const rows = getFilteredCardRecordRows();
+  document.getElementById('cardRecords-count').textContent = '共 ' + rows.length + ' 筆';
+  const container = document.getElementById('cardRecords-list');
+  if (!rows.length) {
+    container.innerHTML = '<div class="empty-state">沒有符合的紀錄</div>';
+    return;
+  }
+  container.innerHTML = rows.map(r => {
+    let items = [];
+    try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
+    return `
+    <div class="record-card">
+      <div class="record-header">
+        <div class="record-info">
+          <span class="record-date">${fmtDate(r['日期'])}</span>
+          <span class="record-divider">|</span>
+          <span>編號：<strong>${esc(r['編號']||'—')}</strong></span>
+          <span class="record-divider">|</span>
+          <span>客戶：<strong>${esc(r['客戶']||'—')}</strong></span>
+          ${r['訂單名稱'] ? `<span class="record-divider">|</span><span>訂單：<strong>${esc(r['訂單名稱'])}</strong></span>` : ''}
+        </div>
+        <button class="btn btn-sm" onclick="editCardRecord('${esc(r['紀錄ID']||'')}')">編輯</button>
+      </div>
+      <div class="table-wrap" style="margin-top:8px">
+        <table>
+          <thead><tr><th style="width:45px;text-align:center">序號</th><th style="width:100px">廠商</th><th>品名規格</th><th style="width:60px;text-align:center">數量</th><th style="width:80px;text-align:right">金額</th><th>備註</th></tr></thead>
+          <tbody>${items.map((it,i) => `
+            <tr>
+              <td style="text-align:center">${it.seq || (i+1)}</td>
+              <td>${esc(it.supplier||'')}</td>
+              <td>${esc(it.name||'')}</td>
+              <td style="text-align:center">${it.qty||''}</td>
+              <td style="text-align:right">$${(Number(it.amount)||0).toLocaleString()}</td>
+              <td>${esc(it.note||'')}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="record-total">合計：$${(Number(r['合計金額'])||0).toLocaleString()}</div>
+    </div>`;
+  }).join('');
+}
+
+function setCardRecordsFilter(period, btn) {
+  cardRecordsFilterPeriod = period;
+  document.querySelectorAll('#cardRecords-filter-row .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCardRecordsTable();
+}
+
+function editCardRecord(recordId) {
+  if (!confirm('確定要編輯此用料紀錄？')) return;
+  const r = cardRecordsList.find(x => x['紀錄ID'] === recordId);
+  if (!r) return;
+  currentCardRecordId = recordId;
+  document.getElementById('card-no').value = r['編號'] || '';
+  var dv = r['日期'] || '';
+  if (dv) { var dd = new Date(dv); if (!isNaN(dd)) dv = dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0'); }
+  document.getElementById('card-date').value = dv;
+  document.getElementById('card-customer').value = r['客戶'] || '';
+  document.getElementById('card-project').value = r['訂單名稱'] || '';
+  let items = [];
+  try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
+  if (items.length) {
+    cardItems = items.map(it => ({ supplier: it.supplier||'', name: it.name||'', qty: it.qty||'', amount: it.amount||'', note: it.note||'' }));
+    while (cardItems.length < MIN_CARD_ROWS) cardItems.push({ supplier: '', name: '', qty: '', amount: '', note: '' });
+  }
+  renderCardTable();
+  calcCardTotal();
+  showPage('card');
+  document.getElementById('card-status').textContent = '編輯中 ' + recordId;
+  toast('已載入 ' + recordId + ' 編輯中');
+}
+
+function printCardRecords() {
+  const rows = getFilteredCardRecordRows();
+  if (!rows.length) { toast('沒有可列印的紀錄'); return; }
+  const area = document.getElementById('print-area');
+  area.innerHTML = rows.map(r => {
+    let items = [];
+    try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
+    const total = Number(r['合計金額']) || 0;
+    const MIN_ROWS = 20;
+    const pRows = items.map((it, i) => ({ seq: i+1, supplier: it.supplier||'', name: it.name||'', qty: it.qty||'', amount: it.amount||'', note: it.note||'' }));
+    while (pRows.length < MIN_ROWS) pRows.push({ seq:'', supplier:'', name:'', qty:'', amount:'', note:'' });
+    return `
+    <div style="page-break-after:always">
+      <table class="print-header">
+        <tr><td class="lbl">客戶名稱</td><td class="val">${esc(r['客戶']||'')}</td><td class="lbl">訂單名稱</td><td class="val">${esc(r['訂單名稱']||'')}</td></tr>
+        <tr><td class="lbl">編號</td><td class="val">${esc(r['編號']||'')}</td><td class="lbl">日期</td><td class="val">${esc(fmtDate(r['日期']))}</td></tr>
+      </table>
+      <table class="print-items">
+        <thead><tr><th style="width:45px">序號</th><th style="width:90px">廠商</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th>備註</th></tr></thead>
+        <tbody>${pRows.map(r => `<tr><td>${r.seq}</td><td>${esc(r.supplier)}</td><td class="left">${esc(r.name)}</td><td>${r.qty}</td><td class="right">${r.amount ? '$'+Number(r.amount).toLocaleString() : ''}</td><td class="left">${esc(r.note)}</td></tr>`).join('')}</tbody>
+        <tfoot><tr><td colspan="3" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td><td style="border:none"></td></tr></tfoot>
+      </table>
+    </div>`;
+  }).join('');
+  window.print();
+}
+
+function exportCardRecordsExcel() {
+  const rows = getFilteredCardRecordRows();
+  if (!rows.length) { toast('沒有可匯出的紀錄'); return; }
+  const wb = XLSX.utils.book_new();
+  rows.forEach((r, idx) => {
+    let items = [];
+    try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
+    const total = Number(r['合計金額']) || 0;
+    const headerData = [
+      ['客戶名稱', r['客戶']||'', '', '編號', r['編號']||''],
+      ['訂單名稱', r['訂單名稱']||'', '', '日期', fmtDate(r['日期'])],
+      [],
+      ['序號', '廠商', '品名規格', '數量', '金額', '備註']
+    ];
+    const itemData = items.map((it, i) => [i+1, it.supplier||'', it.name||'', Number(it.qty)||0, Number(it.amount)||0, it.note||'']);
+    const footerData = [[], ['', '', '', '', '合計', total]];
+    const ws = XLSX.utils.aoa_to_sheet([...headerData, ...itemData, ...footerData]);
+    ws['!cols'] = [{ wch:6 }, { wch:12 }, { wch:30 }, { wch:8 }, { wch:10 }, { wch:15 }];
+    const sheetName = (r['紀錄ID']||'').slice(0,31) || ('紀錄'+(idx+1));
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  });
+  XLSX.writeFile(wb, '用料紀錄_匯出.xlsx');
+  toast('已匯出 Excel');
+}
+
 function clearCard() {
   if (!confirm('確定清空所有材料卡項目？')) return;
+  currentCardRecordId = null;
   initCardItems();
   renderCardTable();
   calcCardTotal();
