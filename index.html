@@ -3153,6 +3153,7 @@ function renderSalesTable() {
           <span class="record-divider">|</span>
           <span>客戶：<strong>${esc(r['客戶']||'—')}</strong></span>
         </div>
+        <button class="btn btn-sm" onclick="printSingleSalesRecord('${esc(r['紀錄ID']||'')}')">🖨️</button>
         <button class="btn btn-sm" onclick="editSalesRecord('${esc(r['紀錄ID']||'')}')">編輯</button>
       </div>
       <div class="table-wrap" style="margin-top:8px">
@@ -3196,6 +3197,31 @@ function getFilteredSalesRows() {
     }
     return true;
   });
+}
+
+function printSingleSalesRecord(recordId) {
+  const r = salesRecords.find(x => x['紀錄ID'] === recordId);
+  if (!r) return;
+  let items = [];
+  try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
+  const total = Number(r['合計金額']) || 0;
+  const MIN_ROWS = 30;
+  const pRows = items.map((it, i) => ({ seq: i+1, name: it.name||'', qty: it.qty||'', amount: it.amount||'', note: it.note||'' }));
+  while (pRows.length < MIN_ROWS) pRows.push({ seq:'', name:'', qty:'', amount:'', note:'' });
+  const area = document.getElementById('print-area');
+  area.innerHTML = `
+  <div class="print-page-a4">
+    <table class="print-header">
+      <tr><td class="lbl">客戶名稱</td><td class="val" colspan="2">${esc(r['客戶']||'')}</td><td class="lbl">出貨單號</td><td class="val">${esc(r['出貨單號']||'')}</td></tr>
+      <tr><td class="lbl">日期</td><td class="val" colspan="2">${esc(fmtDate(r['日期']))}</td><td class="lbl">紀錄ID</td><td class="val">${esc(r['紀錄ID']||'')}</td></tr>
+    </table>
+    <table class="print-items">
+      <thead><tr><th style="width:45px">項次</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th>備註</th></tr></thead>
+      <tbody>${pRows.map(r => `<tr><td>${r.seq}</td><td class="left">${esc(r.name)}</td><td>${r.qty}</td><td class="right">${r.amount ? '$'+Number(r.amount).toLocaleString() : ''}</td><td class="left">${esc(r.note)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="2" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td><td style="border:none"></td></tr></tfoot>
+    </table>
+  </div>`;
+  window.print();
 }
 
 function printSalesRecords() {
@@ -4205,6 +4231,7 @@ function renderPurchasesTable() {
           <span class="record-divider">|</span>
           <span>廠商：<strong>${esc(r['廠商']||'—')}</strong></span>
         </div>
+        <button class="btn btn-sm" onclick="printSinglePurchaseRecord('${esc(r['紀錄ID']||'')}')">🖨️</button>
         <button class="btn btn-sm" onclick="editPurchaseRecord('${esc(r['紀錄ID']||'')}')">編輯</button>
       </div>
       <div class="table-wrap" style="margin-top:8px">
@@ -4248,6 +4275,31 @@ function getFilteredPurchaseRows() {
     }
     return true;
   });
+}
+
+function printSinglePurchaseRecord(recordId) {
+  const r = purchaseRecords.find(x => x['紀錄ID'] === recordId);
+  if (!r) return;
+  let items = [];
+  try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
+  const total = Number(r['合計金額']) || 0;
+  const MIN_ROWS = 30;
+  const pRows = items.map((it, i) => ({ seq: i+1, name: it.name||'', qty: it.qty||'', amount: it.amount||'', note: it.note||'' }));
+  while (pRows.length < MIN_ROWS) pRows.push({ seq:'', name:'', qty:'', amount:'', note:'' });
+  const area = document.getElementById('print-area');
+  area.innerHTML = `
+  <div class="print-page-a4">
+    <table class="print-header">
+      <tr><td class="lbl">廠商名稱</td><td class="val" colspan="2">${esc(r['廠商']||'')}</td><td class="lbl">進貨單號</td><td class="val">${esc(r['進貨單號']||'')}</td></tr>
+      <tr><td class="lbl">日期</td><td class="val" colspan="2">${esc(fmtDate(r['日期']))}</td><td class="lbl">紀錄ID</td><td class="val">${esc(r['紀錄ID']||'')}</td></tr>
+    </table>
+    <table class="print-items">
+      <thead><tr><th style="width:45px">項次</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th>備註</th></tr></thead>
+      <tbody>${pRows.map(r => `<tr><td>${r.seq}</td><td class="left">${esc(r.name)}</td><td>${r.qty}</td><td class="right">${r.amount ? '$'+Number(r.amount).toLocaleString() : ''}</td><td class="left">${esc(r.note)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="2" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td><td style="border:none"></td></tr></tfoot>
+    </table>
+  </div>`;
+  window.print();
 }
 
 function printPurchaseRecords() {
