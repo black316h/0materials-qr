@@ -1792,6 +1792,7 @@ function addOrder() {
   });
   save(); renderOrderPage(); renderProjOptions();
   document.getElementById('f-new-order-name').value = '';
+  document.getElementById('f-new-order-cust').value = '';
   document.getElementById('f-new-order-note').value = '';
   document.getElementById('f-new-order-delivery').value = '';
   toast('已新增訂單：' + name);
