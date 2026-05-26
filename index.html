@@ -1359,10 +1359,11 @@ function syncToCloud() {
   }).catch(() => {});
 }
 // 從 Google Sheets 載入資料（頁面開啟時呼叫）
+let _recordsLoaded = false;
 async function loadFromCloud() {
   if (!GAS_URL) return;
   try {
-    const resp = await fetch(GAS_URL);
+    const resp = await fetch(GAS_URL + '?include=all');
     const data = await resp.json();
     if (data.materials && data.materials.length) {
       materials = data.materials.map(normalizeMat);
@@ -1385,6 +1386,12 @@ async function loadFromCloud() {
       renderCustOptions();
       renderProjOptions();
       renderSuppOptions();
+      // 快取所有紀錄
+      if (data.sales) salesRecords = data.sales;
+      if (data.quotations) quotationRecords = data.quotations;
+      if (data.purchases) purchaseRecords = data.purchases;
+      if (data.costings) costingRecords = data.costings;
+      _recordsLoaded = true;
       toast('已從雲端載入資料');
     } else {
       syncToCloud();
@@ -2735,6 +2742,7 @@ async function saveInvoice() {
       adjustStock(items, -1, currentInvoiceId ? _oldInvItems : []);
       _oldInvItems = [];
       currentInvoiceId = result.recordId;
+      _recordsLoaded = false;
       renderTable();
       toast('已儲存：' + result.recordId);
       if (statusEl) statusEl.textContent = '已儲存 ' + result.recordId;
@@ -2812,7 +2820,11 @@ function pickMaterial(matId) {
 let salesRecords = [];
 let salesFilterPeriod = 'all';
 
-async function loadSalesRecords() {
+async function loadSalesRecords(forceRefresh) {
+  if (_recordsLoaded && salesRecords.length && !forceRefresh) {
+    renderSalesTable();
+    return;
+  }
   document.getElementById('sales-loading').style.display = 'block';
   try {
     const resp = await fetch(GAS_URL + '?include=sales');
@@ -3066,6 +3078,7 @@ async function saveQuotation() {
     const result = await resp.json();
     if (result.ok) {
       currentQuotationId = result.recordId;
+      _recordsLoaded = false;
       toast('已儲存：' + result.recordId);
       if (statusEl) statusEl.textContent = '已儲存 ' + result.recordId;
     } else {
@@ -3129,7 +3142,11 @@ function exportQuotationExcel() {
 let quotationRecords = [];
 let quotationsFilterPeriod = 'all';
 
-async function loadQuotationRecords() {
+async function loadQuotationRecords(forceRefresh) {
+  if (_recordsLoaded && quotationRecords.length && !forceRefresh) {
+    renderQuotationsTable();
+    return;
+  }
   document.getElementById('quotations-loading').style.display = 'block';
   try {
     const resp = await fetch(GAS_URL + '?include=quotations');
@@ -3458,6 +3475,7 @@ async function saveCosting() {
     const result = await resp.json();
     if (result.ok) {
       currentCostingId = result.recordId;
+      _recordsLoaded = false;
       toast('已儲存：' + result.recordId);
       if (statusEl) statusEl.textContent = '已儲存 ' + result.recordId;
     } else {
@@ -3541,7 +3559,11 @@ function exportCostingExcel() {
 let costingRecords = [];
 let costingsFilterPeriod = 'all';
 
-async function loadCostingRecords() {
+async function loadCostingRecords(forceRefresh) {
+  if (_recordsLoaded && costingRecords.length && !forceRefresh) {
+    renderCostingsTable();
+    return;
+  }
   document.getElementById('costings-loading').style.display = 'block';
   document.getElementById('costings-list').innerHTML = '';
   try {
@@ -3838,6 +3860,7 @@ async function savePurchase() {
       adjustStock(items, +1, currentPurchaseId ? _oldPurItems : []);
       _oldPurItems = [];
       currentPurchaseId = result.recordId;
+      _recordsLoaded = false;
       renderTable();
       toast('已儲存：' + result.recordId);
       if (statusEl) statusEl.textContent = '已儲存 ' + result.recordId;
@@ -3855,7 +3878,11 @@ async function savePurchase() {
 let purchaseRecords = [];
 let purchasesFilterPeriod = 'all';
 
-async function loadPurchaseRecords() {
+async function loadPurchaseRecords(forceRefresh) {
+  if (_recordsLoaded && purchaseRecords.length && !forceRefresh) {
+    renderPurchasesTable();
+    return;
+  }
   document.getElementById('purchases-loading').style.display = 'block';
   try {
     const resp = await fetch(GAS_URL + '?include=purchases');
