@@ -562,14 +562,14 @@
   <div class="card">
     <div class="card-title">新增物品</div>
     <div class="form-grid" style="grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px">
-      <div class="form-group"><label>型號 <span style="color:var(--red)">*</span></label><input id="f-new-item-model" placeholder="型號"></div>
-      <div class="form-group"><label>品名</label><input id="f-new-item-name" placeholder="品名"></div>
+      <div class="form-group"><label>型號 <span style="color:var(--red)">*</span></label><input id="f-new-item-model" placeholder="型號" list="item-model-list"></div>
+      <div class="form-group"><label>品名</label><input id="f-new-item-name" placeholder="品名" list="item-name-list"></div>
       <div class="form-group"><label>簡稱</label><input id="f-new-item-alias" placeholder="簡稱"></div>
-      <div class="form-group"><label>類別</label><select id="f-new-item-category"></select></div>
+      <div class="form-group"><label>類別</label><select id="f-new-item-category" onchange="buildItemDatalists()"></select></div>
       <div class="form-group"><label>單位</label><input id="f-new-item-unit" placeholder="單位"></div>
       <div class="form-group"><label>成本</label><input id="f-new-item-cost" type="number" placeholder="0" min="0"></div>
       <div class="form-group"><label>市價</label><input id="f-new-item-market" type="number" placeholder="0" min="0"></div>
-      <div class="form-group"><label>廠牌</label><select id="f-new-item-brand"></select></div>
+      <div class="form-group"><label>廠牌</label><select id="f-new-item-brand" onchange="buildItemDatalists()"></select></div>
       <div class="form-group"><label>最近進貨</label><input id="f-new-item-last" type="date"></div>
       <div class="form-group"><label>供應商</label><input id="f-new-item-supplier" placeholder="供應商"></div>
       <div class="form-group"><label>備注一</label><input id="f-new-item-note1" placeholder="備注一"></div>
@@ -582,6 +582,8 @@
       <div class="form-group"><label>寬度</label><input id="f-new-item-width" type="number" placeholder="0" min="0"></div>
       <div class="form-group"><label>高度</label><input id="f-new-item-height" type="number" placeholder="0" min="0"></div>
     </div>
+    <datalist id="item-model-list"></datalist>
+    <datalist id="item-name-list"></datalist>
     <div class="btn-row">
       <button class="btn btn-primary btn-sm" onclick="addItem()">＋ 新增物品</button>
       <button class="btn btn-sm" onclick="clearItemForm()">清除</button>
@@ -1859,6 +1861,31 @@ function addItemCat() {
   el.value = '';
   toast('已新增類別：' + name);
 }
+// 依選定的廠牌／類別，建立新增物品表單的型號、品名下拉建議（資料來源：現有物品）
+function buildItemDatalists() {
+  const mdl = document.getElementById('item-model-list');
+  const nl  = document.getElementById('item-name-list');
+  if (!mdl && !nl) return;
+  const selBrand = (document.getElementById('f-new-item-brand')    || {}).value || '';
+  const selCat   = (document.getElementById('f-new-item-category') || {}).value || '';
+  const filtered = items.filter(it => {
+    if (selBrand && it.brand !== selBrand) return false;
+    if (selCat && it.category !== selCat) return false;
+    return true;
+  });
+  if (mdl) {
+    const seen = new Set();
+    mdl.innerHTML = filtered
+      .filter(it => it.model && !seen.has(it.model) && seen.add(it.model))
+      .map(it => `<option value="${esc(it.model)}" label="${esc((it.brand ? it.brand + ' ' : '') + it.model)}">`).join('');
+  }
+  if (nl) {
+    const seen2 = new Set();
+    nl.innerHTML = filtered
+      .filter(it => it.name && !seen2.has(it.name) && seen2.add(it.name))
+      .map(it => `<option value="${esc(it.name)}" label="${esc((it.brand ? it.brand + ' ' : '') + it.name)}">`).join('');
+  }
+}
 
 // ── 客戶管理 ──────────────────────────────────────────
 function renderCustOptions() {
@@ -2056,6 +2083,7 @@ function renderItemsPage() {
       '<button class="btn-danger" style="font-size:14px;padding:2px 6px" onclick="deleteItem(' + i + ')">×</button>' +
     '</td></tr>';
   }).join('');
+  buildItemDatalists();
 }
 function editItem(idx) { editingItemIdx = idx; renderItemsPage(); }
 function cancelItemEdit() { editingItemIdx = -1; renderItemsPage(); }
