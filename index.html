@@ -87,7 +87,7 @@
     display: flex; justify-content: space-between; align-items: center;
     cursor: pointer; user-select: none;
   }
-  #brand-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 12px; min-height: 28px; }
+  #brand-chips, .brand-chips-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 12px; min-height: 28px; }
   .brand-chip {
     display: inline-flex; align-items: center; gap: 3px;
     background: var(--blue-light); color: var(--blue-text);
@@ -565,11 +565,11 @@
       <div class="form-group"><label>型號 <span style="color:var(--red)">*</span></label><input id="f-new-item-model" placeholder="型號"></div>
       <div class="form-group"><label>品名</label><input id="f-new-item-name" placeholder="品名"></div>
       <div class="form-group"><label>簡稱</label><input id="f-new-item-alias" placeholder="簡稱"></div>
-      <div class="form-group"><label>類別</label><input id="f-new-item-category" placeholder="類別"></div>
+      <div class="form-group"><label>類別</label><select id="f-new-item-category"></select></div>
       <div class="form-group"><label>單位</label><input id="f-new-item-unit" placeholder="單位"></div>
       <div class="form-group"><label>成本</label><input id="f-new-item-cost" type="number" placeholder="0" min="0"></div>
       <div class="form-group"><label>市價</label><input id="f-new-item-market" type="number" placeholder="0" min="0"></div>
-      <div class="form-group"><label>廠牌</label><input id="f-new-item-brand" placeholder="廠牌"></div>
+      <div class="form-group"><label>廠牌</label><select id="f-new-item-brand"></select></div>
       <div class="form-group"><label>最近進貨</label><input id="f-new-item-last" type="date"></div>
       <div class="form-group"><label>供應商</label><input id="f-new-item-supplier" placeholder="供應商"></div>
       <div class="form-group"><label>備注一</label><input id="f-new-item-note1" placeholder="備注一"></div>
@@ -601,6 +601,38 @@
       <p>⚠️ 若欄位名稱都不符，系統會依「上述順序」對應欄位</p>
       <p>⚠️ 型號相同的資料會自動跳過，不重複匯入</p>
       <p style="margin-top:6px">📎 支援格式：<strong>.xlsx</strong>、<strong>.xls</strong>、<strong>.csv</strong></p>
+    </div>
+  </div>
+
+  <!-- 廠牌管理（可收合，與材料主檔共用） -->
+  <div class="card">
+    <div class="brand-card-title card-title" onclick="toggleItemBrandMgmt()" style="margin-bottom:0">
+      <span>廠牌管理</span>
+      <span id="item-brand-arrow" style="font-size:14px;font-weight:normal">▸</span>
+    </div>
+    <div id="item-brand-mgmt-body" style="display:none;margin-top:1rem">
+      <input id="item-brand-search" placeholder="搜尋廠牌…" oninput="renderItemBrandChips()" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;font-size:13px">
+      <div id="item-brand-chips" class="brand-chips-wrap"></div>
+      <div class="brand-add-row">
+        <input id="f-new-item-brand-name" placeholder="輸入新廠牌名稱">
+        <button class="btn btn-primary btn-sm" onclick="addItemBrand()">＋ 新增廠牌</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 類別管理（可收合，與材料主檔共用） -->
+  <div class="card">
+    <div class="brand-card-title card-title" onclick="toggleItemCatMgmt()" style="margin-bottom:0">
+      <span>類別管理</span>
+      <span id="item-cat-arrow" style="font-size:14px;font-weight:normal">▸</span>
+    </div>
+    <div id="item-cat-mgmt-body" style="display:none;margin-top:1rem">
+      <input id="item-cat-search" placeholder="搜尋類別…" oninput="renderItemCatChips()" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;font-size:13px">
+      <div id="item-cat-chips" class="brand-chips-wrap"></div>
+      <div class="brand-add-row">
+        <input id="f-new-item-cat-name" placeholder="輸入新類別名稱">
+        <button class="btn btn-primary btn-sm" onclick="addItemCat()">＋ 新增類別</button>
+      </div>
     </div>
   </div>
 
@@ -1580,6 +1612,8 @@ async function loadFromCloud() {
       renderCustOptions();
       renderProjOptions();
       renderSuppOptions();
+      renderItemBrandChips();
+      renderItemCatChips();
       renderItemsPage();
       // 快取所有紀錄
       if (data.sales) salesRecords = data.sales;
@@ -1621,7 +1655,7 @@ function showPage(name) {
   if (name === 'quotations') loadQuotationRecords();
   if (name === 'purchases') loadPurchaseRecords();
   if (name === 'customers') renderCustPage();
-  if (name === 'items') renderItemsPage();
+  if (name === 'items') { renderItemBrandChips(); renderItemCatChips(); renderItemsPage(); }
   if (name === 'suppliers') renderSuppPage();
   if (name === 'orders') renderOrderPage();
   if (name === 'costings') loadCostingRecords();
@@ -1673,17 +1707,17 @@ function addBrand() {
   if (brands.includes(name)) { toast('廠牌已存在'); return; }
   brands.push(name);
   save();
-  renderBrandChips();
+  syncBrandUI();
   document.getElementById('f-new-brand').value = '';
   toast('已新增廠牌：' + name);
 }
 function deleteBrand(idx) {
   const name   = brands[idx];
-  const inUse  = materials.some(m => m.brand === name);
-  if (inUse && !confirm(`「${name}」目前有材料使用中，仍要刪除廠牌？`)) return;
+  const inUse  = materials.some(m => m.brand === name) || items.some(it => it.brand === name);
+  if (inUse && !confirm(`「${name}」目前有材料或物品使用中，仍要刪除廠牌？`)) return;
   brands.splice(idx, 1);
   save();
-  renderBrandChips();
+  syncBrandUI();
   toast('已刪除廠牌：' + name);
 }
 
@@ -1725,22 +1759,105 @@ function addCat() {
   if (cats.includes(name)) { toast('類別已存在'); return; }
   cats.push(name);
   save();
-  renderCatChips();
+  syncCatUI();
   renderFilterBtns();
   document.getElementById('f-new-cat').value = '';
   toast('已新增類別：' + name);
 }
 function deleteCat(idx) {
   const name  = cats[idx];
-  const inUse = materials.some(m => m.cat === name);
-  if (inUse && !confirm(`「${name}」目前有材料使用中，仍要刪除類別？`)) return;
+  const inUse = materials.some(m => m.cat === name) || items.some(it => it.category === name);
+  if (inUse && !confirm(`「${name}」目前有材料或物品使用中，仍要刪除類別？`)) return;
   cats.splice(idx, 1);
   save();
-  renderCatChips();
+  syncCatUI();
   if (filterCat === name) filterCat = '';
   renderFilterBtns();
   renderTable();
   toast('已刪除類別：' + name);
+}
+
+// ── 物品清單共用的廠牌／類別管理（與材料主檔共用同一份清單）──────────
+// 物品清單下拉選項（含空白選項，因廠牌／類別非必填）
+function itemBrandOptions(v) { return '<option value=""></option>' + renderBrandOptions(v || ''); }
+function itemCatOptions(v)   { return '<option value=""></option>' + renderCatOptions(v || ''); }
+// 統一刷新所有廠牌相關 UI（材料主檔 + 物品清單）
+function syncBrandUI() {
+  if (document.getElementById('brand-chips')) renderBrandChips();
+  renderItemBrandChips();
+}
+function syncCatUI() {
+  if (document.getElementById('cat-chips')) renderCatChips();
+  renderItemCatChips();
+}
+function renderItemBrandChips() {
+  const wrap = document.getElementById('item-brand-chips');
+  if (wrap) {
+    const q = (document.getElementById('item-brand-search')?.value || '').toLowerCase();
+    const filtered = q ? brands.filter(b => b.toLowerCase().includes(q)) : brands;
+    wrap.innerHTML = brands.length
+      ? (filtered.length
+          ? filtered.map(b => { const i = brands.indexOf(b); return `
+              <span class="brand-chip">${esc(b)}<button class="chip-del" title="刪除" onclick="deleteBrand(${i})">×</button></span>`; }).join('') + `<span style="font-size:11px;color:var(--text-3);align-self:center;margin-left:4px">${q ? '搜尋到 ' + filtered.length + ' / ' : ''}共 ${brands.length} 個</span>`
+          : '<span style="font-size:12px;color:var(--text-3)">找不到符合的廠牌</span>')
+      : '<span style="font-size:12px;color:var(--text-3)">尚無廠牌，請新增</span>';
+  }
+  const sel = document.getElementById('f-new-item-brand');
+  if (sel) { const cur = sel.value; sel.innerHTML = itemBrandOptions(cur); }
+}
+function renderItemCatChips() {
+  const wrap = document.getElementById('item-cat-chips');
+  if (wrap) {
+    const q = (document.getElementById('item-cat-search')?.value || '').toLowerCase();
+    const filtered = q ? cats.filter(c => c.toLowerCase().includes(q)) : cats;
+    wrap.innerHTML = cats.length
+      ? (filtered.length
+          ? filtered.map(c => { const i = cats.indexOf(c); return `
+              <span class="brand-chip" style="background:var(--accent-light);color:var(--accent-text)">${esc(c)}<button class="chip-del" style="color:var(--accent-text)" title="刪除" onclick="deleteCat(${i})">×</button></span>`; }).join('') + `<span style="font-size:11px;color:var(--text-3);align-self:center;margin-left:4px">${q ? '搜尋到 ' + filtered.length + ' / ' : ''}共 ${cats.length} 個</span>`
+          : '<span style="font-size:12px;color:var(--text-3)">找不到符合的類別</span>')
+      : '<span style="font-size:12px;color:var(--text-3)">尚無類別，請新增</span>';
+  }
+  const sel = document.getElementById('f-new-item-category');
+  if (sel) { const cur = sel.value; sel.innerHTML = itemCatOptions(cur); }
+}
+function toggleItemBrandMgmt() {
+  const body  = document.getElementById('item-brand-mgmt-body');
+  const arrow = document.getElementById('item-brand-arrow');
+  const open  = body.style.display === 'block';
+  body.style.display = open ? 'none' : 'block';
+  arrow.textContent  = open ? '▸' : '▾';
+  if (!open) renderItemBrandChips();
+}
+function toggleItemCatMgmt() {
+  const body  = document.getElementById('item-cat-mgmt-body');
+  const arrow = document.getElementById('item-cat-arrow');
+  const open  = body.style.display === 'block';
+  body.style.display = open ? 'none' : 'block';
+  arrow.textContent  = open ? '▸' : '▾';
+  if (!open) renderItemCatChips();
+}
+function addItemBrand() {
+  const el = document.getElementById('f-new-item-brand-name');
+  const name = el.value.trim();
+  if (!name) { toast('請輸入廠牌名稱'); return; }
+  if (brands.includes(name)) { toast('廠牌已存在'); return; }
+  brands.push(name);
+  save();
+  syncBrandUI();
+  el.value = '';
+  toast('已新增廠牌：' + name);
+}
+function addItemCat() {
+  const el = document.getElementById('f-new-item-cat-name');
+  const name = el.value.trim();
+  if (!name) { toast('請輸入類別名稱'); return; }
+  if (cats.includes(name)) { toast('類別已存在'); return; }
+  cats.push(name);
+  save();
+  syncCatUI();
+  renderFilterBtns();
+  el.value = '';
+  toast('已新增類別：' + name);
 }
 
 // ── 客戶管理 ──────────────────────────────────────────
@@ -1920,6 +2037,8 @@ function renderItemsPage() {
     const i = items.indexOf(it);
     if (i === editingItemIdx) {
       return '<tr class="editing">' + ITEM_KEYS.map(k => {
+        if (k === 'brand')    return '<td><select class="edit-inp" id="ei-brand">' + itemBrandOptions(it.brand) + '</select></td>';
+        if (k === 'category') return '<td><select class="edit-inp" id="ei-category">' + itemCatOptions(it.category) + '</select></td>';
         const type = ITEM_NUM_KEYS.includes(k) ? 'number' : 'text';
         return '<td><input class="edit-inp" id="ei-' + k + '" type="' + type + '" value="' + esc(it[k] == null ? '' : it[k]) + '"></td>';
       }).join('') +
@@ -2079,9 +2198,19 @@ function importItemsExcel(input) {
         added++;
       });
 
+      // 匯入的廠牌／類別自動併入共用清單（與材料主檔同步）
+      let newBrands = 0, newCats = 0;
+      items.forEach(it => {
+        const b = String(it.brand || '').trim();
+        if (b && !brands.includes(b)) { brands.push(b); newBrands++; }
+        const c = String(it.category || '').trim();
+        if (c && !cats.includes(c)) { cats.push(c); newCats++; }
+      });
+
       save();
+      if (newBrands || newCats) { syncBrandUI(); syncCatUI(); renderFilterBtns(); }
       renderItemsPage();
-      toast('匯入完成：新增 ' + added + ' 筆' + (skipped ? '，跳過重複 ' + skipped + ' 筆' : ''));
+      toast('匯入完成：新增 ' + added + ' 筆' + (skipped ? '，跳過重複 ' + skipped + ' 筆' : '') + (newBrands ? '，新廠牌 ' + newBrands : '') + (newCats ? '，新類別 ' + newCats : ''));
     } catch(err) {
       toast('匯入失敗：' + err.message);
     }
@@ -5032,6 +5161,8 @@ initCardItems();
 renderCustOptions();
 renderProjOptions();
 renderSuppOptions();
+renderItemBrandChips();
+renderItemCatChips();
 const todayCode = todayStr().replace(/-/g, '');
 document.getElementById('card-date').value = todayStr();
 document.getElementById('card-no').value = todayCode + 'A';
