@@ -349,6 +349,11 @@
       <div class="home-label">材料主檔</div>
       <div class="home-desc">管理材料、廠牌、類別、庫存</div>
     </div>
+    <div class="home-card" onclick="showPage('items')">
+      <div class="home-icon">🗃️</div>
+      <div class="home-label">物品清單</div>
+      <div class="home-desc">型號、成本、市價、尺寸、Excel 匯入</div>
+    </div>
     <div class="home-card" onclick="showPage('card')">
       <div class="home-icon">📋</div>
       <div class="home-label">材料卡</div>
@@ -533,6 +538,92 @@
   </div>
   <div id="load-more-row" style="display:none;text-align:center;padding:1rem">
     <button class="btn" onclick="showMoreMats()" id="load-more-btn" style="width:100%">顯示更多</button>
+  </div>
+</div>
+
+<!-- ── 物品清單 ── -->
+<div id="page-items" class="page">
+  <div class="page-title">物品清單</div>
+
+  <!-- 新增物品 -->
+  <div class="card">
+    <div class="card-title">新增物品</div>
+    <div class="form-grid" style="grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px">
+      <div class="form-group"><label>型號 <span style="color:var(--red)">*</span></label><input id="f-new-item-model" placeholder="型號"></div>
+      <div class="form-group"><label>品名</label><input id="f-new-item-name" placeholder="品名"></div>
+      <div class="form-group"><label>簡稱</label><input id="f-new-item-alias" placeholder="簡稱"></div>
+      <div class="form-group"><label>單位</label><input id="f-new-item-unit" placeholder="單位"></div>
+      <div class="form-group"><label>成本</label><input id="f-new-item-cost" type="number" placeholder="0" min="0"></div>
+      <div class="form-group"><label>市價</label><input id="f-new-item-market" type="number" placeholder="0" min="0"></div>
+      <div class="form-group"><label>廠牌</label><input id="f-new-item-brand" placeholder="廠牌"></div>
+      <div class="form-group"><label>最近進貨</label><input id="f-new-item-last" type="date"></div>
+      <div class="form-group"><label>供應商</label><input id="f-new-item-supplier" placeholder="供應商"></div>
+      <div class="form-group"><label>備注一</label><input id="f-new-item-note1" placeholder="備注一"></div>
+      <div class="form-group"><label>備注二</label><input id="f-new-item-note2" placeholder="備注二"></div>
+      <div class="form-group"><label>備注三</label><input id="f-new-item-note3" placeholder="備注三"></div>
+      <div class="form-group"><label>備注四</label><input id="f-new-item-note4" placeholder="備注四"></div>
+      <div class="form-group"><label>備注五</label><input id="f-new-item-note5" placeholder="備注五"></div>
+      <div class="form-group"><label>經濟批量</label><input id="f-new-item-eco" type="number" placeholder="0" min="0"></div>
+      <div class="form-group"><label>長度</label><input id="f-new-item-length" type="number" placeholder="0" min="0"></div>
+      <div class="form-group"><label>寬度</label><input id="f-new-item-width" type="number" placeholder="0" min="0"></div>
+      <div class="form-group"><label>高度</label><input id="f-new-item-height" type="number" placeholder="0" min="0"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary btn-sm" onclick="addItem()">＋ 新增物品</button>
+      <button class="btn btn-sm" onclick="clearItemForm()">清除</button>
+      <button class="btn btn-sm" onclick="printItems()" style="margin-left:auto">🖨️ 列印</button>
+      <button class="btn btn-sm" onclick="exportItemsExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
+      <button class="btn btn-sm" onclick="document.getElementById('items-excel-file').click()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📥 匯入 Excel</button>
+      <button class="btn btn-sm" onclick="showItemsImportHelp()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light);padding:8px 10px" title="匯入格式說明">❓</button>
+      <input type="file" id="items-excel-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importItemsExcel(this)">
+    </div>
+    <div id="items-import-help" style="display:none;margin-top:10px;padding:14px 16px;background:var(--blue-light);border:1px solid var(--border);border-radius:var(--radius-lg);font-size:13px;line-height:1.7;color:var(--text)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <strong style="font-size:14px">📋 Excel 匯入格式說明</strong>
+        <button class="btn btn-sm" onclick="document.getElementById('items-import-help').style.display='none'" style="padding:2px 8px">✕</button>
+      </div>
+      <p>Excel 第一列為欄位名稱，系統會自動辨識下列欄位（順序不限）：</p>
+      <p style="margin:6px 0"><strong>型號、品名、簡稱、單位、成本、市價、廠牌、最近進貨、供應商、備注一～備注五、經濟批量、長度、寬度、高度</strong></p>
+      <p>⚠️ 若欄位名稱都不符，系統會依「上述順序」對應欄位</p>
+      <p>⚠️ 型號相同的資料會自動跳過，不重複匯入</p>
+      <p style="margin-top:6px">📎 支援格式：<strong>.xlsx</strong>、<strong>.xls</strong>、<strong>.csv</strong></p>
+    </div>
+  </div>
+
+  <!-- 搜尋列 -->
+  <div class="search-row">
+    <input id="items-search" placeholder="搜尋型號、品名、簡稱、廠牌、供應商…" oninput="renderItemsPage()">
+    <span id="items-count" style="font-size:12px;color:var(--text-3);margin-left:auto"></span>
+  </div>
+
+  <!-- 資料表 -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="min-width:120px">型號</th>
+          <th style="min-width:130px">品名</th>
+          <th style="min-width:80px">簡稱</th>
+          <th style="min-width:55px">單位</th>
+          <th style="min-width:70px">成本</th>
+          <th style="min-width:70px">市價</th>
+          <th style="min-width:90px">廠牌</th>
+          <th style="min-width:110px">最近進貨</th>
+          <th style="min-width:100px">供應商</th>
+          <th style="min-width:90px">備注一</th>
+          <th style="min-width:90px">備注二</th>
+          <th style="min-width:90px">備注三</th>
+          <th style="min-width:90px">備注四</th>
+          <th style="min-width:90px">備注五</th>
+          <th style="min-width:70px">經濟批量</th>
+          <th style="min-width:60px">長度</th>
+          <th style="min-width:60px">寬度</th>
+          <th style="min-width:60px">高度</th>
+          <th style="width:90px"></th>
+        </tr>
+      </thead>
+      <tbody id="items-tbody"></tbody>
+    </table>
   </div>
 </div>
 
@@ -1315,6 +1406,7 @@ const STORAGE_KEY_CATS   = 'mat_cats_v1';
 const STORAGE_KEY_CUSTS  = 'mat_customers_v2';
 const STORAGE_KEY_PROJS  = 'mat_projects_v1';
 const STORAGE_KEY_SUPPS  = 'mat_suppliers_v2';
+const STORAGE_KEY_ITEMS  = 'mat_items_v1';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwr2o0j-xcsFHO7CaPTWomMkWshBQ39G3aRB25bPRN1DD-VCDq89_e971JnYLrrNPmUgQ/exec';
 
 // ── 資料 ──────────────────────────────────────────────
@@ -1359,6 +1451,13 @@ function migrateToObj(arr) {
 let customers = migrateToObj(JSON.parse(localStorage.getItem(STORAGE_KEY_CUSTS) || localStorage.getItem('mat_customers_v1') || 'null') || []);
 let projects  = migrateProjects(JSON.parse(localStorage.getItem(STORAGE_KEY_PROJS) || 'null') || []);
 let suppliers = migrateToObj(JSON.parse(localStorage.getItem(STORAGE_KEY_SUPPS) || localStorage.getItem('mat_suppliers_v1') || 'null') || []);
+// 物品清單
+const ITEM_KEYS = ['model','name','alias','unit','cost','market','brand','lastPurchase','supplier','note1','note2','note3','note4','note5','ecoQty','length','width','height'];
+const ITEM_HEADERS = ['型號','品名','簡稱','單位','成本','市價','廠牌','最近進貨','供應商','備注一','備注二','備注三','備注四','備注五','經濟批量','長度','寬度','高度'];
+const ITEM_NUM_KEYS = ['cost','market','ecoQty','length','width','height'];
+const ITEM_FORM_SUFFIX = { model:'model', name:'name', alias:'alias', unit:'unit', cost:'cost', market:'market', brand:'brand', lastPurchase:'last', supplier:'supplier', note1:'note1', note2:'note2', note3:'note3', note4:'note4', note5:'note5', ecoQty:'eco', length:'length', width:'width', height:'height' };
+let items = JSON.parse(localStorage.getItem(STORAGE_KEY_ITEMS) || 'null') || [];
+let editingItemIdx = -1;
 
 let materials = (JSON.parse(localStorage.getItem(STORAGE_KEY_MAT) || 'null') || [
   {id:'M00001',brand:'雙梅',model:'金庫型 350×280×180 橫',price:770,cat:'控制箱'},
@@ -1425,6 +1524,7 @@ function save() {
   localStorage.setItem(STORAGE_KEY_CUSTS,  JSON.stringify(customers));
   localStorage.setItem(STORAGE_KEY_PROJS,  JSON.stringify(projects));
   localStorage.setItem(STORAGE_KEY_SUPPS,  JSON.stringify(suppliers));
+  localStorage.setItem(STORAGE_KEY_ITEMS,  JSON.stringify(items));
   syncToCloud();
 }
 // 同步到 Google Sheets（背景執行，不阻塞 UI）
@@ -1433,7 +1533,7 @@ function syncToCloud() {
   fetch(GAS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ action: 'sync', materials, brands, cats, customers, projects, suppliers })
+    body: JSON.stringify({ action: 'sync', materials, brands, cats, customers, projects, suppliers, items })
   }).catch(() => {});
 }
 // 從 Google Sheets 載入資料（頁面開啟時呼叫）
@@ -1450,6 +1550,7 @@ async function loadFromCloud() {
       customers = data.customers && data.customers.length ? migrateToObj(data.customers) : customers;
       projects  = data.projects  && data.projects.length  ? migrateProjects(data.projects)  : projects;
       suppliers = data.suppliers && data.suppliers.length ? migrateToObj(data.suppliers) : suppliers;
+      if (data.items) { items = data.items; localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(items)); }
       localStorage.setItem(STORAGE_KEY_MAT,    JSON.stringify(materials));
       localStorage.setItem(STORAGE_KEY_BRANDS, JSON.stringify(brands));
       localStorage.setItem(STORAGE_KEY_CATS,   JSON.stringify(cats));
@@ -1464,6 +1565,7 @@ async function loadFromCloud() {
       renderCustOptions();
       renderProjOptions();
       renderSuppOptions();
+      renderItemsPage();
       // 快取所有紀錄
       if (data.sales) salesRecords = data.sales;
       if (data.quotations) quotationRecords = data.quotations;
@@ -1504,6 +1606,7 @@ function showPage(name) {
   if (name === 'quotations') loadQuotationRecords();
   if (name === 'purchases') loadPurchaseRecords();
   if (name === 'customers') renderCustPage();
+  if (name === 'items') renderItemsPage();
   if (name === 'suppliers') renderSuppPage();
   if (name === 'orders') renderOrderPage();
   if (name === 'costings') loadCostingRecords();
@@ -1779,6 +1882,196 @@ function exportCustomersExcel() {
   XLSX.utils.book_append_sheet(wb, ws, '客戶資料');
   XLSX.writeFile(wb, '客戶資料_' + todayStr() + '.xlsx');
   toast('已匯出客戶資料');
+}
+
+// ── 物品清單 ──────────────────────────────────────────
+function itemMatchesQuery(it, q) {
+  return ['model','name','alias','brand','supplier','unit','note1','note2','note3','note4','note5']
+    .some(k => String(it[k] == null ? '' : it[k]).toLowerCase().includes(q));
+}
+function renderItemsPage() {
+  const tbody = document.getElementById('items-tbody');
+  if (!tbody) return;
+  const countEl = document.getElementById('items-count');
+  const q = (document.getElementById('items-search')?.value || '').toLowerCase().trim();
+  const filtered = q ? items.filter(it => itemMatchesQuery(it, q)) : items;
+  if (countEl) countEl.textContent = (q ? '搜尋到 ' + filtered.length + ' / ' : '共 ') + items.length + ' 筆';
+  const COLS = ITEM_KEYS.length + 1;
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="' + COLS + '"><div class="empty-state">' + (q ? '找不到符合的物品' : '尚無物品，請新增或匯入 Excel') + '</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = filtered.map(it => {
+    const i = items.indexOf(it);
+    if (i === editingItemIdx) {
+      return '<tr class="editing">' + ITEM_KEYS.map(k => {
+        const type = ITEM_NUM_KEYS.includes(k) ? 'number' : 'text';
+        return '<td><input class="edit-inp" id="ei-' + k + '" type="' + type + '" value="' + esc(it[k] == null ? '' : it[k]) + '"></td>';
+      }).join('') +
+      '<td style="white-space:nowrap">' +
+        '<button class="btn btn-sm btn-primary" onclick="saveItemEdit(' + i + ')" style="padding:3px 8px;font-size:11px">儲存</button>' +
+        '<button class="btn btn-sm" onclick="cancelItemEdit()" style="padding:3px 8px;font-size:11px">取消</button>' +
+      '</td></tr>';
+    }
+    return '<tr>' + ITEM_KEYS.map(k => {
+      const align = ITEM_NUM_KEYS.includes(k) ? ' style="text-align:right"' : '';
+      return '<td' + align + '>' + esc(it[k] == null ? '' : it[k]) + '</td>';
+    }).join('') +
+    '<td style="white-space:nowrap">' +
+      '<button class="btn btn-sm" onclick="editItem(' + i + ')" style="padding:3px 8px;font-size:11px">編輯</button>' +
+      '<button class="btn-danger" style="font-size:14px;padding:2px 6px" onclick="deleteItem(' + i + ')">×</button>' +
+    '</td></tr>';
+  }).join('');
+}
+function editItem(idx) { editingItemIdx = idx; renderItemsPage(); }
+function cancelItemEdit() { editingItemIdx = -1; renderItemsPage(); }
+function readItemInput(id, key) {
+  const el = document.getElementById(id);
+  let v = (el && el.value != null ? el.value : '').trim();
+  if (ITEM_NUM_KEYS.includes(key)) return v === '' ? '' : (Number(v) || 0);
+  return v;
+}
+function saveItemEdit(idx) {
+  const obj = {};
+  ITEM_KEYS.forEach(k => { obj[k] = readItemInput('ei-' + k, k); });
+  if (!obj.model && !obj.name) { toast('請至少輸入型號或品名'); return; }
+  items[idx] = obj;
+  save();
+  editingItemIdx = -1;
+  renderItemsPage();
+  toast('已更新物品：' + (obj.model || obj.name));
+}
+function addItem() {
+  const obj = {};
+  ITEM_KEYS.forEach(k => { obj[k] = readItemInput('f-new-item-' + ITEM_FORM_SUFFIX[k], k); });
+  if (!obj.model && !obj.name) { toast('請至少輸入型號或品名'); return; }
+  items.push(obj);
+  save();
+  renderItemsPage();
+  clearItemForm();
+  toast('已新增物品：' + (obj.model || obj.name));
+}
+function clearItemForm() {
+  ITEM_KEYS.forEach(k => { const el = document.getElementById('f-new-item-' + ITEM_FORM_SUFFIX[k]); if (el) el.value = ''; });
+}
+function deleteItem(idx) {
+  const it = items[idx];
+  if (!it) return;
+  if (!confirm('確定要刪除物品「' + (it.model || it.name || '') + '」？')) return;
+  items.splice(idx, 1);
+  if (editingItemIdx === idx) editingItemIdx = -1;
+  save();
+  renderItemsPage();
+  toast('已刪除物品');
+}
+function showItemsImportHelp() {
+  const el = document.getElementById('items-import-help');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+function getVisibleItems() {
+  const q = (document.getElementById('items-search')?.value || '').toLowerCase().trim();
+  return q ? items.filter(it => itemMatchesQuery(it, q)) : items;
+}
+function exportItemsExcel() {
+  const rows = getVisibleItems();
+  if (!rows.length) { toast('沒有資料可匯出'); return; }
+  const data = rows.map(it => ITEM_KEYS.map(k => it[k] == null ? '' : it[k]));
+  const ws = XLSX.utils.aoa_to_sheet([ITEM_HEADERS, ...data]);
+  ws['!cols'] = ITEM_KEYS.map(k => ({ wch: (k === 'name' || k === 'model') ? 18 : 12 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '物品清單');
+  XLSX.writeFile(wb, '物品清單_' + todayStr() + '.xlsx');
+  toast('已匯出 ' + rows.length + ' 筆物品');
+}
+function printItems() {
+  const rows = getVisibleItems();
+  if (!rows.length) { toast('沒有可列印的物品'); return; }
+  const area = document.getElementById('print-area');
+  area.innerHTML =
+    '<h2 style="font-size:18px;text-align:center;margin-bottom:10px">物品清單</h2>' +
+    '<table class="print-items" style="font-size:9px">' +
+      '<thead><tr>' + ITEM_HEADERS.map(h => '<th>' + esc(h) + '</th>').join('') + '</tr></thead>' +
+      '<tbody>' + rows.map(it => '<tr>' + ITEM_KEYS.map(k => {
+        const cls = (k === 'name' || k === 'model' || k === 'supplier' || k.indexOf('note') === 0) ? ' class="left"' : '';
+        return '<td' + cls + '>' + esc(it[k] == null ? '' : it[k]) + '</td>';
+      }).join('') + '</tr>').join('') + '</tbody>' +
+    '</table>';
+  window.print();
+}
+function fmtItemDate(v) {
+  if (v instanceof Date && !isNaN(v)) {
+    return v.getFullYear() + '-' + String(v.getMonth() + 1).padStart(2, '0') + '-' + String(v.getDate()).padStart(2, '0');
+  }
+  return String(v == null ? '' : v).trim();
+}
+function importItemsExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      if (!rows.length) { toast('檔案沒有資料'); return; }
+
+      const keys = Object.keys(rows[0]);
+      const colMap = {};
+      keys.forEach(k => {
+        const kl = String(k).trim().toLowerCase();
+        if (/最近進貨|進貨日|進貨|last|purchase/i.test(kl)) { if (!colMap.lastPurchase) colMap.lastPurchase = k; }
+        else if (/型號|型号|規格|model|spec/i.test(kl)) { if (!colMap.model) colMap.model = k; }
+        else if (/品名|名稱|名称|品項|name/i.test(kl)) { if (!colMap.name) colMap.name = k; }
+        else if (/簡稱|简称|alias|abbr/i.test(kl)) { if (!colMap.alias) colMap.alias = k; }
+        else if (/單位|单位|unit/i.test(kl)) { if (!colMap.unit) colMap.unit = k; }
+        else if (/成本|進價|cost/i.test(kl)) { if (!colMap.cost) colMap.cost = k; }
+        else if (/市價|市价|售價|售价|market|price/i.test(kl)) { if (!colMap.market) colMap.market = k; }
+        else if (/廠牌|品牌|brand/i.test(kl)) { if (!colMap.brand) colMap.brand = k; }
+        else if (/供應商|供应商|廠商|供货|supplier|vendor/i.test(kl)) { if (!colMap.supplier) colMap.supplier = k; }
+        else if (/備注一|備註一|备注一|備注1|note1/i.test(kl)) { if (!colMap.note1) colMap.note1 = k; }
+        else if (/備注二|備註二|备注二|備注2|note2/i.test(kl)) { if (!colMap.note2) colMap.note2 = k; }
+        else if (/備注三|備註三|备注三|備注3|note3/i.test(kl)) { if (!colMap.note3) colMap.note3 = k; }
+        else if (/備注四|備註四|备注四|備注4|note4/i.test(kl)) { if (!colMap.note4) colMap.note4 = k; }
+        else if (/備注五|備註五|备注五|備注5|note5/i.test(kl)) { if (!colMap.note5) colMap.note5 = k; }
+        else if (/經濟批量|经济批量|批量|eco|moq/i.test(kl)) { if (!colMap.ecoQty) colMap.ecoQty = k; }
+        else if (/長度|长度|length/i.test(kl)) { if (!colMap.length) colMap.length = k; }
+        else if (/寬度|宽度|width/i.test(kl)) { if (!colMap.width) colMap.width = k; }
+        else if (/高度|height/i.test(kl)) { if (!colMap.height) colMap.height = k; }
+      });
+
+      // 若完全沒對應到，依固定順序套用
+      if (!Object.keys(colMap).length) {
+        ITEM_KEYS.forEach((k, idx) => { if (keys[idx] !== undefined) colMap[k] = keys[idx]; });
+      }
+
+      const existing = new Set(items.map(it => String(it.model || '').trim()).filter(Boolean));
+      let added = 0, skipped = 0;
+      rows.forEach(row => {
+        const obj = {};
+        ITEM_KEYS.forEach(k => {
+          const col = colMap[k];
+          let v = col != null ? row[col] : '';
+          if (k === 'lastPurchase') v = fmtItemDate(v);
+          else if (ITEM_NUM_KEYS.includes(k)) v = (v === '' || v == null) ? '' : (Number(v) || 0);
+          else v = String(v == null ? '' : v).trim();
+          obj[k] = v;
+        });
+        if (!obj.model && !obj.name) return;
+        if (obj.model && existing.has(String(obj.model).trim())) { skipped++; return; }
+        if (obj.model) existing.add(String(obj.model).trim());
+        items.push(obj);
+        added++;
+      });
+
+      save();
+      renderItemsPage();
+      toast('匯入完成：新增 ' + added + ' 筆' + (skipped ? '，跳過重複 ' + skipped + ' 筆' : ''));
+    } catch(err) {
+      toast('匯入失敗：' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  input.value = '';
 }
 
 // ── 訂單管理 ──────────────────────────────────────────
