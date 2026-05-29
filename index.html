@@ -925,7 +925,7 @@
     <span id="costing-status" style="font-size:12px;color:var(--text-3);align-self:center"></span>
   </div>
   <div class="card">
-    <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr">
       <div class="form-group">
         <label>客戶名稱</label>
         <input id="cst-customer" list="cst-customer-dl" placeholder="輸入搜尋客戶" oninput="filterProjByCustomer('cst')"><datalist id="cst-customer-dl"></datalist>
@@ -933,10 +933,6 @@
       <div class="form-group">
         <label>訂單名稱</label>
         <input id="cst-project" list="cst-project-dl" placeholder="輸入搜尋訂單"><datalist id="cst-project-dl"></datalist>
-      </div>
-      <div class="form-group">
-        <label>試算單號</label>
-        <input id="cst-no" placeholder="單號">
       </div>
       <div class="form-group">
         <label>日期</label>
@@ -3172,7 +3168,7 @@ function filterPickerMaterials() {
 function pickMaterial(matId) {
   const m = materials.find(x => x.id === matId);
   if (!m) return;
-  if (pickerTarget !== 'card' && pickerTarget !== 'invoice' && pickerTarget !== 'purchase') hideMaterialPicker();
+  if (pickerTarget !== 'card' && pickerTarget !== 'invoice' && pickerTarget !== 'purchase' && pickerTarget !== 'costing') hideMaterialPicker();
   if (pickerTarget === 'card') {
     let idx = cardItems.findIndex(item => !item.supplier && !item.name && !item.qty && !item.amount);
     if (idx < 0) { idx = cardItems.length; cardItems.push({ supplier: '', name: '', qty: '', amount: '', note: '' }); }
@@ -3795,7 +3791,6 @@ const CST_EMPTY_ROWS = 5;
 
 function newCosting() {
   currentCostingId = null;
-  document.getElementById('cst-no').value = '';
   document.getElementById('cst-date').value = todayStr();
   document.getElementById('cst-customer').value = '';
   document.getElementById('cst-project').value = '';
@@ -3867,7 +3862,6 @@ function addToCostingFromMat(m) {
 }
 
 async function saveCosting() {
-  const cstNo = document.getElementById('cst-no').value.trim();
   const date = document.getElementById('cst-date').value;
   const customer = document.getElementById('cst-customer').value.trim();
   const orderName = document.getElementById('cst-project').value.trim();
@@ -3883,7 +3877,7 @@ async function saveCosting() {
       method: 'POST', headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
         action: 'saveCosting', recordId: currentCostingId,
-        costingNo: cstNo, date, customer, orderName,
+        costingNo: '', date, customer, orderName,
         items: items.map((it, i) => ({ seq: i+1, name: it.name, qty: Number(it.qty)||0, cost: Number(it.cost)||0, markup: Number(it.markup)||1, price: Number(it.price)||0, subtotal: Number(it.subtotal)||0, matId: it.matId||'' })),
         totalAmount, totalCost, profit
       })
@@ -3925,7 +3919,6 @@ function costingToQuotation() {
 function printCosting() {
   const customerName = (document.getElementById('cst-customer').value || '').trim();
   const orderName = (document.getElementById('cst-project').value || '').trim();
-  const cstNo = document.getElementById('cst-no').value.trim();
   const date = document.getElementById('cst-date').value;
   const items = costingItems.filter(it => it.name);
   if (!items.length) { toast('請至少填寫一筆品項'); return; }
@@ -3936,7 +3929,7 @@ function printCosting() {
   area.innerHTML = `
     <table class="print-header">
       <tr><td class="lbl">客戶名稱</td><td class="val">${esc(customerName||'')}</td><td class="lbl">訂單名稱</td><td class="val">${esc(orderName||'')}</td></tr>
-      <tr><td class="lbl">試算單號</td><td class="val">${esc(cstNo)}</td><td class="lbl">日期</td><td class="val">${esc(date)}</td></tr>
+      <tr><td class="lbl">日期</td><td class="val">${esc(date)}</td><td class="lbl"></td><td class="val"></td></tr>
     </table>
     <table class="print-items">
       <thead><tr><th style="width:35px">項次</th><th>品名規格</th><th style="width:50px">數量</th><th style="width:65px">成本</th><th style="width:45px">成數</th><th style="width:65px">售價</th><th style="width:75px">小計</th></tr></thead>
@@ -3953,21 +3946,20 @@ function printCosting() {
 function exportCostingExcel() {
   const customerName = (document.getElementById('cst-customer').value || '').trim();
   const orderName = (document.getElementById('cst-project').value || '').trim();
-  const cstNo = document.getElementById('cst-no').value.trim();
   const date = document.getElementById('cst-date').value;
   const items = costingItems.filter(it => it.name);
   if (!items.length) { toast('沒有資料可匯出'); return; }
   const total = items.reduce((s, it) => s + (Number(it.subtotal) || 0), 0);
   const totalCost = items.reduce((s, it) => s + ((Number(it.cost)||0) * (Number(it.qty)||0)), 0);
   const profit = total - totalCost;
-  const headerData = [['客戶名稱', customerName, '', '試算單號', cstNo], ['訂單名稱', orderName, '', '日期', date], [], ['項次', '品名規格', '數量', '成本', '成數', '售價', '小計']];
+  const headerData = [['客戶名稱', customerName, '', '日期', date], ['訂單名稱', orderName], [], ['項次', '品名規格', '數量', '成本', '成數', '售價', '小計']];
   const itemData = items.map((it, i) => [i+1, it.name||'', Number(it.qty)||0, Number(it.cost)||0, Number(it.markup)||1, Number(it.price)||0, Number(it.subtotal)||0]);
   const footerData = [[], ['', '', '', '', '', '合計', total], ['', '', '', '', '', '總成本', totalCost], ['', '', '', '', '', '利潤', profit]];
   const ws = XLSX.utils.aoa_to_sheet([...headerData, ...itemData, ...footerData]);
   ws['!cols'] = [{ wch:6 }, { wch:28 }, { wch:8 }, { wch:10 }, { wch:6 }, { wch:10 }, { wch:12 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '成本試算');
-  XLSX.writeFile(wb, '成本試算_' + (cstNo || customerName || date || 'export') + '.xlsx');
+  XLSX.writeFile(wb, '成本試算_' + (customerName || date || 'export') + '.xlsx');
   toast('已匯出成本試算');
 }
 
@@ -4075,7 +4067,6 @@ function editCostingRecord(recordId) {
   const r = costingRecords.find(x => x['紀錄ID'] === recordId);
   if (!r) return;
   currentCostingId = recordId;
-  document.getElementById('cst-no').value = r['試算單號'] || '';
   var dv = r['日期'] || '';
   if (dv) { var dd = new Date(dv); if (!isNaN(dd)) dv = dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0'); }
   document.getElementById('cst-date').value = dv;
