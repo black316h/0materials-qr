@@ -711,6 +711,7 @@
     <button class="btn" onclick="exportOrdersExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
     <span id="order-count" style="font-size:12px;color:var(--text-3);align-self:center;margin-left:auto"></span>
   </div>
+  <div id="order-filter-bar" class="btn-row" style="margin-bottom:12px;gap:6px;flex-wrap:wrap"></div>
   <div class="table-wrap">
     <table>
       <thead>
@@ -720,6 +721,7 @@
           <th>客戶名稱</th>
           <th>訂單名稱</th>
           <th style="width:100px">交期</th>
+          <th style="width:110px">狀態</th>
           <th>備註</th>
           <th style="width:90px"></th>
         </tr>
@@ -734,6 +736,7 @@
       <div class="form-group"><label>客戶名稱</label><input id="f-new-order-cust" list="f-new-order-cust-dl" placeholder="輸入搜尋客戶"><datalist id="f-new-order-cust-dl"></datalist></div>
       <div class="form-group"><label>訂單名稱 <span style="color:var(--red)">*</span></label><input id="f-new-order-name" placeholder="訂單名稱"></div>
       <div class="form-group"><label>交期</label><input id="f-new-order-delivery" type="date"></div>
+      <div class="form-group"><label>狀態</label><select id="f-new-order-status"><option value="報價中">報價中</option><option value="待完成" selected>待完成</option><option value="已完成">已完成</option></select></div>
       <div class="form-group"><label>備註</label><input id="f-new-order-note" placeholder="備註"></div>
     </div>
     <button class="btn btn-primary btn-sm" onclick="addOrder()">＋ 新增訂單</button>
@@ -1771,9 +1774,29 @@ function exportCustomersExcel() {
 function migrateProjects(arr) {
   if (!arr || !arr.length) return [];
   return arr.map((p, i) => {
-    if (typeof p === 'string') return { seq: i+1, date: '', customer: '', name: p, deliveryDate: '', note: '' };
+    if (typeof p === 'string') return { seq: i+1, date: '', customer: '', name: p, deliveryDate: '', note: '', status: '待完成' };
+    if (!p.status) p.status = '待完成';
     return p;
   });
+}
+
+const ORDER_STATUSES = ['報價中', '待完成', '已完成'];
+let orderStatusFilter = '全部';
+function orderStatusStyle(status) {
+  if (status === '報價中') return 'background:#fdf2dc;color:#8a5a00';
+  if (status === '已完成') return 'background:var(--accent-light);color:var(--accent-text)';
+  return 'background:var(--blue-light);color:var(--blue-text)'; // 待完成
+}
+function setOrderStatusFilter(status) {
+  orderStatusFilter = status;
+  renderOrderPage();
+}
+function changeOrderStatus(idx, status) {
+  if (!projects[idx]) return;
+  projects[idx].status = status;
+  save();
+  renderOrderPage();
+  toast('已更新狀態：' + status);
 }
 
 function renderProjOptions() {
@@ -1814,25 +1837,47 @@ let editingOrderIdx = -1;
 function renderOrderPage() {
   const tbody = document.getElementById('order-tbody');
   const countEl = document.getElementById('order-count');
-  if (countEl) countEl.textContent = '共 ' + projects.length + ' 筆';
   renderOrderCustOptions();
   // 預設新增日期為今天
   const dateInput = document.getElementById('f-new-order-date');
   if (dateInput && !dateInput.value) dateInput.value = todayStr();
 
-  if (!projects.length) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">尚無訂單，請新增</div></td></tr>';
+  // 篩選列（含各狀態筆數）
+  const counts = { '全部': projects.length };
+  ORDER_STATUSES.forEach(s => { counts[s] = projects.filter(p => (p.status||'待完成') === s).length; });
+  const bar = document.getElementById('order-filter-bar');
+  if (bar) {
+    bar.innerHTML = ['全部', ...ORDER_STATUSES].map(s => {
+      const active = orderStatusFilter === s;
+      const style = active
+        ? (s === '全部' ? 'background:var(--text);color:#fff;border-color:var(--text)' : orderStatusStyle(s) + ';font-weight:700;border-color:transparent;box-shadow:0 0 0 2px var(--text) inset')
+        : 'background:var(--surface);color:var(--text-2)';
+      return `<button class="btn btn-sm" style="${style}" onclick="setOrderStatusFilter('${s}')">${s} (${counts[s]})</button>`;
+    }).join('');
+  }
+  if (countEl) countEl.textContent = '共 ' + projects.length + ' 筆';
+
+  // 依篩選取出要顯示的列（保留原始 index）
+  const rows = projects
+    .map((p, i) => ({ p, i }))
+    .filter(({ p }) => orderStatusFilter === '全部' || (p.status||'待完成') === orderStatusFilter);
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">' + (projects.length ? '此分類沒有訂單' : '尚無訂單，請新增') + '</div></td></tr>';
     return;
   }
-  tbody.innerHTML = projects.map((p, i) => {
+  tbody.innerHTML = rows.map(({ p, i }) => {
+    const status = p.status || '待完成';
     if (i === editingOrderIdx) {
       const custDlOpts = customers.map(c => `<option value="${esc(c.name)}">`).join('');
+      const statOpts = ORDER_STATUSES.map(s => `<option value="${s}"${s===status?' selected':''}>${s}</option>`).join('');
       return `<tr class="editing">
         <td style="text-align:center">${p.seq || i+1}</td>
         <td><input class="edit-inp" id="eo-date" type="date" value="${esc(p.date||'')}"></td>
         <td><input class="edit-inp" id="eo-cust" list="eo-cust-dl" value="${esc(p.customer||'')}" placeholder="搜尋客戶"><datalist id="eo-cust-dl">${custDlOpts}</datalist></td>
         <td><input class="edit-inp" id="eo-name" value="${esc(p.name||'')}"></td>
         <td><input class="edit-inp" id="eo-delivery" type="date" value="${esc(p.deliveryDate||'')}"></td>
+        <td><select class="edit-inp" id="eo-status">${statOpts}</select></td>
         <td><input class="edit-inp" id="eo-note" value="${esc(p.note||'')}"></td>
         <td style="white-space:nowrap">
           <button class="btn btn-sm btn-primary" onclick="saveOrderEdit(${i})" style="padding:3px 8px;font-size:11px">儲存</button>
@@ -1840,12 +1885,14 @@ function renderOrderPage() {
         </td>
       </tr>`;
     }
+    const statSel = ORDER_STATUSES.map(s => `<option value="${s}"${s===status?' selected':''}>${s}</option>`).join('');
     return `<tr>
       <td style="text-align:center">${p.seq || i+1}</td>
       <td>${p.date ? fmtDate(p.date) : ''}</td>
       <td>${esc(p.customer||'')}</td>
       <td>${esc(p.name||'')}</td>
       <td>${p.deliveryDate ? fmtDate(p.deliveryDate) : ''}</td>
+      <td><select onchange="changeOrderStatus(${i}, this.value)" style="${orderStatusStyle(status)};border:none;border-radius:99px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer">${statSel}</select></td>
       <td>${esc(p.note||'')}</td>
       <td style="white-space:nowrap">
         <button class="btn btn-sm" onclick="editOrder(${i})" style="padding:3px 8px;font-size:11px">編輯</button>
@@ -1867,6 +1914,7 @@ function saveOrderEdit(idx) {
     customer: document.getElementById('eo-cust').value,
     name: name,
     deliveryDate: document.getElementById('eo-delivery').value,
+    status: document.getElementById('eo-status').value,
     note: document.getElementById('eo-note').value.trim()
   };
   editingOrderIdx = -1;
@@ -1884,6 +1932,7 @@ function addOrder() {
     customer: document.getElementById('f-new-order-cust').value,
     name: name,
     deliveryDate: document.getElementById('f-new-order-delivery').value,
+    status: document.getElementById('f-new-order-status').value || '待完成',
     note: document.getElementById('f-new-order-note').value.trim()
   });
   save(); renderOrderPage(); renderProjOptions();
@@ -1902,17 +1951,20 @@ function deleteOrder(idx) {
 }
 
 function printOrders() {
+  const list = orderStatusFilter === '全部' ? projects : projects.filter(p => (p.status||'待完成') === orderStatusFilter);
   const area = document.getElementById('print-area');
-  let html = '<h2 style="text-align:center;margin-bottom:12px">訂單管理</h2>';
+  const titleSuffix = orderStatusFilter === '全部' ? '' : '（' + orderStatusFilter + '）';
+  let html = '<h2 style="text-align:center;margin-bottom:12px">訂單管理' + titleSuffix + '</h2>';
   html += '<table border="1" cellpadding="6" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:12px">';
-  html += '<tr style="background:#eee"><th>序號</th><th>日期</th><th>客戶名稱</th><th>訂單名稱</th><th>交期</th><th>備註</th></tr>';
-  projects.forEach(p => {
+  html += '<tr style="background:#eee"><th>序號</th><th>日期</th><th>客戶名稱</th><th>訂單名稱</th><th>交期</th><th>狀態</th><th>備註</th></tr>';
+  list.forEach(p => {
     html += `<tr>
       <td style="text-align:center">${p.seq||''}</td>
       <td>${p.date ? fmtDate(p.date) : ''}</td>
       <td>${esc(p.customer||'')}</td>
       <td>${esc(p.name||'')}</td>
       <td>${p.deliveryDate ? fmtDate(p.deliveryDate) : ''}</td>
+      <td style="text-align:center">${esc(p.status||'待完成')}</td>
       <td>${esc(p.note||'')}</td>
     </tr>`;
   });
@@ -1923,11 +1975,11 @@ function printOrders() {
 
 function exportOrdersExcel() {
   if (!projects.length) { toast('沒有訂單資料可匯出'); return; }
-  const header = ['序號', '日期', '客戶名稱', '訂單名稱', '交期', '備註'];
-  const data = projects.map(p => [p.seq||'', p.date||'', p.customer||'', p.name||'', p.deliveryDate||'', p.note||'']);
+  const header = ['序號', '日期', '客戶名稱', '訂單名稱', '交期', '狀態', '備註'];
+  const data = projects.map(p => [p.seq||'', p.date||'', p.customer||'', p.name||'', p.deliveryDate||'', p.status||'待完成', p.note||'']);
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet([header, ...data]);
-  ws['!cols'] = [{ wch:6 }, { wch:12 }, { wch:16 }, { wch:24 }, { wch:12 }, { wch:20 }];
+  ws['!cols'] = [{ wch:6 }, { wch:12 }, { wch:16 }, { wch:24 }, { wch:12 }, { wch:10 }, { wch:20 }];
   XLSX.utils.book_append_sheet(wb, ws, '訂單管理');
   XLSX.writeFile(wb, '訂單管理_' + todayStr() + '.xlsx');
   toast('已匯出訂單資料');
