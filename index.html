@@ -625,10 +625,14 @@
       <thead>
         <tr>
           <th>名稱</th>
-          <th>聯絡人</th>
-          <th>電話</th>
+          <th>統編</th>
+          <th>聯絡人1</th>
+          <th>聯絡人2</th>
+          <th>電話1</th>
+          <th>電話2</th>
           <th>傳真</th>
-          <th>手機</th>
+          <th>手機1</th>
+          <th>手機2</th>
           <th>地址</th>
           <th style="width:90px"></th>
         </tr>
@@ -638,13 +642,17 @@
   </div>
   <div class="card" style="margin-top:1rem">
     <div class="card-title">新增客戶</div>
-    <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+    <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px">
       <div class="form-group"><label>客戶名稱 <span style="color:var(--red)">*</span></label><input id="f-new-cust" placeholder="名稱"></div>
-      <div class="form-group"><label>聯絡人</label><input id="f-new-cust-contact" placeholder="聯絡人"></div>
-      <div class="form-group"><label>電話</label><input id="f-new-cust-phone" placeholder="電話"></div>
+      <div class="form-group"><label>統一編號</label><input id="f-new-cust-taxid" placeholder="統一編號"></div>
+      <div class="form-group"><label>聯絡人1</label><input id="f-new-cust-contact1" placeholder="聯絡人1"></div>
+      <div class="form-group"><label>聯絡人2</label><input id="f-new-cust-contact2" placeholder="聯絡人2"></div>
+      <div class="form-group"><label>電話1</label><input id="f-new-cust-phone1" placeholder="電話1"></div>
+      <div class="form-group"><label>電話2</label><input id="f-new-cust-phone2" placeholder="電話2"></div>
       <div class="form-group"><label>傳真</label><input id="f-new-cust-fax" placeholder="傳真"></div>
-      <div class="form-group"><label>手機</label><input id="f-new-cust-mobile" placeholder="手機"></div>
-      <div class="form-group"><label>地址</label><input id="f-new-cust-address" placeholder="地址"></div>
+      <div class="form-group"><label>手機1</label><input id="f-new-cust-mobile1" placeholder="手機1"></div>
+      <div class="form-group"><label>手機2</label><input id="f-new-cust-mobile2" placeholder="手機2"></div>
+      <div class="form-group" style="grid-column:span 3"><label>地址</label><input id="f-new-cust-address" placeholder="地址"></div>
     </div>
     <button class="btn btn-primary btn-sm" onclick="addCustomer()">＋ 新增客戶</button>
   </div>
@@ -1314,7 +1322,24 @@ let cats = JSON.parse(localStorage.getItem(STORAGE_KEY_CATS) || 'null')
 
 function migrateToObj(arr) {
   if (!arr || !arr.length) return [];
-  return arr.map(item => typeof item === 'string' ? { name: item, contact: '', phone: '', fax: '', mobile: '', address: '' } : item);
+  return arr.map(item => {
+    if (typeof item === 'string') return { name: item, taxId:'', contact1:'', contact2:'', phone1:'', phone2:'', fax:'', mobile1:'', mobile2:'', address:'' };
+    // 舊欄位相容：contact→contact1, phone→phone1, mobile→mobile1
+    if (item.contact !== undefined && item.contact1 === undefined) {
+      item.contact1 = item.contact || ''; delete item.contact;
+    }
+    if (item.phone !== undefined && item.phone1 === undefined) {
+      item.phone1 = item.phone || ''; delete item.phone;
+    }
+    if (item.mobile !== undefined && item.mobile1 === undefined) {
+      item.mobile1 = item.mobile || ''; delete item.mobile;
+    }
+    if (item.taxId === undefined) item.taxId = '';
+    if (item.contact2 === undefined) item.contact2 = '';
+    if (item.phone2 === undefined) item.phone2 = '';
+    if (item.mobile2 === undefined) item.mobile2 = '';
+    return item;
+  });
 }
 let customers = migrateToObj(JSON.parse(localStorage.getItem(STORAGE_KEY_CUSTS) || localStorage.getItem('mat_customers_v1') || 'null') || []);
 let projects  = migrateProjects(JSON.parse(localStorage.getItem(STORAGE_KEY_PROJS) || 'null') || []);
@@ -1600,25 +1625,33 @@ function renderCustPage() {
   const q = (document.getElementById('cust-search')?.value || '').toLowerCase();
   const filtered = q ? customers.filter(c =>
     (c.name||'').toLowerCase().includes(q) ||
-    (c.contact||'').toLowerCase().includes(q) ||
-    (c.phone||'').toLowerCase().includes(q) ||
+    (c.taxId||'').toLowerCase().includes(q) ||
+    (c.contact1||c.contact||'').toLowerCase().includes(q) ||
+    (c.contact2||'').toLowerCase().includes(q) ||
+    (c.phone1||c.phone||'').toLowerCase().includes(q) ||
+    (c.phone2||'').toLowerCase().includes(q) ||
     (c.fax||'').toLowerCase().includes(q) ||
-    (c.mobile||'').toLowerCase().includes(q) ||
+    (c.mobile1||c.mobile||'').toLowerCase().includes(q) ||
+    (c.mobile2||'').toLowerCase().includes(q) ||
     (c.address||'').toLowerCase().includes(q)
   ) : customers;
   if (countEl) countEl.textContent = (q ? '搜尋到 ' + filtered.length + ' / ' : '共 ') + customers.length + ' 筆';
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">' + (q ? '找不到符合的客戶' : '尚無客戶，請新增') + '</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11"><div class="empty-state">' + (q ? '找不到符合的客戶' : '尚無客戶，請新增') + '</div></td></tr>';
   } else {
     tbody.innerHTML = filtered.map(c => {
       const i = customers.indexOf(c);
       if (i === editingCustIdx) {
         return `<tr class="editing">
           <td><input class="edit-inp" id="ec-name" value="${esc(c.name)}"></td>
-          <td><input class="edit-inp" id="ec-contact" value="${esc(c.contact||'')}"></td>
-          <td><input class="edit-inp" id="ec-phone" value="${esc(c.phone||'')}"></td>
+          <td><input class="edit-inp" id="ec-taxid" value="${esc(c.taxId||'')}"></td>
+          <td><input class="edit-inp" id="ec-contact1" value="${esc(c.contact1||c.contact||'')}"></td>
+          <td><input class="edit-inp" id="ec-contact2" value="${esc(c.contact2||'')}"></td>
+          <td><input class="edit-inp" id="ec-phone1" value="${esc(c.phone1||c.phone||'')}"></td>
+          <td><input class="edit-inp" id="ec-phone2" value="${esc(c.phone2||'')}"></td>
           <td><input class="edit-inp" id="ec-fax" value="${esc(c.fax||'')}"></td>
-          <td><input class="edit-inp" id="ec-mobile" value="${esc(c.mobile||'')}"></td>
+          <td><input class="edit-inp" id="ec-mobile1" value="${esc(c.mobile1||c.mobile||'')}"></td>
+          <td><input class="edit-inp" id="ec-mobile2" value="${esc(c.mobile2||'')}"></td>
           <td><input class="edit-inp" id="ec-address" value="${esc(c.address||'')}"></td>
           <td style="white-space:nowrap">
             <button class="btn btn-sm btn-primary" onclick="saveCustEdit(${i})" style="padding:3px 8px;font-size:11px">儲存</button>
@@ -1628,10 +1661,14 @@ function renderCustPage() {
       }
       return `<tr>
         <td>${esc(c.name)}</td>
-        <td>${esc(c.contact||'')}</td>
-        <td>${esc(c.phone||'')}</td>
+        <td>${esc(c.taxId||'')}</td>
+        <td>${esc(c.contact1||c.contact||'')}</td>
+        <td>${esc(c.contact2||'')}</td>
+        <td>${esc(c.phone1||c.phone||'')}</td>
+        <td>${esc(c.phone2||'')}</td>
         <td>${esc(c.fax||'')}</td>
-        <td>${esc(c.mobile||'')}</td>
+        <td>${esc(c.mobile1||c.mobile||'')}</td>
+        <td>${esc(c.mobile2||'')}</td>
         <td>${esc(c.address||'')}</td>
         <td style="white-space:nowrap">
           <button class="btn btn-sm" onclick="editCustomer(${i})" style="padding:3px 8px;font-size:11px">編輯</button>
@@ -1651,11 +1688,15 @@ function saveCustEdit(idx) {
   if (dup >= 0) { toast('客戶名稱重複'); return; }
   customers[idx] = {
     name: name,
-    contact: document.getElementById('ec-contact').value.trim(),
-    phone:   document.getElementById('ec-phone').value.trim(),
-    fax:     document.getElementById('ec-fax').value.trim(),
-    mobile:  document.getElementById('ec-mobile').value.trim(),
-    address: document.getElementById('ec-address').value.trim()
+    taxId:    document.getElementById('ec-taxid').value.trim(),
+    contact1: document.getElementById('ec-contact1').value.trim(),
+    contact2: document.getElementById('ec-contact2').value.trim(),
+    phone1:   document.getElementById('ec-phone1').value.trim(),
+    phone2:   document.getElementById('ec-phone2').value.trim(),
+    fax:      document.getElementById('ec-fax').value.trim(),
+    mobile1:  document.getElementById('ec-mobile1').value.trim(),
+    mobile2:  document.getElementById('ec-mobile2').value.trim(),
+    address:  document.getElementById('ec-address').value.trim()
   };
   save();
   editingCustIdx = -1;
@@ -1668,15 +1709,19 @@ function addCustomer() {
   if (customers.some(c => c.name === name)) { toast('客戶已存在'); return; }
   customers.push({
     name: name,
-    contact: document.getElementById('f-new-cust-contact').value.trim(),
-    phone:   document.getElementById('f-new-cust-phone').value.trim(),
-    fax:     document.getElementById('f-new-cust-fax').value.trim(),
-    mobile:  document.getElementById('f-new-cust-mobile').value.trim(),
-    address: document.getElementById('f-new-cust-address').value.trim()
+    taxId:    document.getElementById('f-new-cust-taxid').value.trim(),
+    contact1: document.getElementById('f-new-cust-contact1').value.trim(),
+    contact2: document.getElementById('f-new-cust-contact2').value.trim(),
+    phone1:   document.getElementById('f-new-cust-phone1').value.trim(),
+    phone2:   document.getElementById('f-new-cust-phone2').value.trim(),
+    fax:      document.getElementById('f-new-cust-fax').value.trim(),
+    mobile1:  document.getElementById('f-new-cust-mobile1').value.trim(),
+    mobile2:  document.getElementById('f-new-cust-mobile2').value.trim(),
+    address:  document.getElementById('f-new-cust-address').value.trim()
   });
   save();
   renderCustPage();
-  ['f-new-cust','f-new-cust-contact','f-new-cust-phone','f-new-cust-fax','f-new-cust-mobile','f-new-cust-address'].forEach(id => document.getElementById(id).value = '');
+  ['f-new-cust','f-new-cust-taxid','f-new-cust-contact1','f-new-cust-contact2','f-new-cust-phone1','f-new-cust-phone2','f-new-cust-fax','f-new-cust-mobile1','f-new-cust-mobile2','f-new-cust-address'].forEach(id => document.getElementById(id).value = '');
   toast('已新增客戶：' + name);
 }
 function deleteCustomer(idx) {
@@ -1692,14 +1737,18 @@ function printCustomers() {
   const area = document.getElementById('print-area');
   area.innerHTML = `
     <h2 style="font-size:18px;text-align:center;margin-bottom:10px">客戶資料</h2>
-    <table class="print-items">
-      <thead><tr><th>名稱</th><th>聯絡人</th><th>電話</th><th>傳真</th><th>手機</th><th>地址</th></tr></thead>
+    <table class="print-items" style="font-size:10px">
+      <thead><tr><th>名稱</th><th>統編</th><th>聯絡人1</th><th>聯絡人2</th><th>電話1</th><th>電話2</th><th>傳真</th><th>手機1</th><th>手機2</th><th>地址</th></tr></thead>
       <tbody>${customers.map(c => `<tr>
         <td class="left">${esc(c.name)}</td>
-        <td class="left">${esc(c.contact||'')}</td>
-        <td>${esc(c.phone||'')}</td>
+        <td>${esc(c.taxId||'')}</td>
+        <td class="left">${esc(c.contact1||'')}</td>
+        <td class="left">${esc(c.contact2||'')}</td>
+        <td>${esc(c.phone1||'')}</td>
+        <td>${esc(c.phone2||'')}</td>
         <td>${esc(c.fax||'')}</td>
-        <td>${esc(c.mobile||'')}</td>
+        <td>${esc(c.mobile1||'')}</td>
+        <td>${esc(c.mobile2||'')}</td>
         <td class="left">${esc(c.address||'')}</td>
       </tr>`).join('')}</tbody>
     </table>`;
@@ -1707,10 +1756,10 @@ function printCustomers() {
 }
 function exportCustomersExcel() {
   if (!customers.length) { toast('沒有可匯出的客戶'); return; }
-  const header = [['名稱', '聯絡人', '電話', '傳真', '手機', '地址']];
-  const data = customers.map(c => [c.name||'', c.contact||'', c.phone||'', c.fax||'', c.mobile||'', c.address||'']);
+  const header = [['名稱', '統一編號', '聯絡人1', '聯絡人2', '電話1', '電話2', '傳真', '手機1', '手機2', '地址']];
+  const data = customers.map(c => [c.name||'', c.taxId||'', c.contact1||'', c.contact2||'', c.phone1||'', c.phone2||'', c.fax||'', c.mobile1||'', c.mobile2||'', c.address||'']);
   const ws = XLSX.utils.aoa_to_sheet([...header, ...data]);
-  ws['!cols'] = [{ wch:18 }, { wch:12 }, { wch:14 }, { wch:14 }, { wch:14 }, { wch:30 }];
+  ws['!cols'] = [{ wch:18 }, { wch:12 }, { wch:10 }, { wch:10 }, { wch:14 }, { wch:14 }, { wch:14 }, { wch:14 }, { wch:14 }, { wch:30 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '客戶資料');
   XLSX.writeFile(wb, '客戶資料_' + todayStr() + '.xlsx');
