@@ -711,6 +711,9 @@
     <button class="btn" onclick="exportOrdersExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
     <span id="order-count" style="font-size:12px;color:var(--text-3);align-self:center;margin-left:auto"></span>
   </div>
+  <div style="margin-bottom:10px">
+    <input id="order-search" oninput="renderOrderPage()" placeholder="🔍 搜尋客戶 / 訂單名稱 / 備註" style="width:100%;max-width:360px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px">
+  </div>
   <div id="order-filter-bar" class="btn-row" style="margin-bottom:12px;gap:6px;flex-wrap:wrap"></div>
   <div class="table-wrap">
     <table>
@@ -1842,9 +1845,17 @@ function renderOrderPage() {
   const dateInput = document.getElementById('f-new-order-date');
   if (dateInput && !dateInput.value) dateInput.value = todayStr();
 
-  // 篩選列（含各狀態筆數）
-  const counts = { '全部': projects.length };
-  ORDER_STATUSES.forEach(s => { counts[s] = projects.filter(p => (p.status||'待完成') === s).length; });
+  // 搜尋過濾（客戶 / 訂單名稱 / 備註）
+  const q = (document.getElementById('order-search')?.value || '').trim().toLowerCase();
+  const matchSearch = (p) => !q ||
+    (p.customer||'').toLowerCase().includes(q) ||
+    (p.name||'').toLowerCase().includes(q) ||
+    (p.note||'').toLowerCase().includes(q);
+  const searched = projects.map((p, i) => ({ p, i })).filter(({ p }) => matchSearch(p));
+
+  // 篩選列（各狀態筆數依搜尋結果計算，可獨立搜尋）
+  const counts = { '全部': searched.length };
+  ORDER_STATUSES.forEach(s => { counts[s] = searched.filter(({ p }) => (p.status||'待完成') === s).length; });
   const bar = document.getElementById('order-filter-bar');
   if (bar) {
     bar.innerHTML = ['全部', ...ORDER_STATUSES].map(s => {
@@ -1855,15 +1866,14 @@ function renderOrderPage() {
       return `<button class="btn btn-sm" style="${style}" onclick="setOrderStatusFilter('${s}')">${s} (${counts[s]})</button>`;
     }).join('');
   }
-  if (countEl) countEl.textContent = '共 ' + projects.length + ' 筆';
+  if (countEl) countEl.textContent = q ? ('找到 ' + searched.length + ' 筆 / 共 ' + projects.length + ' 筆') : ('共 ' + projects.length + ' 筆');
 
-  // 依篩選取出要顯示的列（保留原始 index）
-  const rows = projects
-    .map((p, i) => ({ p, i }))
-    .filter(({ p }) => orderStatusFilter === '全部' || (p.status||'待完成') === orderStatusFilter);
+  // 依狀態篩選取出要顯示的列（保留原始 index）
+  const rows = searched.filter(({ p }) => orderStatusFilter === '全部' || (p.status||'待完成') === orderStatusFilter);
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">' + (projects.length ? '此分類沒有訂單' : '尚無訂單，請新增') + '</div></td></tr>';
+    const msg = projects.length ? (q ? '查無符合搜尋的訂單' : '此分類沒有訂單') : '尚無訂單，請新增';
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">' + msg + '</div></td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(({ p, i }) => {
@@ -1951,7 +1961,11 @@ function deleteOrder(idx) {
 }
 
 function printOrders() {
-  const list = orderStatusFilter === '全部' ? projects : projects.filter(p => (p.status||'待完成') === orderStatusFilter);
+  const q = (document.getElementById('order-search')?.value || '').trim().toLowerCase();
+  const list = projects.filter(p =>
+    (orderStatusFilter === '全部' || (p.status||'待完成') === orderStatusFilter) &&
+    (!q || (p.customer||'').toLowerCase().includes(q) || (p.name||'').toLowerCase().includes(q) || (p.note||'').toLowerCase().includes(q))
+  );
   const area = document.getElementById('print-area');
   const titleSuffix = orderStatusFilter === '全部' ? '' : '（' + orderStatusFilter + '）';
   let html = '<h2 style="text-align:center;margin-bottom:12px">訂單管理' + titleSuffix + '</h2>';
