@@ -158,6 +158,19 @@
   .fixed-col-table td, .fixed-col-table th { overflow: hidden; text-overflow: ellipsis; }
   .record-card td { white-space: pre-wrap; word-break: break-word; }
 
+  /* 物品清單：寬表格可左右滑動，操作欄固定在右側 */
+  .items-table-wrap { overflow-x: auto; overflow-y: visible; -webkit-overflow-scrolling: touch; }
+  .items-table-wrap > table { width: max-content; min-width: 100%; }
+  .items-table-wrap th, .items-table-wrap td { white-space: nowrap; }
+  .items-table-wrap th:last-child, .items-table-wrap td:last-child {
+    position: sticky; right: 0; z-index: 1;
+    box-shadow: -5px 0 6px -4px rgba(0,0,0,0.18);
+  }
+  .items-table-wrap td:last-child { background: var(--surface); }
+  .items-table-wrap tr:hover td:last-child { background: var(--bg); }
+  .items-table-wrap tr.editing td:last-child { background: #fffdf5; }
+  .items-table-wrap thead th:last-child { background: var(--bg); z-index: 2; }
+
   .toast {
     position: fixed; bottom: 2rem; right: 2rem;
     background: var(--text); color: #fff; padding: 10px 18px;
@@ -552,6 +565,7 @@
       <div class="form-group"><label>型號 <span style="color:var(--red)">*</span></label><input id="f-new-item-model" placeholder="型號"></div>
       <div class="form-group"><label>品名</label><input id="f-new-item-name" placeholder="品名"></div>
       <div class="form-group"><label>簡稱</label><input id="f-new-item-alias" placeholder="簡稱"></div>
+      <div class="form-group"><label>類別</label><input id="f-new-item-category" placeholder="類別"></div>
       <div class="form-group"><label>單位</label><input id="f-new-item-unit" placeholder="單位"></div>
       <div class="form-group"><label>成本</label><input id="f-new-item-cost" type="number" placeholder="0" min="0"></div>
       <div class="form-group"><label>市價</label><input id="f-new-item-market" type="number" placeholder="0" min="0"></div>
@@ -583,7 +597,7 @@
         <button class="btn btn-sm" onclick="document.getElementById('items-import-help').style.display='none'" style="padding:2px 8px">✕</button>
       </div>
       <p>Excel 第一列為欄位名稱，系統會自動辨識下列欄位（順序不限）：</p>
-      <p style="margin:6px 0"><strong>型號、品名、簡稱、單位、成本、市價、廠牌、最近進貨、供應商、備注一～備注五、經濟批量、長度、寬度、高度</strong></p>
+      <p style="margin:6px 0"><strong>型號、品名、簡稱、類別、單位、成本、市價、廠牌、最近進貨、供應商、備注一～備注五、經濟批量、長度、寬度、高度</strong></p>
       <p>⚠️ 若欄位名稱都不符，系統會依「上述順序」對應欄位</p>
       <p>⚠️ 型號相同的資料會自動跳過，不重複匯入</p>
       <p style="margin-top:6px">📎 支援格式：<strong>.xlsx</strong>、<strong>.xls</strong>、<strong>.csv</strong></p>
@@ -592,18 +606,19 @@
 
   <!-- 搜尋列 -->
   <div class="search-row">
-    <input id="items-search" placeholder="搜尋型號、品名、簡稱、廠牌、供應商…" oninput="renderItemsPage()">
+    <input id="items-search" placeholder="搜尋型號、品名、簡稱、類別、廠牌、供應商…" oninput="renderItemsPage()">
     <span id="items-count" style="font-size:12px;color:var(--text-3);margin-left:auto"></span>
   </div>
 
   <!-- 資料表 -->
-  <div class="table-wrap">
+  <div class="table-wrap items-table-wrap">
     <table>
       <thead>
         <tr>
           <th style="min-width:120px">型號</th>
           <th style="min-width:130px">品名</th>
           <th style="min-width:80px">簡稱</th>
+          <th style="min-width:80px">類別</th>
           <th style="min-width:55px">單位</th>
           <th style="min-width:70px">成本</th>
           <th style="min-width:70px">市價</th>
@@ -1452,10 +1467,10 @@ let customers = migrateToObj(JSON.parse(localStorage.getItem(STORAGE_KEY_CUSTS) 
 let projects  = migrateProjects(JSON.parse(localStorage.getItem(STORAGE_KEY_PROJS) || 'null') || []);
 let suppliers = migrateToObj(JSON.parse(localStorage.getItem(STORAGE_KEY_SUPPS) || localStorage.getItem('mat_suppliers_v1') || 'null') || []);
 // 物品清單
-const ITEM_KEYS = ['model','name','alias','unit','cost','market','brand','lastPurchase','supplier','note1','note2','note3','note4','note5','ecoQty','length','width','height'];
-const ITEM_HEADERS = ['型號','品名','簡稱','單位','成本','市價','廠牌','最近進貨','供應商','備注一','備注二','備注三','備注四','備注五','經濟批量','長度','寬度','高度'];
+const ITEM_KEYS = ['model','name','alias','category','unit','cost','market','brand','lastPurchase','supplier','note1','note2','note3','note4','note5','ecoQty','length','width','height'];
+const ITEM_HEADERS = ['型號','品名','簡稱','類別','單位','成本','市價','廠牌','最近進貨','供應商','備注一','備注二','備注三','備注四','備注五','經濟批量','長度','寬度','高度'];
 const ITEM_NUM_KEYS = ['cost','market','ecoQty','length','width','height'];
-const ITEM_FORM_SUFFIX = { model:'model', name:'name', alias:'alias', unit:'unit', cost:'cost', market:'market', brand:'brand', lastPurchase:'last', supplier:'supplier', note1:'note1', note2:'note2', note3:'note3', note4:'note4', note5:'note5', ecoQty:'eco', length:'length', width:'width', height:'height' };
+const ITEM_FORM_SUFFIX = { model:'model', name:'name', alias:'alias', category:'category', unit:'unit', cost:'cost', market:'market', brand:'brand', lastPurchase:'last', supplier:'supplier', note1:'note1', note2:'note2', note3:'note3', note4:'note4', note5:'note5', ecoQty:'eco', length:'length', width:'width', height:'height' };
 let items = JSON.parse(localStorage.getItem(STORAGE_KEY_ITEMS) || 'null') || [];
 let editingItemIdx = -1;
 
@@ -1886,7 +1901,7 @@ function exportCustomersExcel() {
 
 // ── 物品清單 ──────────────────────────────────────────
 function itemMatchesQuery(it, q) {
-  return ['model','name','alias','brand','supplier','unit','note1','note2','note3','note4','note5']
+  return ['model','name','alias','category','brand','supplier','unit','note1','note2','note3','note4','note5']
     .some(k => String(it[k] == null ? '' : it[k]).toLowerCase().includes(q));
 }
 function renderItemsPage() {
@@ -2023,6 +2038,7 @@ function importItemsExcel(input) {
         else if (/型號|型号|規格|model|spec/i.test(kl)) { if (!colMap.model) colMap.model = k; }
         else if (/品名|名稱|名称|品項|name/i.test(kl)) { if (!colMap.name) colMap.name = k; }
         else if (/簡稱|简称|alias|abbr/i.test(kl)) { if (!colMap.alias) colMap.alias = k; }
+        else if (/類別|类别|分類|分类|category|type/i.test(kl)) { if (!colMap.category) colMap.category = k; }
         else if (/單位|单位|unit/i.test(kl)) { if (!colMap.unit) colMap.unit = k; }
         else if (/成本|進價|cost/i.test(kl)) { if (!colMap.cost) colMap.cost = k; }
         else if (/市價|市价|售價|售价|market|price/i.test(kl)) { if (!colMap.market) colMap.market = k; }
