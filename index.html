@@ -401,6 +401,7 @@
       <div class="home-icon">📊</div>
       <div class="home-label">銷貨紀錄</div>
       <div class="home-desc">查詢出貨歷史紀錄</div>
+      <div id="home-overdue-badge" style="display:none;margin-top:6px;padding:2px 8px;border-radius:10px;background:#fde8e8;color:var(--red);font-size:12px;font-weight:600">⚠ 逾期</div>
     </div>
     <div class="home-card" onclick="showPage('quotation')">
       <div class="home-icon">📝</div>
@@ -967,6 +968,19 @@
     </div>
     <span id="sales-count" style="font-size:12px;color:var(--text-3)"></span>
   </div>
+  <div class="filter-row" id="sales-status-filter-row" style="margin-bottom:8px">
+    <button class="filter-btn active" onclick="setSalesStatusFilter('all',this)">全部狀態</button>
+    <button class="filter-btn" onclick="setSalesStatusFilter('待請款',this)">待請款</button>
+    <button class="filter-btn" onclick="setSalesStatusFilter('待收款',this)">待收款</button>
+    <button class="filter-btn" onclick="setSalesStatusFilter('已收款',this)">已收款</button>
+    <button class="filter-btn" onclick="setSalesStatusFilter('逾期',this)">逾期</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:13px;color:var(--text-2);flex-wrap:wrap">
+    <span>逾期設定：出貨後</span>
+    <input id="sales-overdue-days" type="number" min="0" style="width:64px;padding:4px 6px;text-align:center" onchange="setOverdueDays(this.value)">
+    <span>天未收款，自動標示為逾期</span>
+  </div>
+  <div id="sales-overdue-banner" style="display:none;margin-bottom:10px;padding:10px 12px;border-radius:8px;background:#fde8e8;color:var(--red);font-weight:600;font-size:14px"></div>
   <div class="btn-row" style="margin-bottom:12px">
     <button class="btn btn-primary" onclick="printSalesRecords()">🖨️ 列印</button>
     <button class="btn" onclick="exportSalesRecordsExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
@@ -1686,6 +1700,7 @@ async function loadFromCloud() {
       if (data.costings) costingRecords = data.costings;
       if (data.cardRecords) cardRecordsList = data.cardRecords;
       _recordsLoaded = true;
+      renderOverdueUI();
       toast('已從雲端載入資料');
     } else {
       syncToCloud();
@@ -1714,6 +1729,7 @@ function showPage(name) {
   const isHome = name === 'home';
   document.getElementById('btn-back').style.display = isHome ? 'none' : 'inline-block';
   document.getElementById('header-back').classList.toggle('clickable', !isHome);
+  if (isHome) renderOverdueUI();
   if (name === 'card') loadQueuedItems();
   if (name === 'sales') loadSalesRecords();
   if (name === 'quotations') loadQuotationRecords();
@@ -3802,6 +3818,98 @@ function pickMaterial(matId) {
 // ── 銷貨紀錄 ─────────────────────────────────────────
 let salesRecords = [];
 let salesFilterPeriod = 'all';
+let salesStatusFilter = 'all';
+
+// 逾期天數設定
+const OVERDUE_DAYS_KEY = 'sales_overdue_days_v1';
+function getOverdueDays() {
+  const v = parseInt(localStorage.getItem(OVERDUE_DAYS_KEY));
+  return isNaN(v) ? 30 : v;
+}
+function setOverdueDays(n) {
+  const v = parseInt(n);
+  localStorage.setItem(OVERDUE_DAYS_KEY, isNaN(v) || v < 0 ? 30 : v);
+  renderSalesTable();
+  renderOverdueUI();
+}
+
+// 狀態判定工具
+const SALES_STATUSES = ['待請款', '待收款', '已收款', '逾期'];
+function salesStatusOf(r) { return r['狀態'] || '待請款'; }
+function daysSinceShip(r) {
+  if (!r['日期']) return 0;
+  const d = new Date(r['日期']);
+  if (isNaN(d)) return 0;
+  return Math.floor((Date.now() - d.getTime()) / 86400000);
+}
+function isSalesOverdue(r) {
+  const s = salesStatusOf(r);
+  if (s === '已收款') return false;
+  if (s === '逾期') return true;
+  return daysSinceShip(r) > getOverdueDays();
+}
+function salesOverdueDays(r) { return Math.max(0, daysSinceShip(r) - getOverdueDays()); }
+function salesStatusColor(status) {
+  switch (status) {
+    case '已收款': return 'background:var(--green-light);color:var(--green-text)';
+    case '待收款': return 'background:#fff7e6;color:#b7791f';
+    case '逾期':   return 'background:#fde8e8;color:var(--red)';
+    default:        return 'background:var(--bg);color:var(--text-2)';
+  }
+}
+function salesStatusSelectHtml(r) {
+  const cur = salesStatusOf(r);
+  const id = esc(r['紀錄ID'] || '');
+  const opts = SALES_STATUSES.map(s => `<option value="${s}"${s === cur ? ' selected' : ''}>${s}</option>`).join('');
+  const style = isSalesOverdue(r) ? salesStatusColor('逾期') : salesStatusColor(cur);
+  return `<select class="sales-status-sel" onchange="updateSalesStatus('${id}',this.value)" onclick="event.stopPropagation()" style="${style};border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:12px;font-weight:600;cursor:pointer">${opts}</select>`;
+}
+
+async function updateSalesStatus(recordId, status) {
+  const r = salesRecords.find(x => x['紀錄ID'] === recordId);
+  if (r) r['狀態'] = status;       // 樂觀更新
+  renderSalesTable();
+  renderOverdueUI();
+  try {
+    const resp = await fetch(GAS_URL, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'updateSalesStatus', recordId, status })
+    });
+    const result = await resp.json();
+    if (result.ok) toast('狀態已更新：' + status);
+    else toast('狀態更新失敗：' + (result.error || '未知錯誤'));
+  } catch (e) {
+    toast('狀態更新失敗');
+  }
+}
+
+function setSalesStatusFilter(status, btn) {
+  salesStatusFilter = status;
+  document.querySelectorAll('#sales-status-filter-row .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSalesTable();
+}
+
+// 逾期提醒 UI（銷貨頁橫幅 + 首頁徽章 + 逾期天數輸入同步）
+function renderOverdueUI() {
+  const n = salesRecords.filter(isSalesOverdue).length;
+  const banner = document.getElementById('sales-overdue-banner');
+  if (banner) {
+    if (n > 0) {
+      banner.style.display = 'block';
+      banner.textContent = '⚠ 有 ' + n + ' 筆逾期未收款（逾期判定：出貨後超過 ' + getOverdueDays() + ' 天）';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+  const badge = document.getElementById('home-overdue-badge');
+  if (badge) {
+    if (n > 0) { badge.style.display = 'inline-block'; badge.textContent = '⚠ ' + n + ' 筆逾期'; }
+    else { badge.style.display = 'none'; }
+  }
+  const daysInput = document.getElementById('sales-overdue-days');
+  if (daysInput && document.activeElement !== daysInput) daysInput.value = getOverdueDays();
+}
 
 async function loadSalesRecords(forceRefresh) {
   if (_recordsLoaded && salesRecords.length && !forceRefresh) {
@@ -3814,6 +3922,7 @@ async function loadSalesRecords(forceRefresh) {
     const data = await resp.json();
     salesRecords = data.sales || [];
     renderSalesTable();
+    renderOverdueUI();
     document.getElementById('sales-loading').style.display = 'none';
   } catch(e) {
     document.getElementById('sales-loading').style.display = 'none';
@@ -3827,30 +3936,38 @@ function fmtDate(v) {
   if (isNaN(d)) return String(v);
   return d.getFullYear() + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0');
 }
+function salesRowMatches(r, q, now) {
+  if (q) {
+    const match = String(r['客戶']||'').toLowerCase().includes(q) || String(r['出貨單號']||'').toLowerCase().includes(q) || String(r['紀錄ID']||'').toLowerCase().includes(q) || String(r['日期']||'').toLowerCase().includes(q) || fmtDate(r['日期']).toLowerCase().includes(q);
+    if (!match) return false;
+  }
+  if (salesFilterPeriod !== 'all' && r['日期']) {
+    const d = new Date(r['日期']);
+    if (salesFilterPeriod === 'month') { if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return false; }
+    if (salesFilterPeriod === 'week') { const diff = (now - d) / 86400000; if (diff > 7 || diff < 0) return false; }
+  }
+  if (salesStatusFilter !== 'all') {
+    if (salesStatusFilter === '逾期') { if (!isSalesOverdue(r)) return false; }
+    else { if (salesStatusOf(r) !== salesStatusFilter) return false; }
+  }
+  return true;
+}
 function renderSalesTable() {
   const q = (document.getElementById('sales-search').value || '').toLowerCase();
   const now = new Date();
-  const rows = salesRecords.filter(r => {
-    if (q) {
-      const match = String(r['客戶']||'').toLowerCase().includes(q) || String(r['出貨單號']||'').toLowerCase().includes(q) || String(r['紀錄ID']||'').toLowerCase().includes(q) || String(r['日期']||'').toLowerCase().includes(q) || fmtDate(r['日期']).toLowerCase().includes(q);
-      if (!match) return false;
-    }
-    if (salesFilterPeriod !== 'all' && r['日期']) {
-      const d = new Date(r['日期']);
-      if (salesFilterPeriod === 'month') { if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return false; }
-      if (salesFilterPeriod === 'week') { const diff = (now - d) / 86400000; if (diff > 7 || diff < 0) return false; }
-    }
-    return true;
-  });
+  const rows = salesRecords.filter(r => salesRowMatches(r, q, now));
   document.getElementById('sales-count').textContent = '共 ' + rows.length + ' 筆';
   const container = document.getElementById('sales-list');
   if (!rows.length) {
     container.innerHTML = '<div class="empty-state">沒有符合的紀錄</div>';
+    renderOverdueUI();
     return;
   }
   container.innerHTML = rows.map(r => {
     let items = [];
     try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
+    const overdue = isSalesOverdue(r);
+    const odDays = salesOverdueDays(r);
     return `
     <div class="record-card">
       <div class="record-header">
@@ -3860,7 +3977,9 @@ function renderSalesTable() {
           <span>單號：<strong>${esc(r['出貨單號']||'—')}</strong></span>
           <span class="record-divider">|</span>
           <span>客戶：<strong>${esc(r['客戶']||'—')}</strong></span>
+          ${overdue ? `<span class="record-divider">|</span><span style="color:var(--red);font-weight:600">⚠ 逾期${odDays>0?' '+odDays+' 天':''}</span>` : ''}
         </div>
+        ${salesStatusSelectHtml(r)}
         <button class="btn btn-sm" onclick="printSingleSalesRecord('${esc(r['紀錄ID']||'')}')">🖨️</button>
         <button class="btn btn-sm" onclick="editSalesRecord('${esc(r['紀錄ID']||'')}')">編輯</button>
       </div>
@@ -3881,6 +4000,7 @@ function renderSalesTable() {
       <div class="record-total">合計：$${(Number(r['合計金額'])||0).toLocaleString()}</div>
     </div>`;
   }).join('');
+  renderOverdueUI();
 }
 
 function setSalesFilter(period, btn) {
@@ -3893,18 +4013,7 @@ function setSalesFilter(period, btn) {
 function getFilteredSalesRows() {
   const q = (document.getElementById('sales-search').value || '').toLowerCase();
   const now = new Date();
-  return salesRecords.filter(r => {
-    if (q) {
-      const match = String(r['客戶']||'').toLowerCase().includes(q) || String(r['出貨單號']||'').toLowerCase().includes(q) || String(r['紀錄ID']||'').toLowerCase().includes(q) || String(r['日期']||'').toLowerCase().includes(q) || fmtDate(r['日期']).toLowerCase().includes(q);
-      if (!match) return false;
-    }
-    if (salesFilterPeriod !== 'all' && r['日期']) {
-      const d = new Date(r['日期']);
-      if (salesFilterPeriod === 'month') { if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return false; }
-      if (salesFilterPeriod === 'week') { const diff = (now - d) / 86400000; if (diff > 7 || diff < 0) return false; }
-    }
-    return true;
-  });
+  return salesRecords.filter(r => salesRowMatches(r, q, now));
 }
 
 function printSingleSalesRecord(recordId) {
