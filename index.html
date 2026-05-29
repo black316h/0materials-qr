@@ -2097,13 +2097,15 @@ function saveItemEdit(idx) {
   const obj = {};
   ITEM_KEYS.forEach(k => { obj[k] = readItemInput('ei-' + k, k); });
   if (!obj.model && !obj.name) { toast('請至少輸入型號或品名'); return; }
+  const oldAlias = items[idx] ? items[idx].alias : '';
   items[idx] = obj;
+  const renamed = renameAliasInMaterials(oldAlias, obj.alias);
   const synced = syncCatToMaterials(obj.alias, obj.category);
   save();
   editingItemIdx = -1;
   renderItemsPage();
-  if (synced) renderTable();
-  toast('已更新物品：' + (obj.model || obj.name) + (synced ? '（已同步材料主檔類別）' : ''));
+  if (synced || renamed) renderTable();
+  toast('已更新物品：' + (obj.model || obj.name) + (renamed ? '（已同步材料主檔簡稱）' : (synced ? '（已同步材料主檔類別）' : '')));
 }
 function addItem() {
   const obj = {};
@@ -2651,6 +2653,27 @@ function syncCatToMaterials(alias, category) {
   });
   return changed;
 }
+// 簡稱改名時，把另一邊相同（舊）簡稱的資料一起改名
+function renameAliasInItems(oldAlias, newAlias) {
+  oldAlias = String(oldAlias || '').trim();
+  newAlias = String(newAlias || '').trim();
+  if (!oldAlias || oldAlias === newAlias) return false;
+  let changed = false;
+  items.forEach(it => {
+    if (String(it.alias || '').trim() === oldAlias) { it.alias = newAlias; changed = true; }
+  });
+  return changed;
+}
+function renameAliasInMaterials(oldAlias, newAlias) {
+  oldAlias = String(oldAlias || '').trim();
+  newAlias = String(newAlias || '').trim();
+  if (!oldAlias || oldAlias === newAlias) return false;
+  let changed = false;
+  materials.forEach(m => {
+    if (String(m.model || '').trim() === oldAlias) { m.model = newAlias; changed = true; }
+  });
+  return changed;
+}
 function addMaterial() {
   const brand = document.getElementById('f-brand').value;
   const model = document.getElementById('f-model').value.trim();
@@ -2695,11 +2718,13 @@ function saveEdit(id) {
   if (idx < 0) return;
   const model = editBuf.model ? editBuf.model.trim() : '';
   if (!model) { toast('簡稱不能為空'); return; }
+  const oldAlias = materials[idx].model;
   materials[idx] = { ...materials[idx], brand: editBuf.brand, model, cat: editBuf.cat, price: Number(editBuf.price) || 0, stock: Number(editBuf.stock) || 0 };
+  const renamed = renameAliasInItems(oldAlias, model);
   const synced = syncCatToItems(model, editBuf.cat);
   save(); editingId = null; editBuf = {};
-  renderTable(); if (synced) renderItemsPage();
-  toast('已儲存 ' + id + (synced ? '（已同步物品清單類別）' : ''));
+  renderTable(); if (synced || renamed) renderItemsPage();
+  toast('已儲存 ' + id + (renamed ? '（已同步物品清單簡稱）' : (synced ? '（已同步物品清單類別）' : '')));
 }
 
 function quickUpdateStock(id, el) {
