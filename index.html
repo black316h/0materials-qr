@@ -448,8 +448,8 @@
         <select id="f-brand" onchange="buildModelList()"></select>
       </div>
       <div class="form-group" style="grid-column:span 2">
-        <label>型號 / 規格 <span style="color:var(--red)">*</span></label>
-        <input id="f-model" placeholder="例：MS0-P30T HP 220V" list="model-list">
+        <label>簡稱 <span style="color:var(--red)">*</span></label>
+        <input id="f-model" placeholder="簡稱（與物品清單共用）" list="model-list">
       </div>
       <div class="form-group">
         <label>類別</label>
@@ -483,13 +483,13 @@
         </tr></thead>
         <tbody>
           <tr><td style="padding:5px 8px;border:1px solid var(--border)">廠牌</td><td style="padding:5px 8px;border:1px solid var(--border)">廠牌、brand</td><td style="padding:5px 8px;border:1px solid var(--border)">否</td></tr>
-          <tr><td style="padding:5px 8px;border:1px solid var(--border)"><strong>型號/規格</strong></td><td style="padding:5px 8px;border:1px solid var(--border)">型號、規格、model、spec</td><td style="padding:5px 8px;border:1px solid var(--border)"><strong style="color:var(--red)">是</strong></td></tr>
+          <tr><td style="padding:5px 8px;border:1px solid var(--border)"><strong>簡稱</strong></td><td style="padding:5px 8px;border:1px solid var(--border)">簡稱、型號、規格、model、spec</td><td style="padding:5px 8px;border:1px solid var(--border)"><strong style="color:var(--red)">是</strong></td></tr>
           <tr><td style="padding:5px 8px;border:1px solid var(--border)">類別</td><td style="padding:5px 8px;border:1px solid var(--border)">類別、分類、cat</td><td style="padding:5px 8px;border:1px solid var(--border)">否</td></tr>
           <tr><td style="padding:5px 8px;border:1px solid var(--border)">單價</td><td style="padding:5px 8px;border:1px solid var(--border)">單價、價格、price</td><td style="padding:5px 8px;border:1px solid var(--border)">否</td></tr>
         </tbody>
       </table>
-      <p style="margin-top:6px">⚠️ 若欄位名稱都不符，系統會依順序當作：<strong>廠牌、型號、類別、單價</strong></p>
-      <p>⚠️ 相同廠牌＋型號的資料會自動跳過，不會重複匯入</p>
+      <p style="margin-top:6px">⚠️ 若欄位名稱都不符，系統會依順序當作：<strong>廠牌、簡稱、類別、單價</strong></p>
+      <p>⚠️ 相同廠牌＋簡稱的資料會自動跳過，不會重複匯入</p>
       <p style="margin-top:6px">📎 支援格式：<strong>.xlsx</strong>、<strong>.xls</strong>、<strong>.csv</strong></p>
     </div>
   </div>
@@ -528,7 +528,7 @@
 
   <!-- 搜尋列 -->
   <div class="search-row">
-    <input id="search" placeholder="搜尋廠牌、型號…" oninput="debounceRender()">
+    <input id="search" placeholder="搜尋廠牌、簡稱…" oninput="debounceRender()">
     <div class="filter-row" id="filter-row"></div>
     <span id="mat-count"></span>
   </div>
@@ -539,7 +539,7 @@
       <thead>
         <tr>
           <th style="width:90px">廠牌</th>
-          <th>型號 / 規格</th>
+          <th>簡稱</th>
           <th style="width:95px">類別</th>
           <th style="width:75px">單價</th>
           <th style="width:60px">庫存</th>
@@ -1252,13 +1252,13 @@
 <div id="material-picker-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)hideMaterialPicker()">
   <div class="modal-content">
     <div class="card-title">從材料主檔選取</div>
-    <input id="picker-search" placeholder="搜尋廠牌、型號…" oninput="filterPickerMaterials()" style="width:100%;margin-bottom:1rem">
+    <input id="picker-search" placeholder="搜尋廠牌、簡稱…" oninput="filterPickerMaterials()" style="width:100%;margin-bottom:1rem">
     <div class="table-wrap" style="max-height:50vh;overflow-y:auto">
       <table>
         <thead>
           <tr>
             <th>廠牌</th>
-            <th>型號</th>
+            <th>簡稱</th>
             <th style="width:55px"></th>
           </tr>
         </thead>
@@ -2098,20 +2098,24 @@ function saveItemEdit(idx) {
   ITEM_KEYS.forEach(k => { obj[k] = readItemInput('ei-' + k, k); });
   if (!obj.model && !obj.name) { toast('請至少輸入型號或品名'); return; }
   items[idx] = obj;
+  const synced = syncCatToMaterials(obj.alias, obj.category);
   save();
   editingItemIdx = -1;
   renderItemsPage();
-  toast('已更新物品：' + (obj.model || obj.name));
+  if (synced) renderTable();
+  toast('已更新物品：' + (obj.model || obj.name) + (synced ? '（已同步材料主檔類別）' : ''));
 }
 function addItem() {
   const obj = {};
   ITEM_KEYS.forEach(k => { obj[k] = readItemInput('f-new-item-' + ITEM_FORM_SUFFIX[k], k); });
   if (!obj.model && !obj.name) { toast('請至少輸入型號或品名'); return; }
   items.push(obj);
+  const synced = syncCatToMaterials(obj.alias, obj.category);
   save();
   renderItemsPage();
+  if (synced) renderTable();
   clearItemForm();
-  toast('已新增物品：' + (obj.model || obj.name));
+  toast('已新增物品：' + (obj.model || obj.name) + (synced ? '（已同步材料主檔類別）' : ''));
 }
 function clearItemForm() {
   ITEM_KEYS.forEach(k => { const el = document.getElementById('f-new-item-' + ITEM_FORM_SUFFIX[k]); if (el) el.value = ''; });
@@ -2623,15 +2627,41 @@ function renderFilterBtns() {
 }
 
 // ── 材料新增 / 刪除 ───────────────────────────────────
+// ── 材料主檔 ⟷ 物品清單「簡稱／類別」雙向連動（以簡稱為對應鍵）──
+// 材料主檔的簡稱存於 m.model，物品清單的簡稱存於 it.alias
+function syncCatToItems(alias, category) {
+  alias = String(alias || '').trim();
+  if (!alias) return false;
+  let changed = false;
+  items.forEach(it => {
+    if (String(it.alias || '').trim() === alias && it.category !== category) {
+      it.category = category; changed = true;
+    }
+  });
+  return changed;
+}
+function syncCatToMaterials(alias, category) {
+  alias = String(alias || '').trim();
+  if (!alias) return false;
+  let changed = false;
+  materials.forEach(m => {
+    if (String(m.model || '').trim() === alias && m.cat !== category) {
+      m.cat = category; changed = true;
+    }
+  });
+  return changed;
+}
 function addMaterial() {
   const brand = document.getElementById('f-brand').value;
   const model = document.getElementById('f-model').value.trim();
-  if (!model) { toast('請填寫型號 / 規格'); return; }
+  if (!model) { toast('請填寫簡稱'); return; }
   const price = parseFloat(document.getElementById('f-price').value) || 0;
   const cat   = document.getElementById('f-cat').value;
   const id    = 'M' + pad(nextNum++);
   materials.push({ id, brand, model, price, cat, stock: 0 });
-  save(); renderTable(); clearForm(); toast('已新增：' + brand + ' ' + model);
+  const synced = syncCatToItems(model, cat);
+  save(); renderTable(); if (synced) renderItemsPage(); clearForm();
+  toast('已新增：' + brand + ' ' + model + (synced ? '（已同步物品清單類別）' : ''));
 }
 function clearForm() {
   document.getElementById('f-model').value = '';
@@ -2664,10 +2694,12 @@ function saveEdit(id) {
   const idx = materials.findIndex(x => x.id === id);
   if (idx < 0) return;
   const model = editBuf.model ? editBuf.model.trim() : '';
-  if (!model) { toast('型號 / 規格不能為空'); return; }
+  if (!model) { toast('簡稱不能為空'); return; }
   materials[idx] = { ...materials[idx], brand: editBuf.brand, model, cat: editBuf.cat, price: Number(editBuf.price) || 0, stock: Number(editBuf.stock) || 0 };
+  const synced = syncCatToItems(model, editBuf.cat);
   save(); editingId = null; editBuf = {};
-  renderTable(); toast('已儲存 ' + id);
+  renderTable(); if (synced) renderItemsPage();
+  toast('已儲存 ' + id + (synced ? '（已同步物品清單類別）' : ''));
 }
 
 function quickUpdateStock(id, el) {
@@ -2769,7 +2801,7 @@ function exportMasterExcel() {
   const rows = filteredRows.length ? filteredRows : materials;
   if (!rows.length) { toast('沒有資料可匯出'); return; }
 
-  const header = ['料號', '廠牌', '型號 / 規格', '類別', '單價', '庫存'];
+  const header = ['料號', '廠牌', '簡稱', '類別', '單價', '庫存'];
   const data = rows.map(m => [m.id || '', m.brand || '', m.model || '', m.cat || '', m.price || 0, m.stock || 0]);
   const wsData = [header, ...data];
   const ws = XLSX.utils.aoa_to_sheet(wsData);
@@ -2811,7 +2843,7 @@ function importExcel(input) {
       keys.forEach(k => {
         const kl = k.trim().toLowerCase();
         if (/廠牌|brand/i.test(kl)) colMap.brand = k;
-        else if (/型號|規格|model|spec/i.test(kl)) colMap.model = k;
+        else if (/簡稱|型號|規格|model|spec/i.test(kl)) colMap.model = k;
         else if (/類別|分類|cat/i.test(kl)) colMap.cat = k;
         else if (/單價|價格|price/i.test(kl)) colMap.price = k;
       });
@@ -2824,7 +2856,7 @@ function importExcel(input) {
         if (keys[3]) colMap.price = keys[3];
       }
 
-      if (!colMap.model) { toast('找不到型號/規格欄位'); return; }
+      if (!colMap.model) { toast('找不到簡稱欄位'); return; }
 
       let added = 0, skipped = 0;
       rows.forEach(row => {
