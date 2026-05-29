@@ -1107,14 +1107,15 @@
             <th style="width:55px">成數</th>
             <th style="width:70px">售價</th>
             <th style="width:80px">小計</th>
+            <th style="width:48px">佔比</th>
             <th style="width:22px"></th>
           </tr>
         </thead>
         <tbody id="cst-items-tbody"></tbody>
         <tfoot>
-          <tr><td colspan="7" style="text-align:right;font-weight:700;border:none">合計</td><td id="cst-total-cell" style="font-weight:700;text-align:right;border:none">$0</td><td style="border:none"></td></tr>
-          <tr><td colspan="7" style="text-align:right;font-size:12px;color:var(--text-3);border:none">總成本</td><td id="cst-cost-cell" style="font-size:12px;color:var(--text-3);text-align:right;border:none">$0</td><td style="border:none"></td></tr>
-          <tr><td colspan="7" style="text-align:right;font-size:12px;font-weight:600;color:var(--accent-text);border:none">利潤</td><td id="cst-profit-cell" style="font-size:12px;font-weight:600;color:var(--accent-text);text-align:right;border:none">$0</td><td style="border:none"></td></tr>
+          <tr><td colspan="7" style="text-align:right;font-weight:700;border:none">合計</td><td id="cst-total-cell" style="font-weight:700;text-align:right;border:none">$0</td><td id="cst-total-pct" style="font-weight:700;text-align:right;font-size:11px;color:var(--text-3);border:none">100%</td><td style="border:none"></td></tr>
+          <tr><td colspan="7" style="text-align:right;font-size:12px;color:var(--text-3);border:none">總成本</td><td id="cst-cost-cell" style="font-size:12px;color:var(--text-3);text-align:right;border:none">$0</td><td id="cst-cost-pct" style="font-size:11px;color:var(--text-3);text-align:right;border:none">0%</td><td style="border:none"></td></tr>
+          <tr><td colspan="7" style="text-align:right;font-size:12px;font-weight:600;color:var(--accent-text);border:none">利潤</td><td id="cst-profit-cell" style="font-size:12px;font-weight:600;color:var(--accent-text);text-align:right;border:none">$0</td><td id="cst-profit-pct" style="font-size:11px;font-weight:600;color:var(--accent-text);text-align:right;border:none">0%</td><td style="border:none"></td></tr>
         </tfoot>
       </table>
     </div>
@@ -4420,6 +4421,7 @@ function renderCstItems() {
     <td><input class="card-inp" type="number" value="${it.markup||''}" min="0" step="0.1" onchange="costingItems[${i}].markup=this.value;calcCstRow(${i})" style="text-align:center"></td>
     <td style="text-align:right;font-size:12px;color:var(--text-2)" id="cst-price-${i}">${it.price ? '$'+Number(it.price).toLocaleString() : ''}</td>
     <td style="text-align:right;font-weight:500" id="cst-sub-${i}">${it.subtotal ? '$'+Number(it.subtotal).toLocaleString() : ''}</td>
+    <td style="text-align:right;font-size:11px;color:var(--text-3)" id="cst-pct-${i}"></td>
     <td><button class="btn-danger" style="font-size:14px;padding:0 4px" onclick="costingItems.splice(${i},1);renderCstItems();calcCstTotal()">×</button></td>
   </tr>`).join('');
   initAutoResize(tbody);
@@ -4449,6 +4451,16 @@ function calcCstTotal() {
   const profitEl = document.getElementById('cst-profit-cell');
   profitEl.textContent = '$' + profit.toLocaleString();
   profitEl.style.color = profit >= 0 ? 'var(--accent-text)' : 'var(--red)';
+  // 百分比：各列小計佔合計，及合計/總成本/利潤佔比
+  const pctStr = v => total > 0 ? (v / total * 100).toFixed(1) + '%' : '—';
+  const tp = document.getElementById('cst-total-pct'); if (tp) tp.textContent = total > 0 ? '100%' : '—';
+  const cp = document.getElementById('cst-cost-pct'); if (cp) cp.textContent = pctStr(totalCost);
+  const pp = document.getElementById('cst-profit-pct');
+  if (pp) { pp.textContent = pctStr(profit); pp.style.color = profit >= 0 ? 'var(--accent-text)' : 'var(--red)'; }
+  costingItems.forEach((it, i) => {
+    const el = document.getElementById('cst-pct-' + i);
+    if (el) el.textContent = (it.name && total > 0) ? (Number(it.subtotal||0) / total * 100).toFixed(1) + '%' : '';
+  });
 }
 
 function addCstItem() {
@@ -4567,12 +4579,12 @@ function printCosting() {
       <tr><td class="lbl">日期</td><td class="val">${esc(date)}</td><td class="lbl"></td><td class="val"></td></tr>
     </table>
     <table class="print-items">
-      <thead><tr><th style="width:35px">項次</th><th style="width:80px">廠商</th><th>品名規格</th><th style="width:50px">數量</th><th style="width:65px">成本</th><th style="width:45px">成數</th><th style="width:65px">售價</th><th style="width:75px">小計</th></tr></thead>
-      <tbody>${items.map((it, i) => `<tr><td>${i+1}</td><td class="left">${esc(it.supplier||'')}</td><td class="left">${esc(it.name)}</td><td>${Number(it.qty)||0}</td><td class="right">$${(Number(it.cost)||0).toLocaleString()}</td><td style="text-align:center">${it.markup||''}</td><td class="right">$${(Number(it.price)||0).toLocaleString()}</td><td class="right">$${(Number(it.subtotal)||0).toLocaleString()}</td></tr>`).join('')}</tbody>
+      <thead><tr><th style="width:35px">項次</th><th style="width:80px">廠商</th><th>品名規格</th><th style="width:50px">數量</th><th style="width:65px">成本</th><th style="width:45px">成數</th><th style="width:65px">售價</th><th style="width:75px">小計</th><th style="width:45px">佔比</th></tr></thead>
+      <tbody>${items.map((it, i) => `<tr><td>${i+1}</td><td class="left">${esc(it.supplier||'')}</td><td class="left">${esc(it.name)}</td><td>${Number(it.qty)||0}</td><td class="right">$${(Number(it.cost)||0).toLocaleString()}</td><td style="text-align:center">${it.markup||''}</td><td class="right">$${(Number(it.price)||0).toLocaleString()}</td><td class="right">$${(Number(it.subtotal)||0).toLocaleString()}</td><td class="right">${total>0?((Number(it.subtotal)||0)/total*100).toFixed(1)+'%':''}</td></tr>`).join('')}</tbody>
       <tfoot>
-        <tr><td colspan="6" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td></tr>
-        <tr><td colspan="6" style="border:none"></td><td class="right">總成本</td><td class="right">$${totalCost.toLocaleString()}</td></tr>
-        <tr><td colspan="6" style="border:none"></td><td class="right" style="font-weight:700">利潤</td><td class="right" style="font-weight:700">$${profit.toLocaleString()}</td></tr>
+        <tr><td colspan="6" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td><td class="right" style="font-weight:700">${total>0?'100%':'—'}</td></tr>
+        <tr><td colspan="6" style="border:none"></td><td class="right">總成本</td><td class="right">$${totalCost.toLocaleString()}</td><td class="right">${total>0?(totalCost/total*100).toFixed(1)+'%':'—'}</td></tr>
+        <tr><td colspan="6" style="border:none"></td><td class="right" style="font-weight:700">利潤</td><td class="right" style="font-weight:700">$${profit.toLocaleString()}</td><td class="right" style="font-weight:700">${total>0?(profit/total*100).toFixed(1)+'%':'—'}</td></tr>
       </tfoot>
     </table>`;
   window.print();
@@ -4587,11 +4599,12 @@ function exportCostingExcel() {
   const total = items.reduce((s, it) => s + (Number(it.subtotal) || 0), 0);
   const totalCost = items.reduce((s, it) => s + ((Number(it.cost)||0) * (Number(it.qty)||0)), 0);
   const profit = total - totalCost;
-  const headerData = [['客戶名稱', customerName, '', '日期', date], ['訂單名稱', orderName], [], ['項次', '廠商', '品名規格', '數量', '成本', '成數', '售價', '小計']];
-  const itemData = items.map((it, i) => [i+1, it.supplier||'', it.name||'', Number(it.qty)||0, Number(it.cost)||0, Number(it.markup)||1, Number(it.price)||0, Number(it.subtotal)||0]);
-  const footerData = [[], ['', '', '', '', '', '', '合計', total], ['', '', '', '', '', '', '總成本', totalCost], ['', '', '', '', '', '', '利潤', profit]];
+  const pctOf = v => total > 0 ? (v / total * 100).toFixed(1) + '%' : '';
+  const headerData = [['客戶名稱', customerName, '', '日期', date], ['訂單名稱', orderName], [], ['項次', '廠商', '品名規格', '數量', '成本', '成數', '售價', '小計', '佔比']];
+  const itemData = items.map((it, i) => [i+1, it.supplier||'', it.name||'', Number(it.qty)||0, Number(it.cost)||0, Number(it.markup)||1, Number(it.price)||0, Number(it.subtotal)||0, pctOf(Number(it.subtotal)||0)]);
+  const footerData = [[], ['', '', '', '', '', '', '合計', total, total>0?'100%':''], ['', '', '', '', '', '', '總成本', totalCost, pctOf(totalCost)], ['', '', '', '', '', '', '利潤', profit, pctOf(profit)]];
   const ws = XLSX.utils.aoa_to_sheet([...headerData, ...itemData, ...footerData]);
-  ws['!cols'] = [{ wch:6 }, { wch:12 }, { wch:28 }, { wch:8 }, { wch:10 }, { wch:6 }, { wch:10 }, { wch:12 }];
+  ws['!cols'] = [{ wch:6 }, { wch:12 }, { wch:28 }, { wch:8 }, { wch:10 }, { wch:6 }, { wch:10 }, { wch:12 }, { wch:8 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '成本試算');
   XLSX.writeFile(wb, '成本試算_' + (customerName || date || 'export') + '.xlsx');
@@ -4667,7 +4680,7 @@ function renderCostingsTable() {
       </div>
       <div class="table-wrap" style="margin-top:8px">
         <table>
-          <thead><tr><th style="width:35px;text-align:center">項次</th><th style="width:80px">廠商</th><th>品名規格</th><th style="width:50px;text-align:center">數量</th><th style="width:65px;text-align:right">成本</th><th style="width:45px;text-align:center">成數</th><th style="width:65px;text-align:right">售價</th><th style="width:75px;text-align:right">小計</th></tr></thead>
+          <thead><tr><th style="width:35px;text-align:center">項次</th><th style="width:80px">廠商</th><th>品名規格</th><th style="width:50px;text-align:center">數量</th><th style="width:65px;text-align:right">成本</th><th style="width:45px;text-align:center">成數</th><th style="width:65px;text-align:right">售價</th><th style="width:75px;text-align:right">小計</th><th style="width:45px;text-align:right">佔比</th></tr></thead>
           <tbody>${items.map((it,i) => `
             <tr>
               <td style="text-align:center">${it.seq || (i+1)}</td>
@@ -4678,14 +4691,15 @@ function renderCostingsTable() {
               <td style="text-align:center">${it.markup||''}</td>
               <td style="text-align:right">$${(Number(it.price)||0).toLocaleString()}</td>
               <td style="text-align:right">$${(Number(it.subtotal)||0).toLocaleString()}</td>
+              <td style="text-align:right;font-size:11px;color:var(--text-3)">${totalAmt>0?((Number(it.subtotal)||0)/totalAmt*100).toFixed(1)+'%':''}</td>
             </tr>`).join('')}
           </tbody>
         </table>
       </div>
       <div style="text-align:right;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:13px">
-        <span>合計：<strong>$${totalAmt.toLocaleString()}</strong></span>
-        <span style="margin-left:12px;color:var(--text-3)">成本：$${totalCost.toLocaleString()}</span>
-        <span style="margin-left:12px;color:${profit>=0?'var(--accent-text)':'var(--red)'};font-weight:600">利潤：$${profit.toLocaleString()}</span>
+        <span>合計：<strong>$${totalAmt.toLocaleString()}</strong>${totalAmt>0?' <span style="color:var(--text-3);font-weight:400">(100%)</span>':''}</span>
+        <span style="margin-left:12px;color:var(--text-3)">成本：$${totalCost.toLocaleString()}${totalAmt>0?' ('+(totalCost/totalAmt*100).toFixed(1)+'%)':''}</span>
+        <span style="margin-left:12px;color:${profit>=0?'var(--accent-text)':'var(--red)'};font-weight:600">利潤：$${profit.toLocaleString()}${totalAmt>0?' ('+(profit/totalAmt*100).toFixed(1)+'%)':''}</span>
       </div>
     </div>`;
   }).join('');
