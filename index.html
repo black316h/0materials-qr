@@ -1470,6 +1470,60 @@ function normalizeMat(m) {
   };
 }
 
+// ── 單一資料庫：物品清單(items) 為主，材料主檔為其檢視 ──
+// 產生下一個料號（依 items 既有 matId 計算）
+function nextMatId() {
+  var max = items.reduce(function(mx, it) {
+    var n = it && it.matId ? parseInt(String(it.matId).slice(1), 10) : 0;
+    return Math.max(mx, isNaN(n) ? 0 : n);
+  }, 0);
+  return 'M' + pad(max + 1);
+}
+// 確保每筆 item 都有 matId 與 stock（回傳是否有變動）
+function ensureMatIds() {
+  var max = items.reduce(function(mx, it) {
+    var n = it && it.matId ? parseInt(String(it.matId).slice(1), 10) : 0;
+    return Math.max(mx, isNaN(n) ? 0 : n);
+  }, 0);
+  var changed = false;
+  items.forEach(function(it) {
+    if (!it.matId) { it.matId = 'M' + pad(++max); changed = true; }
+    if (it.stock === undefined || it.stock === null || it.stock === '') { it.stock = Number(it.stock) || 0; }
+  });
+  return changed;
+}
+// 把舊「材料主檔」記錄轉成一筆 item（簡稱←型號、成本←單價、保留料號/庫存）
+function itemFromLegacyMat(m) {
+  m = normalizeMat(m);
+  return {
+    model: '', name: '', alias: m.model || '', category: m.cat || '',
+    unit: '', cost: Number(m.price) || 0, market: '', brand: m.brand || '',
+    lastPurchase: '', supplier: '', note1: '', note2: '', note3: '', note4: '', note5: '',
+    ecoQty: '', length: '', width: '', height: '',
+    matId: m.id || '', stock: Number(m.stock) || 0
+  };
+}
+// 一次性遷移：items 尚未有 matId 時，用舊材料主檔資料建立 items（丟掉沒有 matId 的舊 items）
+function migrateMaterialsToItems(legacyMats) {
+  if (items.some(function(it) { return it && it.matId; })) return false;
+  if (!Array.isArray(legacyMats) || !legacyMats.length) return false;
+  items = legacyMats.map(itemFromLegacyMat);
+  return true;
+}
+// 由 items 投影出材料主檔檢視（id=料號, model=簡稱, price=成本）
+function rebuildMaterialsView() {
+  materials = items.map(function(it) {
+    return {
+      id:    it.matId || '',
+      brand: it.brand || '',
+      model: it.alias || '',
+      cat:   it.category || '',
+      price: Number(it.cost) || 0,
+      stock: Number(it.stock) || 0
+    };
+  });
+}
+
 let brands = JSON.parse(localStorage.getItem(STORAGE_KEY_BRANDS) || 'null')
   || ['雙梅','東元','士林','仕通','知果','歐姆龍','（無廠牌）'];
 
@@ -1592,21 +1646,26 @@ async function loadFromCloud() {
   try {
     const resp = await fetch(GAS_URL + '?include=all');
     const data = await resp.json();
-    if (data.materials && data.materials.length) {
-      materials = data.materials.map(normalizeMat);
+    if ((data.materials && data.materials.length) || (data.items && data.items.length)) {
       brands    = data.brands    && data.brands.length    ? data.brands    : brands;
       cats      = data.cats      && data.cats.length      ? data.cats      : cats;
       customers = data.customers && data.customers.length ? migrateToObj(data.customers) : customers;
       projects  = data.projects  && data.projects.length  ? migrateProjects(data.projects)  : projects;
       suppliers = data.suppliers && data.suppliers.length ? migrateToObj(data.suppliers) : suppliers;
-      if (data.items) { items = data.items; localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(items)); }
+      if (data.items) items = data.items;
+      // 單一資料庫：items 為主。首次載入時把舊材料主檔遷移成 items，並補齊料號
+      const migrated   = migrateMaterialsToItems(data.materials || []);
+      const backfilled = ensureMatIds();
+      rebuildMaterialsView();
+      localStorage.setItem(STORAGE_KEY_ITEMS,  JSON.stringify(items));
       localStorage.setItem(STORAGE_KEY_MAT,    JSON.stringify(materials));
       localStorage.setItem(STORAGE_KEY_BRANDS, JSON.stringify(brands));
       localStorage.setItem(STORAGE_KEY_CATS,   JSON.stringify(cats));
       localStorage.setItem(STORAGE_KEY_CUSTS,  JSON.stringify(customers));
       localStorage.setItem(STORAGE_KEY_PROJS,  JSON.stringify(projects));
       localStorage.setItem(STORAGE_KEY_SUPPS,  JSON.stringify(suppliers));
-      nextNum = materials.reduce((m,x) => Math.max(m, parseInt(x.id.slice(1))), 0) + 1;
+      // 遷移或補齊料號後，把結果寫回雲端持久化
+      if (migrated || backfilled) syncToCloud();
       clearForm();
       renderFilterBtns();
       renderTable();
@@ -2094,30 +2153,32 @@ function readItemInput(id, key) {
   return v;
 }
 function saveItemEdit(idx) {
-  const obj = {};
+  const prev = items[idx] || {};
+  const obj = { matId: prev.matId || '', stock: Number(prev.stock) || 0 };
   ITEM_KEYS.forEach(k => { obj[k] = readItemInput('ei-' + k, k); });
-  if (!obj.model && !obj.name) { toast('請至少輸入型號或品名'); return; }
-  const oldAlias = items[idx] ? items[idx].alias : '';
+  if (!obj.model && !obj.name && !obj.alias) { toast('請至少輸入型號或品名'); return; }
+  if (!obj.matId) obj.matId = nextMatId();
   items[idx] = obj;
-  const renamed = renameAliasInMaterials(oldAlias, obj.alias);
-  const synced = syncCatToMaterials(obj.alias, obj.category);
+  rebuildMaterialsView();
   save();
   editingItemIdx = -1;
   renderItemsPage();
-  if (synced || renamed) renderTable();
-  toast('已更新物品：' + (obj.model || obj.name) + (renamed ? '（已同步材料主檔簡稱）' : (synced ? '（已同步材料主檔類別）' : '')));
+  renderTable();
+  toast('已更新物品：' + (obj.model || obj.name || obj.alias));
 }
 function addItem() {
   const obj = {};
   ITEM_KEYS.forEach(k => { obj[k] = readItemInput('f-new-item-' + ITEM_FORM_SUFFIX[k], k); });
-  if (!obj.model && !obj.name) { toast('請至少輸入型號或品名'); return; }
+  if (!obj.model && !obj.name && !obj.alias) { toast('請至少輸入型號或品名'); return; }
+  obj.matId = nextMatId();
+  obj.stock = 0;
   items.push(obj);
-  const synced = syncCatToMaterials(obj.alias, obj.category);
+  rebuildMaterialsView();
   save();
   renderItemsPage();
-  if (synced) renderTable();
+  renderTable();
   clearItemForm();
-  toast('已新增物品：' + (obj.model || obj.name) + (synced ? '（已同步材料主檔類別）' : ''));
+  toast('已新增物品：' + (obj.model || obj.name || obj.alias));
 }
 function clearItemForm() {
   ITEM_KEYS.forEach(k => { const el = document.getElementById('f-new-item-' + ITEM_FORM_SUFFIX[k]); if (el) el.value = ''; });
@@ -2125,11 +2186,13 @@ function clearItemForm() {
 function deleteItem(idx) {
   const it = items[idx];
   if (!it) return;
-  if (!confirm('確定要刪除物品「' + (it.model || it.name || '') + '」？')) return;
+  if (!confirm('確定要刪除物品「' + (it.model || it.name || it.alias || '') + '」？')) return;
   items.splice(idx, 1);
   if (editingItemIdx === idx) editingItemIdx = -1;
+  rebuildMaterialsView();
   save();
   renderItemsPage();
+  renderTable();
   toast('已刪除物品');
 }
 function showItemsImportHelp() {
@@ -2241,9 +2304,12 @@ function importItemsExcel(input) {
         if (c && !cats.includes(c)) { cats.push(c); newCats++; }
       });
 
+      ensureMatIds();
+      rebuildMaterialsView();
       save();
       if (newBrands || newCats) { syncBrandUI(); syncCatUI(); renderFilterBtns(); }
       renderItemsPage();
+      renderTable();
       toast('匯入完成：新增 ' + added + ' 筆' + (skipped ? '，跳過重複 ' + skipped + ' 筆' : '') + (newBrands ? '，新廠牌 ' + newBrands : '') + (newCats ? '，新類別 ' + newCats : ''));
     } catch(err) {
       toast('匯入失敗：' + err.message);
@@ -2629,62 +2695,23 @@ function renderFilterBtns() {
 }
 
 // ── 材料新增 / 刪除 ───────────────────────────────────
-// ── 材料主檔 ⟷ 物品清單「簡稱／類別」雙向連動（以簡稱為對應鍵）──
-// 材料主檔的簡稱存於 m.model，物品清單的簡稱存於 it.alias
-function syncCatToItems(alias, category) {
-  alias = String(alias || '').trim();
-  if (!alias) return false;
-  let changed = false;
-  items.forEach(it => {
-    if (String(it.alias || '').trim() === alias && it.category !== category) {
-      it.category = category; changed = true;
-    }
-  });
-  return changed;
-}
-function syncCatToMaterials(alias, category) {
-  alias = String(alias || '').trim();
-  if (!alias) return false;
-  let changed = false;
-  materials.forEach(m => {
-    if (String(m.model || '').trim() === alias && m.cat !== category) {
-      m.cat = category; changed = true;
-    }
-  });
-  return changed;
-}
-// 簡稱改名時，把另一邊相同（舊）簡稱的資料一起改名
-function renameAliasInItems(oldAlias, newAlias) {
-  oldAlias = String(oldAlias || '').trim();
-  newAlias = String(newAlias || '').trim();
-  if (!oldAlias || oldAlias === newAlias) return false;
-  let changed = false;
-  items.forEach(it => {
-    if (String(it.alias || '').trim() === oldAlias) { it.alias = newAlias; changed = true; }
-  });
-  return changed;
-}
-function renameAliasInMaterials(oldAlias, newAlias) {
-  oldAlias = String(oldAlias || '').trim();
-  newAlias = String(newAlias || '').trim();
-  if (!oldAlias || oldAlias === newAlias) return false;
-  let changed = false;
-  materials.forEach(m => {
-    if (String(m.model || '').trim() === oldAlias) { m.model = newAlias; changed = true; }
-  });
-  return changed;
-}
+// 註：材料主檔與物品清單已合併為單一資料庫（items），同一筆記錄即時共用，
+// 不再需要跨表的簡稱／類別同步函式。
 function addMaterial() {
   const brand = document.getElementById('f-brand').value;
-  const model = document.getElementById('f-model').value.trim();
+  const model = document.getElementById('f-model').value.trim(); // 簡稱
   if (!model) { toast('請填寫簡稱'); return; }
   const price = parseFloat(document.getElementById('f-price').value) || 0;
   const cat   = document.getElementById('f-cat').value;
-  const id    = 'M' + pad(nextNum++);
-  materials.push({ id, brand, model, price, cat, stock: 0 });
-  const synced = syncCatToItems(model, cat);
-  save(); renderTable(); if (synced) renderItemsPage(); clearForm();
-  toast('已新增：' + brand + ' ' + model + (synced ? '（已同步物品清單類別）' : ''));
+  // 新增材料＝新增一筆物品（簡稱/廠牌/類別/成本），其餘物品欄位留空
+  items.push({
+    model: '', name: '', alias: model, category: cat, unit: '', cost: price, market: '',
+    brand: brand, lastPurchase: '', supplier: '', note1: '', note2: '', note3: '', note4: '', note5: '',
+    ecoQty: '', length: '', width: '', height: '', matId: nextMatId(), stock: 0
+  });
+  rebuildMaterialsView();
+  save(); renderTable(); renderItemsPage(); clearForm();
+  toast('已新增：' + brand + ' ' + model);
 }
 function clearForm() {
   document.getElementById('f-model').value = '';
@@ -2693,20 +2720,21 @@ function clearForm() {
   document.getElementById('f-cat').innerHTML   = renderCatOptions(cats[0]);
 }
 function deleteMat(id) {
-  const m = materials.find(x => x.id === id);
-  const label = m ? (m.brand + ' ' + m.model) : id;
-  if (!confirm('確定刪除 ' + label + '？')) return;
-  materials = materials.filter(x => x.id !== id);
+  const it = items.find(x => x.matId === id);
+  const label = it ? ((it.brand || '') + ' ' + (it.alias || it.model || it.name || '')) : id;
+  if (!confirm('確定刪除 ' + label + '？\n（此筆物品會一併從物品清單移除）')) return;
+  items = items.filter(x => x.matId !== id);
   if (editingId === id) { editingId = null; editBuf = {}; }
-  save(); renderTable(); toast('已刪除：' + label);
+  rebuildMaterialsView();
+  save(); renderTable(); renderItemsPage(); toast('已刪除：' + label);
 }
 
 // ── 內嵌編輯 ──────────────────────────────────────────
 function startEdit(id) {
-  const m = materials.find(x => x.id === id);
-  if (!m) return;
+  const it = items.find(x => x.matId === id);
+  if (!it) return;
   editingId = id;
-  editBuf   = { brand: m.brand, model: m.model, cat: m.cat, price: m.price, stock: m.stock };
+  editBuf   = { brand: it.brand || '', model: it.alias || '', cat: it.category || '', price: Number(it.cost) || 0, stock: Number(it.stock) || 0 };
   renderTable();
 }
 function cancelEdit() {
@@ -2714,31 +2742,35 @@ function cancelEdit() {
   renderTable();
 }
 function saveEdit(id) {
-  const idx = materials.findIndex(x => x.id === id);
-  if (idx < 0) return;
+  const it = items.find(x => x.matId === id);
+  if (!it) return;
   const model = editBuf.model ? editBuf.model.trim() : '';
   if (!model) { toast('簡稱不能為空'); return; }
-  const oldAlias = materials[idx].model;
-  materials[idx] = { ...materials[idx], brand: editBuf.brand, model, cat: editBuf.cat, price: Number(editBuf.price) || 0, stock: Number(editBuf.stock) || 0 };
-  const renamed = renameAliasInItems(oldAlias, model);
-  const synced = syncCatToItems(model, editBuf.cat);
+  // 直接改同一筆物品記錄，物品清單那邊自動同步
+  it.brand    = editBuf.brand;
+  it.alias    = model;
+  it.category = editBuf.cat;
+  it.cost     = Number(editBuf.price) || 0;
+  it.stock    = Number(editBuf.stock) || 0;
+  rebuildMaterialsView();
   save(); editingId = null; editBuf = {};
-  renderTable(); if (synced || renamed) renderItemsPage();
-  toast('已儲存 ' + id + (renamed ? '（已同步物品清單簡稱）' : (synced ? '（已同步物品清單類別）' : '')));
+  renderTable(); renderItemsPage();
+  toast('已儲存 ' + id);
 }
 
 function quickUpdateStock(id, el) {
-  const idx = materials.findIndex(x => x.id === id);
-  if (idx < 0) return;
+  const it = items.find(x => x.matId === id);
+  if (!it) return;
   const newVal = Number(el.value) || 0;
-  const oldVal = materials[idx].stock;
+  const oldVal = Number(it.stock) || 0;
   if (newVal === oldVal) return;
-  materials[idx].stock = newVal;
+  it.stock = newVal;
+  rebuildMaterialsView();
   save();
   // 更新顏色
   el.style.color = newVal <= 0 ? 'var(--red)' : newVal <= 5 ? '#e67e22' : '';
   el.style.fontWeight = newVal <= 0 ? '700' : newVal <= 5 ? '600' : '500';
-  toast((newVal > oldVal ? '📈 ' : '📉 ') + (materials[idx].brand||'') + ' ' + materials[idx].model + ' 庫存：' + oldVal + ' → ' + newVal);
+  toast((newVal > oldVal ? '📈 ' : '📉 ') + (it.brand||'') + ' ' + (it.alias || it.model || '') + ' 庫存：' + oldVal + ' → ' + newVal);
 }
 
 // ── 渲染資料表 ────────────────────────────────────────
@@ -2752,6 +2784,7 @@ let displayLimit = PAGE_SIZE;
 let filteredRows = [];
 
 function renderTable() {
+  rebuildMaterialsView();
   displayLimit = PAGE_SIZE;
   const q    = (document.getElementById('search').value || '').toLowerCase();
   filteredRows = materials.filter(m => {
@@ -2886,17 +2919,17 @@ function importExcel(input) {
       let added = 0, skipped = 0;
       rows.forEach(row => {
         const brand = String(row[colMap.brand] || '').trim();
-        const model = String(row[colMap.model] || '').trim();
+        const model = String(row[colMap.model] || '').trim(); // 簡稱
         const cat = String(row[colMap.cat] || '').trim();
         const price = Number(row[colMap.price]) || 0;
         if (!model) return;
 
-        // Skip duplicates (same brand + model)
-        const exists = materials.find(m => m.brand === brand && m.model === model);
+        // 跳過重複（相同廠牌＋簡稱）
+        const exists = items.find(it => (it.brand || '') === brand && String(it.alias || '') === model);
         if (exists) { skipped++; return; }
 
-        const id = 'M' + String(materials.length + 1).padStart(5, '0');
-        materials.push({ id, brand, model, cat, price });
+        // 新增材料＝新增一筆物品
+        items.push(itemFromLegacyMat({ id: nextMatId(), brand, model, cat, price, stock: 0 }));
 
         // Auto-add new brands/categories
         if (brand && !brands.includes(brand)) brands.push(brand);
@@ -2904,10 +2937,12 @@ function importExcel(input) {
         added++;
       });
 
+      rebuildMaterialsView();
       save();
       renderTable();
       renderFilterBtns();
       buildModelList();
+      renderItemsPage();
       toast('匯入完成：新增 ' + added + ' 筆' + (skipped ? '，跳過重複 ' + skipped + ' 筆' : ''));
     } catch(err) {
       toast('匯入失敗：' + err.message);
@@ -3612,12 +3647,12 @@ let _oldInvItems = [];   // 編輯出貨單時暫存舊品項
 let _oldPurItems = [];   // 編輯進貨單時暫存舊品項
 
 function findMaterialForItem(item) {
-  if (item.matId) return materials.find(m => m.id === item.matId);
+  if (item.matId) return items.find(it => it.matId === item.matId);
   if (!item.name) return null;
   const n = item.name.trim().toLowerCase();
-  return materials.find(m => {
-    const fullName = ((m.brand || '') + ' ' + m.model).trim().toLowerCase();
-    return fullName === n || m.model.toLowerCase() === n;
+  return items.find(it => {
+    const label = ((it.brand || '') + ' ' + (it.alias || it.model || '')).trim().toLowerCase();
+    return label === n || String(it.alias || '').toLowerCase() === n || String(it.model || '').toLowerCase() === n;
   });
 }
 
@@ -3636,7 +3671,7 @@ function adjustStock(items, direction, oldItems) {
     const m = findMaterialForItem(it);
     if (m) { m.stock = (m.stock || 0) + direction * (Number(it.qty) || 0); changed = true; }
   });
-  if (changed) save();
+  if (changed) { rebuildMaterialsView(); save(); }
 }
 
 async function saveInvoice() {
@@ -3682,6 +3717,7 @@ async function saveInvoice() {
 let pickerTarget = 'invoice'; // 'invoice' or 'card'
 function showMaterialPicker(target) {
   pickerTarget = target || 'invoice';
+  rebuildMaterialsView();
   document.getElementById('picker-search').value = '';
   filterPickerMaterials();
   document.getElementById('material-picker-modal').style.display = 'flex';
@@ -5238,6 +5274,10 @@ function editPurchaseRecord(recordId) {
 }
 
 // ── 初始化 ────────────────────────────────────────────
+// 單一資料庫：以 items（物品清單）為主。若本機 items 尚未含料號，從舊材料主檔資料遷移
+migrateMaterialsToItems(materials);
+ensureMatIds();
+rebuildMaterialsView();
 clearForm();
 renderFilterBtns();
 renderTable();
