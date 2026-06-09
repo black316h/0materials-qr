@@ -984,7 +984,6 @@
     <button class="btn btn-primary" onclick="saveInvoice()">儲存出貨單</button>
     <button class="btn" onclick="newInvoice()">清除</button>
     <button class="btn" onclick="invoiceToCosting()" style="background:#8e44ad;color:#fff">📊 轉入成本試算</button>
-    <button class="btn btn-primary" onclick="printInvoice()">🖨️ 列印</button>
     <button class="btn" onclick="exportInvoiceExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
   </div>
 </div>
@@ -3761,6 +3760,7 @@ function exportInvoiceExcel() {
   const customerName = (document.getElementById('inv-customer').value || '').trim();
   const invoiceNo = document.getElementById('inv-no').value.trim();
   const date = document.getElementById('inv-date').value;
+  const handler = (document.getElementById('inv-handler').value || '').trim();
   const items = invoiceItems.filter(it => it.name);
   if (!items.length) { toast('沒有資料可匯出'); return; }
 
@@ -3768,7 +3768,7 @@ function exportInvoiceExcel() {
 
   const headerData = [
     ['客戶名稱', customerName, '', '出貨單號', invoiceNo],
-    ['日期', date],
+    ['日期', date, '', '經辦人', handler],
     [],
     ['項次', '品名規格', '數量', '金額', '備註']
   ];
@@ -4189,25 +4189,25 @@ function exportSalesRecordsExcel() {
   if (!rows.length) { toast('沒有可匯出的紀錄'); return; }
   const wb = XLSX.utils.book_new();
   // 總覽 sheet
-  const summaryHeader = [['日期', '客戶', '出貨單號', '合計金額']];
-  const summaryData = rows.map(r => [fmtDate(r['日期']), r['客戶']||'', r['出貨單號']||'', Number(r['合計金額'])||0]);
-  const grandTotal = summaryData.reduce((s, d) => s + d[3], 0);
-  const summaryAll = [...summaryHeader, ...summaryData, [], ['', '', '總計', grandTotal]];
+  const summaryHeader = [['日期', '客戶', '經辦人', '出貨單號', '狀態', '合計金額']];
+  const summaryData = rows.map(r => [fmtDate(r['日期']), r['客戶']||'', r['經辦人']||'', r['出貨單號']||'', salesStatusOf(r), Number(r['合計金額'])||0]);
+  const grandTotal = summaryData.reduce((s, d) => s + d[5], 0);
+  const summaryAll = [...summaryHeader, ...summaryData, [], ['', '', '', '', '總計', grandTotal]];
   const wsSummary = XLSX.utils.aoa_to_sheet(summaryAll);
-  wsSummary['!cols'] = [{ wch:12 }, { wch:18 }, { wch:16 }, { wch:12 }];
+  wsSummary['!cols'] = [{ wch:12 }, { wch:18 }, { wch:10 }, { wch:16 }, { wch:10 }, { wch:12 }];
   XLSX.utils.book_append_sheet(wb, wsSummary, '銷貨總覽');
   // 明細 sheet
-  const detailHeader = [['日期', '客戶', '出貨單號', '項次', '品名規格', '數量', '金額', '備註']];
+  const detailHeader = [['日期', '客戶', '經辦人', '出貨單號', '項次', '品名規格', '數量', '金額', '備註']];
   const detailData = [];
   rows.forEach(r => {
     let items = [];
     try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
     items.forEach((it, i) => {
-      detailData.push([fmtDate(r['日期']), r['客戶']||'', r['出貨單號']||'', i+1, it.name||'', Number(it.qty)||0, Number(it.amount)||0, it.note||'']);
+      detailData.push([fmtDate(r['日期']), r['客戶']||'', r['經辦人']||'', r['出貨單號']||'', i+1, it.name||'', Number(it.qty)||0, Number(it.amount)||0, it.note||'']);
     });
   });
   const wsDetail = XLSX.utils.aoa_to_sheet([...detailHeader, ...detailData]);
-  wsDetail['!cols'] = [{ wch:12 }, { wch:18 }, { wch:16 }, { wch:6 }, { wch:30 }, { wch:8 }, { wch:10 }, { wch:12 }];
+  wsDetail['!cols'] = [{ wch:12 }, { wch:18 }, { wch:10 }, { wch:16 }, { wch:6 }, { wch:30 }, { wch:8 }, { wch:10 }, { wch:12 }];
   XLSX.utils.book_append_sheet(wb, wsDetail, '銷貨明細');
   const fileName = '銷貨紀錄_' + todayStr() + '.xlsx';
   XLSX.writeFile(wb, fileName);
