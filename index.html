@@ -1320,6 +1320,17 @@
   </div>
 </div>
 
+<!-- 最近售價 Modal -->
+<div id="sale-history-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)hideSaleHistory()">
+  <div class="modal-content" style="max-width:520px">
+    <div class="card-title" id="sale-history-title">最近售價</div>
+    <div id="sale-history-body"></div>
+    <div class="btn-row" style="margin-top:1rem;justify-content:flex-end">
+      <button class="btn" onclick="hideSaleHistory()">關閉</button>
+    </div>
+  </div>
+</div>
+
 
 </div><!-- /.main -->
 <datalist id="model-list"></datalist>
@@ -4656,7 +4667,7 @@ function renderCstItems() {
   tbody.innerHTML = costingItems.map((it, i) => `<tr>
     <td style="text-align:center;font-size:12px;color:var(--text-3)">${i+1}</td>
     <td><input class="card-inp" value="${esc(it.supplier||'')}" oninput="costingItems[${i}].supplier=this.value" list="supp-list" style="text-align:center"></td>
-    <td><textarea class="card-inp" rows="1" oninput="costingItems[${i}].name=this.value;autoResize(this)">${esc(it.name||'')}</textarea></td>
+    <td><div style="display:flex;gap:4px;align-items:flex-start"><textarea class="card-inp" rows="1" oninput="costingItems[${i}].name=this.value;autoResize(this)" style="flex:1">${esc(it.name||'')}</textarea><button type="button" class="btn btn-sm" onclick="showSaleHistory(${i})" title="最近售價" style="padding:2px 6px;flex:none">ℹ️</button></div></td>
     <td><input class="card-inp" type="number" value="${it.qty||''}" min="0" onchange="costingItems[${i}].qty=this.value;calcCstRow(${i})"></td>
     <td><input class="card-inp" type="number" value="${it.cost||''}" min="0" onchange="costingItems[${i}].cost=this.value;calcCstRow(${i})"></td>
     <td><input class="card-inp" type="number" value="${it.markup||''}" min="0" step="0.1" onchange="costingItems[${i}].markup=this.value;calcCstRow(${i})" style="text-align:center"></td>
@@ -4721,6 +4732,93 @@ function addToCostingFromMat(m) {
   costingItems[empty].matId = m.id;
   renderCstItems();
   calcCstRow(empty);
+}
+
+// ── 成本試算：最近售價參考 ───────────────────────────
+let _saleHistIdx = -1;
+function saleItemMatchesCosting(si, costIt) {
+  if (costIt.matId && si.matId && si.matId === costIt.matId) return true;
+  const a = String(si.name || '').trim().toLowerCase();
+  const b = String(costIt.name || '').trim().toLowerCase();
+  return !!a && a === b;
+}
+function gatherSaleHistory(costIt, limit) {
+  const out = [];
+  (salesRecords || []).forEach(r => {
+    let its = [];
+    try { its = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
+    its.forEach(si => {
+      if (saleItemMatchesCosting(si, costIt)) {
+        const qty = Number(si.qty) || 0;
+        const amount = Number(si.amount) || 0;
+        out.push({ date: r['日期'] || '', customer: r['客戶'] || '', qty, unit: qty > 0 ? Math.round(amount / qty) : amount, created: r['建立時間'] || '' });
+      }
+    });
+  });
+  out.sort((a, b) => {
+    const da = new Date(a.date).getTime() || 0, db = new Date(b.date).getTime() || 0;
+    if (db !== da) return db - da;
+    return String(b.created).localeCompare(String(a.created));
+  });
+  return limit ? out.slice(0, limit) : out;
+}
+async function showSaleHistory(i) {
+  const it = costingItems[i];
+  if (!it || (!String(it.name || '').trim() && !it.matId)) { toast('請先選擇或輸入品項'); return; }
+  _saleHistIdx = i;
+  const titleEl = document.getElementById('sale-history-title');
+  const bodyEl = document.getElementById('sale-history-body');
+  titleEl.textContent = '最近售價：' + (it.name || '');
+  bodyEl.innerHTML = '<div style="text-align:center;color:var(--text-3);padding:1rem">查詢中…</div>';
+  document.getElementById('sale-history-modal').style.display = 'flex';
+  // 確保銷貨紀錄已載入
+  if (!salesRecords || !salesRecords.length) {
+    try {
+      const resp = await fetch(GAS_URL + '?include=sales');
+      const data = await resp.json();
+      salesRecords = data.sales || [];
+    } catch(e) {}
+  }
+  // modal 可能已被關閉
+  if (_saleHistIdx !== i) return;
+  const hist = gatherSaleHistory(it, 3);
+  if (!hist.length) {
+    bodyEl.innerHTML = '<div style="text-align:center;color:var(--text-3);padding:1rem">尚無銷售紀錄</div>';
+    return;
+  }
+  bodyEl.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>日期</th><th>客戶</th><th style="text-align:center">數量</th><th style="text-align:right">單價</th><th style="width:64px"></th></tr></thead>
+        <tbody>${hist.map(h => `
+          <tr>
+            <td>${fmtDate(h.date)}</td>
+            <td>${esc(h.customer || '—')}</td>
+            <td style="text-align:center">${h.qty || ''}</td>
+            <td style="text-align:right;font-weight:600">$${(h.unit || 0).toLocaleString()}</td>
+            <td style="text-align:center"><button type="button" class="btn btn-sm btn-primary" onclick="applySalePrice(${h.unit})">套用</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div style="font-size:12px;color:var(--text-3);margin-top:8px">單價＝金額÷數量（四捨五入）。套用後會把該列成數設為「單價÷成本」（四捨五入到小數 2 位）。</div>`;
+}
+function hideSaleHistory() {
+  document.getElementById('sale-history-modal').style.display = 'none';
+  _saleHistIdx = -1;
+}
+function applySalePrice(unitPrice) {
+  const i = _saleHistIdx;
+  if (i < 0 || !costingItems[i]) return;
+  const it = costingItems[i];
+  const cost = Number(it.cost) || 0;
+  if (cost <= 0) { toast('請先輸入成本，才能由售價回推成數'); return; }
+  const markup = Math.round((unitPrice / cost) * 100) / 100;
+  it.markup = markup;
+  renderCstItems();
+  calcCstRow(i);
+  hideSaleHistory();
+  toast('已套用售價 $' + Number(unitPrice).toLocaleString() + '（成數 ' + markup + '）');
 }
 
 // 材料卡 → 成本試算：把目前材料卡品項帶入成本試算
