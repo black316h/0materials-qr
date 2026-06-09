@@ -1002,6 +1002,7 @@
   </div>
   <div class="filter-row" id="sales-status-filter-row" style="margin-bottom:8px">
     <button class="filter-btn active" onclick="setSalesStatusFilter('all',this)">全部狀態</button>
+    <button class="filter-btn" onclick="setSalesStatusFilter('待結帳',this)">待結帳</button>
     <button class="filter-btn" onclick="setSalesStatusFilter('待請款',this)">待請款</button>
     <button class="filter-btn" onclick="setSalesStatusFilter('待收款',this)">待收款</button>
     <button class="filter-btn" onclick="setSalesStatusFilter('已收款',this)">已收款</button>
@@ -3871,6 +3872,7 @@ async function saveInvoice() {
       body: JSON.stringify({
         action: 'saveInvoice', recordId: currentInvoiceId,
         invoiceNo, date, customer, handler,
+        status: totalAmount > 0 ? '待請款' : '待結帳',  // 有打價格→待請款，沒打→待結帳
         items: items.map((it, i) => ({ seq: i+1, name: it.name, qty: Number(it.qty)||0, amount: Number(it.amount)||0, note: it.note||'', matId: it.matId||'', cat: it.cat||'' })),
         totalAmount
       })
@@ -3975,7 +3977,7 @@ function setOverdueDays(n) {
 }
 
 // 狀態判定工具
-const SALES_STATUSES = ['待請款', '待收款', '已收款', '逾期'];
+const SALES_STATUSES = ['待結帳', '待請款', '待收款', '已收款', '逾期'];
 function salesStatusOf(r) { return r['狀態'] || '待請款'; }
 function daysSinceShip(r) {
   if (!r['日期']) return 0;
@@ -3994,6 +3996,7 @@ function salesStatusColor(status) {
   switch (status) {
     case '已收款': return 'background:var(--green-light);color:var(--green-text)';
     case '待收款': return 'background:#fff7e6;color:#b7791f';
+    case '待結帳': return 'background:var(--blue-light);color:var(--blue-text)';
     case '逾期':   return 'background:#fde8e8;color:var(--red)';
     default:        return 'background:var(--bg);color:var(--text-2)';
   }
