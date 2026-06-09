@@ -960,6 +960,7 @@
             <th style="width:55px">項次</th>
             <th>品名規格</th>
             <th style="width:50px">數量</th>
+            <th style="width:80px">單價</th>
             <th style="width:95px">金額</th>
             <th style="width:210px">備註</th>
             <th style="width:28px"></th>
@@ -968,7 +969,7 @@
         <tbody id="inv-items-tbody"></tbody>
         <tfoot>
           <tr style="background:var(--bg)">
-            <td colspan="3" style="text-align:right;font-weight:700;border-bottom:none">合計</td>
+            <td colspan="4" style="text-align:right;font-weight:700;border-bottom:none">合計</td>
             <td style="font-weight:700;text-align:right;border-bottom:none" id="inv-total-cell">$0</td>
             <td colspan="2" style="border-bottom:none"></td>
           </tr>
@@ -1150,7 +1151,7 @@
             <th style="width:100px">廠商</th>
             <th>品名規格</th>
             <th style="width:55px">數量</th>
-            <th style="width:70px">成本</th>
+            <th style="width:70px">單價</th>
             <th style="width:55px">成數</th>
             <th style="width:70px">售價</th>
             <th style="width:80px">小計</th>
@@ -3671,7 +3672,8 @@ function renderInvItems() {
     <tr>
       <td style="text-align:center;color:var(--text-3);font-size:12px">${i + 1}</td>
       <td><textarea class="card-inp" data-field="name" data-idx="${i}" rows="1" oninput="invoiceItems[${i}].name=this.value;autoFillQty(${i});autoResize(this)"></textarea></td>
-      <td><input class="card-inp" type="number" data-field="qty" data-idx="${i}" oninput="invoiceItems[${i}].qty=this.value" style="text-align:center"></td>
+      <td><input class="card-inp" type="number" data-field="qty" data-idx="${i}" oninput="invoiceItems[${i}].qty=this.value;recalcInvAmount(${i})" style="text-align:center"></td>
+      <td><input class="card-inp" type="number" data-field="price" data-idx="${i}" oninput="invoiceItems[${i}].price=this.value;recalcInvAmount(${i})" style="text-align:center"></td>
       <td><input class="card-inp" type="number" data-field="amount" data-idx="${i}" oninput="invoiceItems[${i}].amount=this.value;calcInvTotal()" style="text-align:center"></td>
       <td><textarea class="card-inp" data-field="note" data-idx="${i}" rows="1" oninput="invoiceItems[${i}].note=this.value;autoResize(this)" style="text-align:center"></textarea></td>
       <td style="text-align:center"><button onclick="removeInvItem(${i})" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;opacity:0.4">×</button></td>
@@ -3700,6 +3702,20 @@ function calcInvTotal() {
   const total = invoiceItems.reduce((s, item) => s + (Number(item.amount) || 0), 0);
   const el = document.getElementById('inv-total-cell');
   if (el) el.textContent = '$' + total.toLocaleString();
+}
+
+// 有填單價時，金額自動 = 數量 × 單價（手動改金額仍以金額為準）
+function recalcInvAmount(i) {
+  const it = invoiceItems[i];
+  if (!it) return;
+  const price = (it.price === '' || it.price === undefined || it.price === null) ? NaN : Number(it.price);
+  const qty = Number(it.qty) || 0;
+  if (!isNaN(price) && qty > 0) {
+    it.amount = Math.round(qty * price);
+    const amtInp = document.querySelector('#inv-items-tbody input[data-field="amount"][data-idx="' + i + '"]');
+    if (amtInp) { amtInp.value = it.amount; amtInp.setAttribute('value', it.amount); }
+  }
+  calcInvTotal();
 }
 
 function addInvItem() {
@@ -3783,12 +3799,12 @@ function exportInvoiceExcel() {
     ['客戶名稱', customerName, '', '出貨單號', invoiceNo],
     ['日期', date, '', '經辦人', handler],
     [],
-    ['項次', '品名規格', '數量', '金額', '備註']
+    ['項次', '品名規格', '數量', '單價', '金額', '備註']
   ];
   const itemData = items.map((it, i) => [
-    i + 1, it.name || '', Number(it.qty) || 0, Number(it.amount) || 0, it.note || ''
+    i + 1, it.name || '', Number(it.qty) || 0, Number(it.price) || '', Number(it.amount) || 0, it.note || ''
   ]);
-  const footerData = [[], ['', '', '合計', total, '']];
+  const footerData = [[], ['', '', '', '合計', total, '']];
 
   const wsData = [...headerData, ...itemData, ...footerData];
   const ws = XLSX.utils.aoa_to_sheet(wsData);
@@ -3796,6 +3812,7 @@ function exportInvoiceExcel() {
     { wch: 6 },  // 項次
     { wch: 30 }, // 品名規格
     { wch: 8 },  // 數量
+    { wch: 10 }, // 單價
     { wch: 10 }, // 金額
     { wch: 12 }  // 備註
   ];
@@ -3873,7 +3890,7 @@ async function saveInvoice() {
         action: 'saveInvoice', recordId: currentInvoiceId,
         invoiceNo, date, customer, handler,
         status: totalAmount > 0 ? '待請款' : '待結帳',  // 有打價格→待請款，沒打→待結帳
-        items: items.map((it, i) => ({ seq: i+1, name: it.name, qty: Number(it.qty)||0, amount: Number(it.amount)||0, note: it.note||'', matId: it.matId||'', cat: it.cat||'' })),
+        items: items.map((it, i) => ({ seq: i+1, name: it.name, qty: Number(it.qty)||0, price: Number(it.price)||0, amount: Number(it.amount)||0, note: it.note||'', matId: it.matId||'', cat: it.cat||'' })),
         totalAmount
       })
     });
@@ -4805,7 +4822,7 @@ async function showSaleHistory(i) {
         </tbody>
       </table>
     </div>
-    <div style="font-size:12px;color:var(--text-3);margin-top:8px">單價＝金額÷數量（四捨五入）。套用後會把該列成數設為「單價÷成本」（四捨五入到小數 2 位）。</div>`;
+    <div style="font-size:12px;color:var(--text-3);margin-top:8px">銷售單價＝金額÷數量（四捨五入）。套用後會把該列成數設為「銷售單價÷該列單價」（四捨五入到小數 2 位）。</div>`;
 }
 function hideSaleHistory() {
   document.getElementById('sale-history-modal').style.display = 'none';
@@ -4816,7 +4833,7 @@ function applySalePrice(unitPrice) {
   if (i < 0 || !costingItems[i]) return;
   const it = costingItems[i];
   const cost = Number(it.cost) || 0;
-  if (cost <= 0) { toast('請先輸入成本，才能由售價回推成數'); return; }
+  if (cost <= 0) { toast('請先輸入單價，才能由售價回推成數'); return; }
   const markup = Math.round((unitPrice / cost) * 100) / 100;
   it.markup = markup;
   renderCstItems();
@@ -4829,7 +4846,7 @@ function applySalePrice(unitPrice) {
 function cardToCosting() {
   const src = cardItems.filter(it => it.name && String(it.name).trim());
   if (!src.length) { toast('材料卡沒有品項可轉入'); return; }
-  if (!confirm('將材料卡品項轉入成本試算？\n（金額將作為成本，成數預設 1.5）')) return;
+  if (!confirm('將材料卡品項轉入成本試算？\n（金額將作為單價，成數預設 1.5）')) return;
   costingItems = src.map((it, i) => {
     const qty = Number(it.qty) || 0;
     const amount = Number(it.amount) || 0;
@@ -4855,11 +4872,11 @@ function cardToCosting() {
 function invoiceToCosting() {
   const src = invoiceItems.filter(it => it.name && String(it.name).trim());
   if (!src.length) { toast('出貨單沒有品項可轉入'); return; }
-  if (!confirm('將出貨單品項轉入成本試算？\n（金額將作為成本，成數預設 1.5）')) return;
+  if (!confirm('將出貨單品項轉入成本試算？\n（單價將作為成本試算單價，成數預設 1.5）')) return;
   costingItems = src.map((it, i) => {
     const qty = Number(it.qty) || 0;
     const amount = Number(it.amount) || 0;
-    const cost = qty > 0 ? Math.round(amount / qty) : amount;  // 還原單位成本，使總成本與出貨單合計一致
+    const cost = Number(it.price) || (qty > 0 ? Math.round(amount / qty) : amount);  // 優先用單價，否則還原單位成本
     const markup = 1.5;
     const useQty = qty || 1;
     const price = Math.round(cost * markup);
@@ -4943,7 +4960,7 @@ function costingToInvoice() {
     const price = Number(it.price) || 0;
     const useQty = qty || 1;
     const amount = Number(it.subtotal) || (price * useQty);
-    return { seq: i+1, name: it.name, qty: useQty, amount: amount, note: '', matId: it.matId || '', cat: it.cat || '' };
+    return { seq: i+1, name: it.name, qty: useQty, price: price, amount: amount, note: '', matId: it.matId || '', cat: it.cat || '' };
   });
   while (invoiceItems.length < INV_EMPTY_ROWS) invoiceItems.push({ seq: invoiceItems.length+1, name: '', qty: '', amount: '', note: '' });
   currentInvoiceId = null;
@@ -4976,7 +4993,7 @@ function printCosting() {
       <tr><td class="lbl">日期</td><td class="val">${esc(date)}</td><td class="lbl"></td><td class="val"></td></tr>
     </table>
     <table class="print-items">
-      <thead><tr><th style="width:35px">項次</th><th style="width:80px">廠商</th><th>品名規格</th><th style="width:50px">數量</th><th style="width:65px">成本</th><th style="width:45px">成數</th><th style="width:65px">售價</th><th style="width:75px">小計</th><th style="width:45px">佔比</th></tr></thead>
+      <thead><tr><th style="width:35px">項次</th><th style="width:80px">廠商</th><th>品名規格</th><th style="width:50px">數量</th><th style="width:65px">單價</th><th style="width:45px">成數</th><th style="width:65px">售價</th><th style="width:75px">小計</th><th style="width:45px">佔比</th></tr></thead>
       <tbody>${items.map((it, i) => `<tr><td>${i+1}</td><td class="left">${esc(it.supplier||'')}</td><td class="left">${esc(it.name)}</td><td>${Number(it.qty)||0}</td><td class="right">$${(Number(it.cost)||0).toLocaleString()}</td><td style="text-align:center">${it.markup||''}</td><td class="right">$${(Number(it.price)||0).toLocaleString()}</td><td class="right">$${(Number(it.subtotal)||0).toLocaleString()}</td><td class="right">${total>0?((Number(it.subtotal)||0)/total*100).toFixed(1)+'%':''}</td></tr>`).join('')}</tbody>
       <tfoot>
         <tr><td colspan="6" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td><td class="right" style="font-weight:700">${total>0?'100%':'—'}</td></tr>
@@ -4997,7 +5014,7 @@ function exportCostingExcel() {
   const totalCost = items.reduce((s, it) => s + ((Number(it.cost)||0) * (Number(it.qty)||0)), 0);
   const profit = total - totalCost;
   const pctOf = v => total > 0 ? (v / total * 100).toFixed(1) + '%' : '';
-  const headerData = [['客戶名稱', customerName, '', '日期', date], ['訂單名稱', orderName], [], ['項次', '廠商', '品名規格', '數量', '成本', '成數', '售價', '小計', '佔比']];
+  const headerData = [['客戶名稱', customerName, '', '日期', date], ['訂單名稱', orderName], [], ['項次', '廠商', '品名規格', '數量', '單價', '成數', '售價', '小計', '佔比']];
   const itemData = items.map((it, i) => [i+1, it.supplier||'', it.name||'', Number(it.qty)||0, Number(it.cost)||0, Number(it.markup)||1, Number(it.price)||0, Number(it.subtotal)||0, pctOf(Number(it.subtotal)||0)]);
   const footerData = [[], ['', '', '', '', '', '', '合計', total, total>0?'100%':''], ['', '', '', '', '', '', '總成本', totalCost, pctOf(totalCost)], ['', '', '', '', '', '', '利潤', profit, pctOf(profit)]];
   const ws = XLSX.utils.aoa_to_sheet([...headerData, ...itemData, ...footerData]);
@@ -5077,7 +5094,7 @@ function renderCostingsTable() {
       </div>
       <div class="table-wrap" style="margin-top:8px">
         <table>
-          <thead><tr><th style="width:35px;text-align:center">項次</th><th style="width:80px">廠商</th><th>品名規格</th><th style="width:50px;text-align:center">數量</th><th style="width:65px;text-align:right">成本</th><th style="width:45px;text-align:center">成數</th><th style="width:65px;text-align:right">售價</th><th style="width:75px;text-align:right">小計</th><th style="width:45px;text-align:right">佔比</th></tr></thead>
+          <thead><tr><th style="width:35px;text-align:center">項次</th><th style="width:80px">廠商</th><th>品名規格</th><th style="width:50px;text-align:center">數量</th><th style="width:65px;text-align:right">單價</th><th style="width:45px;text-align:center">成數</th><th style="width:65px;text-align:right">售價</th><th style="width:75px;text-align:right">小計</th><th style="width:45px;text-align:right">佔比</th></tr></thead>
           <tbody>${items.map((it,i) => `
             <tr>
               <td style="text-align:center">${it.seq || (i+1)}</td>
@@ -5139,7 +5156,7 @@ function printCostingRecords() {
     html += `<div style="margin-bottom:16px;page-break-inside:avoid">
       <div style="font-size:12px;margin-bottom:4px"><strong>${fmtDate(r['日期'])} | ${esc(r['試算單號']||'')} | ${esc(r['客戶']||'')}</strong></div>
       <table border="1" cellpadding="4" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:11px">
-        <tr style="background:#eee"><th>項次</th><th>廠商</th><th>品名規格</th><th>數量</th><th>成本</th><th>成數</th><th>售價</th><th>小計</th></tr>
+        <tr style="background:#eee"><th>項次</th><th>廠商</th><th>品名規格</th><th>數量</th><th>單價</th><th>成數</th><th>售價</th><th>小計</th></tr>
         ${items.map((it,i) => `<tr><td style="text-align:center">${i+1}</td><td>${esc(it.supplier||'')}</td><td>${esc(it.name||'')}</td><td style="text-align:center">${it.qty||''}</td><td style="text-align:right">$${(Number(it.cost)||0).toLocaleString()}</td><td style="text-align:center">${it.markup||''}</td><td style="text-align:right">$${(Number(it.price)||0).toLocaleString()}</td><td style="text-align:right">$${(Number(it.subtotal)||0).toLocaleString()}</td></tr>`).join('')}
       </table>
       <div style="text-align:right;font-size:11px;margin-top:2px">合計：$${(Number(r['合計金額'])||0).toLocaleString()} | 成本：$${(Number(r['總成本'])||0).toLocaleString()} | 利潤：$${(Number(r['利潤'])||0).toLocaleString()}</div>
@@ -5158,7 +5175,7 @@ function exportCostingRecordsExcel() {
   const wsSummary = XLSX.utils.aoa_to_sheet([...summaryHeader, ...summaryData]);
   wsSummary['!cols'] = [{ wch:12 }, { wch:14 }, { wch:16 }, { wch:16 }, { wch:12 }, { wch:12 }, { wch:12 }];
   XLSX.utils.book_append_sheet(wb, wsSummary, '試算總覽');
-  const detailHeader = [['日期', '客戶', '試算單號', '項次', '廠商', '品名規格', '數量', '成本', '成數', '售價', '小計']];
+  const detailHeader = [['日期', '客戶', '試算單號', '項次', '廠商', '品名規格', '數量', '單價', '成數', '售價', '小計']];
   const detailData = [];
   rows.forEach(r => {
     let items = [];
