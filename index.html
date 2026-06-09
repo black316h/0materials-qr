@@ -875,7 +875,7 @@
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th style="width:55px;text-align:center">#</th><th>員工姓名</th><th style="width:80px"></th></tr>
+          <tr><th style="width:55px;text-align:center">#</th><th>員工姓名</th><th style="width:170px;text-align:center">排序 / 刪除</th></tr>
         </thead>
         <tbody id="emp-tbody"></tbody>
       </table>
@@ -2637,8 +2637,22 @@ function renderEmpPage() {
     <tr>
       <td style="text-align:center">${i + 1}</td>
       <td><input class="card-inp" value="${esc(n)}" onchange="renameEmployee(${i}, this.value)"></td>
-      <td style="text-align:center"><button class="btn btn-sm" onclick="deleteEmployee(${i})" style="background:var(--red);color:#fff">刪除</button></td>
+      <td style="text-align:center;white-space:nowrap">
+        <button class="btn btn-sm" onclick="moveEmployee(${i},-1)" ${i === 0 ? 'disabled' : ''} title="上移" style="padding:2px 7px">▲</button>
+        <button class="btn btn-sm" onclick="moveEmployee(${i},1)" ${i === employees.length - 1 ? 'disabled' : ''} title="下移" style="padding:2px 7px">▼</button>
+        <button class="btn btn-sm" onclick="deleteEmployee(${i})" style="background:var(--red);color:#fff">刪除</button>
+      </td>
     </tr>`).join('');
+}
+function moveEmployee(idx, dir) {
+  const j = idx + dir;
+  if (j < 0 || j >= employees.length) return;
+  const tmp = employees[idx];
+  employees[idx] = employees[j];
+  employees[j] = tmp;
+  save();
+  renderEmpPage();
+  renderEmpOptions();
 }
 function addEmployee() {
   const inp = document.getElementById('f-new-emp');
