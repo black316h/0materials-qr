@@ -387,6 +387,11 @@
       <div class="home-label">廠商管理</div>
       <div class="home-desc">廠商資料維護、列印、匯出</div>
     </div>
+    <div class="home-card" onclick="showPage('employees')">
+      <div class="home-icon">🧑‍💼</div>
+      <div class="home-label">員工管理</div>
+      <div class="home-desc">員工姓名維護</div>
+    </div>
     <div class="home-card" onclick="showPage('orders')">
       <div class="home-icon">📋</div>
       <div class="home-label">訂單管理</div>
@@ -855,6 +860,29 @@
   </div>
 </div>
 
+<!-- ── 員工管理 ── -->
+<div id="page-employees" class="page">
+  <div class="page-title">員工管理</div>
+  <div class="card">
+    <div class="card-title">新增員工</div>
+    <div class="btn-row" style="margin-bottom:4px">
+      <input id="f-new-emp" placeholder="員工姓名" style="flex:1" onkeydown="if(event.key==='Enter')addEmployee()">
+      <button class="btn btn-primary" onclick="addEmployee()">＋ 新增</button>
+    </div>
+  </div>
+  <div class="card" style="margin-top:1rem">
+    <div class="card-title">員工名單 <span id="emp-count" style="font-size:12px;color:var(--text-3);font-weight:400"></span></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th style="width:55px;text-align:center">#</th><th>員工姓名</th><th style="width:80px"></th></tr>
+        </thead>
+        <tbody id="emp-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- ── 訂單管理 ── -->
 <div id="page-orders" class="page">
   <div class="page-title">訂單管理</div>
@@ -917,6 +945,10 @@
       <div class="form-group">
         <label>日期</label>
         <input id="inv-date" type="date">
+      </div>
+      <div class="form-group">
+        <label>經辦人</label>
+        <select id="inv-handler"><option value="">（未指定）</option></select>
       </div>
     </div>
   </div>
@@ -1472,6 +1504,7 @@ const STORAGE_KEY_CATS   = 'mat_cats_v1';
 const STORAGE_KEY_CUSTS  = 'mat_customers_v2';
 const STORAGE_KEY_PROJS  = 'mat_projects_v1';
 const STORAGE_KEY_SUPPS  = 'mat_suppliers_v2';
+const STORAGE_KEY_EMPS   = 'mat_employees_v1';
 const STORAGE_KEY_ITEMS  = 'mat_items_v1';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwr2o0j-xcsFHO7CaPTWomMkWshBQ39G3aRB25bPRN1DD-VCDq89_e971JnYLrrNPmUgQ/exec';
 
@@ -1571,6 +1604,8 @@ function migrateToObj(arr) {
 let customers = migrateToObj(JSON.parse(localStorage.getItem(STORAGE_KEY_CUSTS) || localStorage.getItem('mat_customers_v1') || 'null') || []);
 let projects  = migrateProjects(JSON.parse(localStorage.getItem(STORAGE_KEY_PROJS) || 'null') || []);
 let suppliers = migrateToObj(JSON.parse(localStorage.getItem(STORAGE_KEY_SUPPS) || localStorage.getItem('mat_suppliers_v1') || 'null') || []);
+// 員工（單純姓名字串清單）
+let employees = (JSON.parse(localStorage.getItem(STORAGE_KEY_EMPS) || 'null') || []).filter(Boolean);
 // 物品清單
 const ITEM_KEYS = ['model','name','alias','category','unit','cost','market','brand','lastPurchase','supplier','note1','note2','note3','note4','note5','ecoQty','length','width','height'];
 const ITEM_HEADERS = ['型號','品名','簡稱','類別','單位','單價','市價','廠牌','最近進貨','供應商','備注一','備注二','備注三','備注四','備注五','經濟批量','長度','寬度','高度'];
@@ -1644,6 +1679,7 @@ function save() {
   localStorage.setItem(STORAGE_KEY_CUSTS,  JSON.stringify(customers));
   localStorage.setItem(STORAGE_KEY_PROJS,  JSON.stringify(projects));
   localStorage.setItem(STORAGE_KEY_SUPPS,  JSON.stringify(suppliers));
+  localStorage.setItem(STORAGE_KEY_EMPS,   JSON.stringify(employees));
   localStorage.setItem(STORAGE_KEY_ITEMS,  JSON.stringify(items));
   syncToCloud();
 }
@@ -1653,7 +1689,7 @@ function syncToCloud() {
   fetch(GAS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ action: 'sync', materials, brands, cats, customers, projects, suppliers, items })
+    body: JSON.stringify({ action: 'sync', materials, brands, cats, customers, projects, suppliers, employees, items })
   }).catch(() => {});
 }
 // 從 Google Sheets 載入資料（頁面開啟時呼叫）
@@ -1669,6 +1705,7 @@ async function loadFromCloud() {
       customers = data.customers && data.customers.length ? migrateToObj(data.customers) : customers;
       projects  = data.projects  && data.projects.length  ? migrateProjects(data.projects)  : projects;
       suppliers = data.suppliers && data.suppliers.length ? migrateToObj(data.suppliers) : suppliers;
+      if (data.employees && data.employees.length) employees = data.employees.filter(Boolean);
       if (data.items) items = data.items;
       // 單一資料庫：items 為主。首次載入時把舊材料主檔遷移成 items，並補齊料號
       const migrated   = migrateMaterialsToItems(data.materials || []);
@@ -1681,6 +1718,7 @@ async function loadFromCloud() {
       localStorage.setItem(STORAGE_KEY_CUSTS,  JSON.stringify(customers));
       localStorage.setItem(STORAGE_KEY_PROJS,  JSON.stringify(projects));
       localStorage.setItem(STORAGE_KEY_SUPPS,  JSON.stringify(suppliers));
+      localStorage.setItem(STORAGE_KEY_EMPS,   JSON.stringify(employees));
       // 遷移或補齊料號後，把結果寫回雲端持久化
       if (migrated || backfilled) syncToCloud();
       clearForm();
@@ -1690,6 +1728,7 @@ async function loadFromCloud() {
       renderCustOptions();
       renderProjOptions();
       renderSuppOptions();
+      renderEmpOptions();
       renderItemBrandChips();
       renderItemCatChips();
       renderItemsPage();
@@ -1737,6 +1776,7 @@ function showPage(name) {
   if (name === 'customers') renderCustPage();
   if (name === 'items') { renderItemBrandChips(); renderItemCatChips(); renderItemsPage(); }
   if (name === 'suppliers') renderSuppPage();
+  if (name === 'employees') renderEmpPage();
   if (name === 'orders') renderOrderPage();
   if (name === 'costings') loadCostingRecords();
   if (name === 'cardRecords') loadCardRecords();
@@ -2571,6 +2611,63 @@ function renderSuppOptions() {
   if (dl) dl.innerHTML = suppliers.map(s => `<option value="${esc(s.alias || s.name)}">`).join('');
   const purDl = document.getElementById('pur-supplier-dl');
   if (purDl) purDl.innerHTML = suppliers.map(s => `<option value="${esc(s.name)}">`).join('');
+}
+
+// ── 員工管理 ─────────────────────────────────────────
+function renderEmpOptions() {
+  const sel = document.getElementById('inv-handler');
+  if (sel) {
+    const cur = sel.value;
+    let opts = '<option value="">（未指定）</option>' + employees.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+    if (cur && !employees.includes(cur)) opts += `<option value="${esc(cur)}">${esc(cur)}</option>`;
+    sel.innerHTML = opts;
+    sel.value = cur;
+  }
+}
+function renderEmpPage() {
+  const tbody = document.getElementById('emp-tbody');
+  if (!tbody) return;
+  document.getElementById('emp-count').textContent = '共 ' + employees.length + ' 人';
+  if (!employees.length) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-3);padding:1rem">尚無員工，請於上方新增</td></tr>';
+    return;
+  }
+  tbody.innerHTML = employees.map((n, i) => `
+    <tr>
+      <td style="text-align:center">${i + 1}</td>
+      <td><input class="card-inp" value="${esc(n)}" onchange="renameEmployee(${i}, this.value)"></td>
+      <td style="text-align:center"><button class="btn btn-sm" onclick="deleteEmployee(${i})" style="background:var(--red);color:#fff">刪除</button></td>
+    </tr>`).join('');
+}
+function addEmployee() {
+  const inp = document.getElementById('f-new-emp');
+  const name = (inp.value || '').trim();
+  if (!name) { toast('請輸入員工姓名'); return; }
+  if (employees.includes(name)) { toast('該員工已存在'); return; }
+  employees.push(name);
+  inp.value = '';
+  save();
+  renderEmpPage();
+  renderEmpOptions();
+  toast('已新增員工：' + name);
+}
+function renameEmployee(idx, val) {
+  const name = (val || '').trim();
+  if (!name) { renderEmpPage(); return; }
+  if (employees.some((n, i) => i !== idx && n === name)) { toast('該員工已存在'); renderEmpPage(); return; }
+  employees[idx] = name;
+  save();
+  renderEmpPage();
+  renderEmpOptions();
+}
+function deleteEmployee(idx) {
+  const name = employees[idx];
+  if (!confirm('確定刪除員工「' + name + '」？')) return;
+  employees.splice(idx, 1);
+  save();
+  renderEmpPage();
+  renderEmpOptions();
+  toast('已刪除員工：' + name);
 }
 let editingSuppIdx = -1;
 function renderSuppPage() {
@@ -3531,6 +3628,8 @@ function newInvoice() {
   document.getElementById('inv-no').value = '';
   document.getElementById('inv-date').value = todayStr();
   document.getElementById('inv-customer').value = '';
+  renderEmpOptions();
+  document.getElementById('inv-handler').value = '';
   document.getElementById('invoice-status').textContent = '';
   invoiceItems = [];
   for (let i = 0; i < INV_EMPTY_ROWS; i++) invoiceItems.push({ seq: i+1, name: '', qty: '', amount: '', note: '' });
@@ -3719,6 +3818,7 @@ async function saveInvoice() {
   const invoiceNo = document.getElementById('inv-no').value.trim();
   const date = document.getElementById('inv-date').value;
   const customer = document.getElementById('inv-customer').value.trim();
+  const handler = (document.getElementById('inv-handler').value || '').trim();
   const items = invoiceItems.filter(it => it.name);
   if (!items.length) { toast('請至少填寫一筆品項'); return; }
   const totalAmount = items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
@@ -3729,7 +3829,7 @@ async function saveInvoice() {
       method: 'POST', headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
         action: 'saveInvoice', recordId: currentInvoiceId,
-        invoiceNo, date, customer,
+        invoiceNo, date, customer, handler,
         items: items.map((it, i) => ({ seq: i+1, name: it.name, qty: Number(it.qty)||0, amount: Number(it.amount)||0, note: it.note||'', matId: it.matId||'', cat: it.cat||'' })),
         totalAmount
       })
@@ -3977,6 +4077,7 @@ function renderSalesTable() {
           <span>單號：<strong>${esc(r['出貨單號']||'—')}</strong></span>
           <span class="record-divider">|</span>
           <span>客戶：<strong>${esc(r['客戶']||'—')}</strong></span>
+          ${r['經辦人'] ? `<span class="record-divider">|</span><span>經辦：<strong>${esc(r['經辦人'])}</strong></span>` : ''}
           ${overdue ? `<span class="record-divider">|</span><span style="color:var(--red);font-weight:600">⚠ 逾期${odDays>0?' '+odDays+' 天':''}</span>` : ''}
         </div>
         ${salesStatusSelectHtml(r)}
@@ -4109,6 +4210,8 @@ function editSalesRecord(recordId) {
   if (dv) { var dd = new Date(dv); if (!isNaN(dd)) dv = dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0'); }
   document.getElementById('inv-date').value = dv;
   document.getElementById('inv-customer').value = r['客戶'] || '';
+  renderEmpOptions();
+  document.getElementById('inv-handler').value = r['經辦人'] || '';
   let items = [];
   try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
   invoiceItems = items.length ? items : [{ seq:1, name:'', qty:'', amount:'', note:'' }];
@@ -5462,6 +5565,7 @@ initCardItems();
 renderCustOptions();
 renderProjOptions();
 renderSuppOptions();
+renderEmpOptions();
 renderItemBrandChips();
 renderItemCatChips();
 const todayCode = todayStr().replace(/-/g, '');
