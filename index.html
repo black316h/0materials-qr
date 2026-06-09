@@ -3829,6 +3829,20 @@ function adjustStock(items, direction, oldItems) {
   if (changed) { rebuildMaterialsView(); save(); }
 }
 
+// 進貨 → 更新對應物品清單的「最近進貨」日期（回傳更新筆數）
+// 注意：findMaterialForItem 回傳的是 items 主檔內的物件參照，直接改其 lastPurchase 即可，
+// 隨後 adjustStock 內的 save() 會一併持久化（兩者使用相同比對邏輯，有相符必同時觸發）。
+function applyPurchaseLastDate(purItems, date) {
+  if (!date) return 0;
+  let n = 0;
+  const seen = new Set();
+  purItems.forEach(it => {
+    const m = findMaterialForItem(it);
+    if (m && !seen.has(m)) { m.lastPurchase = date; seen.add(m); n++; }
+  });
+  return n;
+}
+
 async function saveInvoice() {
   const invoiceNo = document.getElementById('inv-no').value.trim();
   const date = document.getElementById('inv-date').value;
@@ -5167,13 +5181,16 @@ async function savePurchase() {
     });
     const result = await resp.json();
     if (result.ok) {
+      // 相符品項 → 更新物品清單「最近進貨」日期（先改主檔物件，再由 adjustStock 的 save 持久化）
+      const datedCount = applyPurchaseLastDate(items, date);
       // 進貨 → 加庫存（direction = +1）
       adjustStock(items, +1, currentPurchaseId ? _oldPurItems : []);
       _oldPurItems = [];
       currentPurchaseId = result.recordId;
       _recordsLoaded = false;
       renderTable();
-      toast('已儲存：' + result.recordId);
+      if (typeof renderItemsPage === 'function') renderItemsPage();
+      toast('已儲存：' + result.recordId + (datedCount ? '（已更新 ' + datedCount + ' 項最近進貨日）' : ''));
       if (statusEl) statusEl.textContent = '已儲存 ' + result.recordId;
     } else {
       toast('儲存失敗：' + (result.error || '未知錯誤'));
