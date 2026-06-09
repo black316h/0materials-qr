@@ -983,6 +983,7 @@
   <div class="btn-row" style="margin-top:1rem">
     <button class="btn btn-primary" onclick="saveInvoice()">儲存出貨單</button>
     <button class="btn" onclick="newInvoice()">清除</button>
+    <button class="btn" onclick="invoiceToCosting()" style="background:#8e44ad;color:#fff">📊 轉入成本試算</button>
     <button class="btn btn-primary" onclick="printInvoice()">🖨️ 列印</button>
     <button class="btn" onclick="exportInvoiceExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
   </div>
@@ -4714,6 +4715,33 @@ function cardToCosting() {
   document.getElementById('cst-project').value = document.getElementById('card-project').value || '';
   document.getElementById('cst-date').value = document.getElementById('card-date').value || todayStr();
   document.getElementById('costing-status').textContent = '由材料卡轉入';
+  renderCstItems();
+  calcCstTotal();
+  showPage('costing');
+  toast('已轉入成本試算');
+}
+
+// 出貨單 → 成本試算：把目前出貨單品項帶入成本試算
+function invoiceToCosting() {
+  const src = invoiceItems.filter(it => it.name && String(it.name).trim());
+  if (!src.length) { toast('出貨單沒有品項可轉入'); return; }
+  if (!confirm('將出貨單品項轉入成本試算？\n（金額將作為成本，成數預設 1.5）')) return;
+  costingItems = src.map((it, i) => {
+    const qty = Number(it.qty) || 0;
+    const amount = Number(it.amount) || 0;
+    const cost = qty > 0 ? Math.round(amount / qty) : amount;  // 還原單位成本，使總成本與出貨單合計一致
+    const markup = 1.5;
+    const useQty = qty || 1;
+    const price = Math.round(cost * markup);
+    const mat = findMaterialForItem(it);
+    return { seq: i+1, supplier: (mat && mat.supplier) || '', name: it.name, qty: useQty, cost: cost, markup: markup, price: price, subtotal: price * useQty, matId: it.matId || '' };
+  });
+  while (costingItems.length < CST_EMPTY_ROWS) costingItems.push({ seq: costingItems.length+1, supplier: '', name: '', qty: '', cost: '', markup: 1.5, price: '', subtotal: '' });
+  currentCostingId = null;
+  document.getElementById('cst-customer').value = document.getElementById('inv-customer').value || '';
+  document.getElementById('cst-project').value = '';
+  document.getElementById('cst-date').value = document.getElementById('inv-date').value || todayStr();
+  document.getElementById('costing-status').textContent = '由出貨單轉入';
   renderCstItems();
   calcCstTotal();
   showPage('costing');
