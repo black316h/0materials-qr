@@ -1176,6 +1176,7 @@
     <button class="btn btn-primary" onclick="printCosting()">🖨️ 列印</button>
     <button class="btn" onclick="exportCostingExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
     <button class="btn" onclick="costingToQuotation()" style="background:#8e44ad;color:#fff">📝 轉入報價單</button>
+    <button class="btn" onclick="costingToInvoice()" style="background:#8e44ad;color:#fff">📦 轉入出貨單</button>
   </div>
 </div>
 
@@ -4927,6 +4928,33 @@ function costingToQuotation() {
   calcQuoTotal();
   showPage('quotation');
   toast('已轉入報價單，售價作為報價金額');
+}
+
+// 成本試算 → 出貨單：把成本試算品項帶入出貨單（售價×數量作為出貨金額）
+function costingToInvoice() {
+  const src = costingItems.filter(it => it.name && String(it.name).trim());
+  if (!src.length) { toast('沒有品項可轉入'); return; }
+  if (!confirm('將成本試算品項轉入出貨單？\n（售價×數量將作為出貨金額）')) return;
+  invoiceItems = src.map((it, i) => {
+    const qty = Number(it.qty) || 0;
+    const price = Number(it.price) || 0;
+    const useQty = qty || 1;
+    const amount = Number(it.subtotal) || (price * useQty);
+    return { seq: i+1, name: it.name, qty: useQty, amount: amount, note: '', matId: it.matId || '', cat: it.cat || '' };
+  });
+  while (invoiceItems.length < INV_EMPTY_ROWS) invoiceItems.push({ seq: invoiceItems.length+1, name: '', qty: '', amount: '', note: '' });
+  currentInvoiceId = null;
+  _oldInvItems = [];
+  document.getElementById('inv-customer').value = document.getElementById('cst-customer').value || '';
+  document.getElementById('inv-no').value = '';
+  document.getElementById('inv-date').value = document.getElementById('cst-date').value || todayStr();
+  renderEmpOptions();
+  document.getElementById('inv-handler').value = '';
+  document.getElementById('invoice-status').textContent = '由成本試算轉入';
+  renderInvItems();
+  calcInvTotal();
+  showPage('invoice');
+  toast('已轉入出貨單');
 }
 
 function printCosting() {
