@@ -472,6 +472,7 @@
       <button class="btn" onclick="exportMasterExcel()" style="margin-left:auto;background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
       <button class="btn" onclick="document.getElementById('excel-file').click()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📥 匯入 Excel</button>
       <button class="btn btn-sm" onclick="showImportHelp()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light);padding:8px 10px" title="匯入格式說明">❓</button>
+      <button class="btn btn-sm" onclick="clearItemsAll()" style="background:var(--red);color:#fff;border-color:var(--red)">🗑️ 一鍵清空</button>
       <input type="file" id="excel-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(this)">
     </div>
     <!-- 匯入格式說明 -->
@@ -597,6 +598,7 @@
       <button class="btn btn-sm" onclick="exportItemsExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
       <button class="btn btn-sm" onclick="document.getElementById('items-excel-file').click()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📥 匯入 Excel</button>
       <button class="btn btn-sm" onclick="showItemsImportHelp()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light);padding:8px 10px" title="匯入格式說明">❓</button>
+      <button class="btn btn-sm" onclick="clearItemsAll()" style="background:var(--red);color:#fff;border-color:var(--red)">🗑️ 一鍵清空</button>
       <input type="file" id="items-excel-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importItemsExcel(this)">
     </div>
     <div id="items-import-help" style="display:none;margin-top:10px;padding:14px 16px;background:var(--blue-light);border:1px solid var(--border);border-radius:var(--radius-lg);font-size:13px;line-height:1.7;color:var(--text)">
@@ -1362,6 +1364,23 @@
   </div>
 </div>
 
+<!-- 危險操作密碼確認 Modal -->
+<div id="pwdconfirm-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)hidePwdConfirm()">
+  <div class="modal-content" style="max-width:400px">
+    <div class="card-title" style="color:var(--red)">⚠️ 清空確認</div>
+    <div id="pwdconfirm-msg" style="font-size:13px;color:var(--text-2);margin-bottom:12px;line-height:1.7"></div>
+    <div class="form-group" style="margin-bottom:12px">
+      <label>請輸入登入密碼以確認</label>
+      <input id="pwdconfirm-input" type="password" placeholder="登入密碼" onkeydown="if(event.key==='Enter')doPwdConfirm()">
+    </div>
+    <div id="pwdconfirm-err" style="color:var(--red);font-size:12px;min-height:18px;margin-bottom:8px"></div>
+    <div class="btn-row" style="justify-content:flex-end">
+      <button class="btn" onclick="hidePwdConfirm()">取消</button>
+      <button class="btn" onclick="doPwdConfirm()" style="background:var(--red);color:#fff;border-color:var(--red)">確認清空</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- ── 列印專用區域 ── -->
@@ -1460,6 +1479,49 @@ async function doChangePwd() {
   localStorage.setItem(AUTH_HASH_KEY, newHash);
   hideChangePwd();
   toast('密碼已修改');
+}
+
+// ── 危險操作密碼確認 ─────────────────────────────────
+let _pwdConfirmCb = null;
+function askPassword(message, cb) {
+  _pwdConfirmCb = cb;
+  document.getElementById('pwdconfirm-msg').textContent = message;
+  document.getElementById('pwdconfirm-input').value = '';
+  document.getElementById('pwdconfirm-err').textContent = '';
+  document.getElementById('pwdconfirm-modal').style.display = 'flex';
+  document.getElementById('pwdconfirm-input').focus();
+}
+function hidePwdConfirm() {
+  document.getElementById('pwdconfirm-modal').style.display = 'none';
+  _pwdConfirmCb = null;
+}
+async function doPwdConfirm() {
+  const pass = document.getElementById('pwdconfirm-input').value;
+  const errEl = document.getElementById('pwdconfirm-err');
+  if (!pass) { errEl.textContent = '請輸入密碼'; return; }
+  const storedHash = localStorage.getItem(AUTH_HASH_KEY) || DEFAULT_HASH;
+  if (await sha256(pass) !== storedHash) {
+    errEl.textContent = '密碼錯誤';
+    document.getElementById('pwdconfirm-input').value = '';
+    document.getElementById('pwdconfirm-input').focus();
+    return;
+  }
+  const cb = _pwdConfirmCb;
+  hidePwdConfirm();
+  if (cb) cb();
+}
+
+// 一鍵清空物品清單＋材料主檔（兩者共用同一份資料，需輸入登入密碼）
+function clearItemsAll() {
+  askPassword('即將清空「物品清單」與「材料主檔」的全部資料（兩者共用同一份資料，會一併清空並同步到資料庫）。此動作無法復原，建議先匯出 Excel 備份。', () => {
+    items = [];
+    editingItemIdx = -1;
+    rebuildMaterialsView();
+    save();
+    renderItemBrandChips(); renderItemCatChips(); renderItemsPage();
+    clearForm(); renderFilterBtns(); renderTable(); buildModelList();
+    toast('已清空物品清單與材料主檔');
+  });
 }
 
 const RESET_CODE_HASH = 'a]9Fk#2xLm$7'; // 重置碼明碼（只有管理者知道）
