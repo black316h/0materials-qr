@@ -159,9 +159,10 @@
   .record-card td { white-space: pre-wrap; word-break: break-word; }
 
   /* 物品清單：寬表格可左右滑動，操作欄固定在右側 */
-  .items-table-wrap { overflow-x: auto; overflow-y: visible; -webkit-overflow-scrolling: touch; }
+  .items-table-wrap { overflow-x: auto; overflow-y: auto; max-height: 70vh; -webkit-overflow-scrolling: touch; }
   .items-table-wrap > table { width: max-content; min-width: 100%; }
   .items-table-wrap th, .items-table-wrap td { white-space: nowrap; }
+  .items-table-wrap thead th { position: sticky; top: 0; background: var(--bg); z-index: 2; }
   .items-table-wrap th:last-child, .items-table-wrap td:last-child {
     position: sticky; right: 0; z-index: 1;
     box-shadow: -5px 0 6px -4px rgba(0,0,0,0.18);
@@ -169,7 +170,7 @@
   .items-table-wrap td:last-child { background: var(--surface); }
   .items-table-wrap tr:hover td:last-child { background: var(--bg); }
   .items-table-wrap tr.editing td:last-child { background: #fffdf5; }
-  .items-table-wrap thead th:last-child { background: var(--bg); z-index: 2; }
+  .items-table-wrap thead th:last-child { background: var(--bg); z-index: 3; }
 
   .toast {
     position: fixed; bottom: 2rem; right: 2rem;
@@ -653,6 +654,7 @@
   </div>
 
   <!-- 資料表 -->
+  <div style="font-size:12px;color:var(--text-3);margin-bottom:4px">⇄ 欄位較多，表格可左右捲動查看（最近進貨、供應商、備注、長寬高…）；右側「編輯」欄固定顯示</div>
   <div class="table-wrap items-table-wrap">
     <table>
       <thead>
