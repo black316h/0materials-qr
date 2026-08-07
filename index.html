@@ -440,6 +440,17 @@
       <div class="home-desc">查詢進貨歷史紀錄</div>
     </div>
   </div>
+  <div class="card" style="margin-top:16px">
+    <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2);flex-wrap:wrap">
+      <strong style="color:var(--text)">⚙️ 匯出設定</strong>
+      <label for="export-format-sel">Excel 格式：</label>
+      <select id="export-format-sel" onchange="setExportFormat(this.value)" style="padding:4px 8px">
+        <option value="xlsx">新版 .xlsx（Excel 2007 以上）</option>
+        <option value="xls">舊版 .xls（Excel 97-2003 也能開）</option>
+      </select>
+      <span style="font-size:12px;color:var(--text-3)">套用於全系統所有「匯出 Excel」按鈕</span>
+    </div>
+  </div>
 </div>
 
 <!-- ── 材料主檔 ── -->
@@ -1689,6 +1700,25 @@ let nextNum    = materials.reduce((m,x) => Math.max(m, parseInt(x.id.slice(1))),
 let filterCat  = '';
 let editingId  = null;
 let editBuf    = {};
+
+// ── 匯出 Excel 格式設定（新版 .xlsx / 舊版 .xls）──────
+const EXPORT_FMT_KEY = 'export_format_v1';
+function getExportFormat() { return localStorage.getItem(EXPORT_FMT_KEY) === 'xls' ? 'xls' : 'xlsx'; }
+function setExportFormat(v) {
+  localStorage.setItem(EXPORT_FMT_KEY, v === 'xls' ? 'xls' : 'xlsx');
+  toast(v === 'xls' ? '匯出格式已設為舊版 .xls（Excel 97-2003 可開）' : '匯出格式已設為新版 .xlsx');
+}
+// 攔截所有 XLSX.writeFile：設定為舊版時自動改輸出 .xls（Excel 97-2003 格式）
+(function() {
+  if (typeof XLSX === 'undefined') return;
+  const origWriteFile = XLSX.writeFile;
+  XLSX.writeFile = function(wb, filename, opts) {
+    if (getExportFormat() === 'xls' && /\.xlsx$/i.test(String(filename))) {
+      filename = String(filename).replace(/\.xlsx$/i, '.xls');
+    }
+    return origWriteFile.call(XLSX, wb, filename, opts);
+  };
+})();
 
 // ── 工具 ──────────────────────────────────────────────
 function save() {
@@ -5570,6 +5600,7 @@ renderProjOptions();
 renderSuppOptions();
 renderEmpOptions();
 renderBrandCatDatalists();
+(function() { const sel = document.getElementById('export-format-sel'); if (sel) sel.value = getExportFormat(); })();
 const todayCode = todayStr().replace(/-/g, '');
 document.getElementById('card-date').value = todayStr();
 document.getElementById('card-no').value = todayCode + 'A';
