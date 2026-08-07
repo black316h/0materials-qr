@@ -3444,12 +3444,13 @@ function editCardRecord(recordId) {
 function cardRecordToCard(recordId) {
   const r = cardRecordsList.find(x => x['紀錄ID'] === recordId);
   if (!r) return;
-  if (!confirm('將此用料紀錄品項轉入材料卡？\n（會建立新的一筆，不會覆蓋原紀錄）')) return;
+  if (!confirm('將此用料紀錄品項轉入材料卡？\n（只帶入品項內容；客戶名稱、編號、訂單名稱請自行填寫。會建立新的一筆，不會覆蓋原紀錄）')) return;
   currentCardRecordId = null;
+  // 只轉品項內容；上方欄位（客戶名稱/編號/訂單名稱）由使用者自行輸入
   document.getElementById('card-no').value = '';
   document.getElementById('card-date').value = todayStr();
-  document.getElementById('card-customer').value = r['客戶'] || '';
-  document.getElementById('card-project').value = r['訂單名稱'] || '';
+  document.getElementById('card-customer').value = '';
+  document.getElementById('card-project').value = '';
   let items = [];
   try { items = JSON.parse(r['品項JSON'] || '[]'); } catch(e) {}
   cardItems = items.map(it => ({ supplier: it.supplier||'', name: it.name||'', qty: it.qty||'', amount: it.amount||'', note: it.note||'', matId: it.matId||'' }));
