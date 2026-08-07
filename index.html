@@ -445,8 +445,8 @@
       <strong style="color:var(--text)">⚙️ 匯出設定</strong>
       <label for="export-format-sel">Excel 格式：</label>
       <select id="export-format-sel" onchange="setExportFormat(this.value)" style="padding:4px 8px">
+        <option value="xls">舊版 .xls（新舊 Excel 都能開，預設）</option>
         <option value="xlsx">新版 .xlsx（Excel 2007 以上）</option>
-        <option value="xls">舊版 .xls（Excel 97-2003 也能開）</option>
       </select>
       <span style="font-size:12px;color:var(--text-3)">套用於全系統所有「匯出 Excel」按鈕</span>
     </div>
@@ -1703,18 +1703,22 @@ let editBuf    = {};
 
 // ── 匯出 Excel 格式設定（新版 .xlsx / 舊版 .xls）──────
 const EXPORT_FMT_KEY = 'export_format_v1';
-function getExportFormat() { return localStorage.getItem(EXPORT_FMT_KEY) === 'xls' ? 'xls' : 'xlsx'; }
+// 預設「舊版 .xls」：Excel 97-2003 到最新版都能開，相容性優先
+function getExportFormat() { return localStorage.getItem(EXPORT_FMT_KEY) === 'xlsx' ? 'xlsx' : 'xls'; }
 function setExportFormat(v) {
-  localStorage.setItem(EXPORT_FMT_KEY, v === 'xls' ? 'xls' : 'xlsx');
-  toast(v === 'xls' ? '匯出格式已設為舊版 .xls（Excel 97-2003 可開）' : '匯出格式已設為新版 .xlsx');
+  localStorage.setItem(EXPORT_FMT_KEY, v === 'xlsx' ? 'xlsx' : 'xls');
+  toast(v === 'xlsx' ? '匯出格式已設為新版 .xlsx' : '匯出格式已設為舊版 .xls（Excel 97-2003 可開）');
 }
-// 攔截所有 XLSX.writeFile：設定為舊版時自動改輸出 .xls（Excel 97-2003 格式）
+// 攔截所有 XLSX.writeFile：設定為舊版時自動改輸出 .xls（Excel 97-2003 / BIFF8 格式）
 (function() {
   if (typeof XLSX === 'undefined') return;
   const origWriteFile = XLSX.writeFile;
   XLSX.writeFile = function(wb, filename, opts) {
-    if (getExportFormat() === 'xls' && /\.xlsx$/i.test(String(filename))) {
-      filename = String(filename).replace(/\.xlsx$/i, '.xls');
+    filename = String(filename);
+    if (getExportFormat() === 'xls') {
+      if (/\.xlsx$/i.test(filename)) filename = filename.replace(/\.xlsx$/i, '.xls');
+      else if (!/\.xls$/i.test(filename)) filename += '.xls';
+      opts = Object.assign({}, opts || {}, { bookType: 'biff8' });  // 明確指定舊版格式，不靠副檔名推斷
     }
     return origWriteFile.call(XLSX, wb, filename, opts);
   };
