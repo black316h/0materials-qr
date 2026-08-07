@@ -601,6 +601,7 @@
   <!-- 搜尋列 -->
   <div class="search-row">
     <input id="items-search" placeholder="搜尋型號、品名規格、通稱、類別、廠牌、廠商…" oninput="renderItemsPage()">
+    <input id="items-search2" placeholder="＋第二條件（在結果中再篩選）" oninput="renderItemsPage()">
     <span id="items-count" style="font-size:12px;color:var(--text-3);margin-left:auto"></span>
   </div>
 
@@ -2144,8 +2145,9 @@ function renderItemsPage() {
   const tbody = document.getElementById('items-tbody');
   if (!tbody) return;
   const countEl = document.getElementById('items-count');
-  const q = (document.getElementById('items-search')?.value || '').toLowerCase().trim();
-  const filtered = q ? items.filter(it => itemMatchesQuery(it, q)) : items;
+  const q = (document.getElementById('items-search')?.value || '').toLowerCase().trim()
+         || (document.getElementById('items-search2')?.value || '').toLowerCase().trim();
+  const filtered = getVisibleItems();  // 兩個搜尋條件 AND（與匯出/列印一致）
   if (countEl) countEl.textContent = (q ? '搜尋到 ' + filtered.length + ' / ' : '共 ') + items.length + ' 筆';
   const COLS = ITEM_KEYS.length + 1;
   if (!filtered.length) {
@@ -2237,8 +2239,13 @@ function showItemsImportHelp() {
   el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 function getVisibleItems() {
-  const q = (document.getElementById('items-search')?.value || '').toLowerCase().trim();
-  return q ? items.filter(it => itemMatchesQuery(it, q)) : items;
+  // 兩個搜尋條件為 AND：第二條件是在第一次結果中再篩選
+  const q1 = (document.getElementById('items-search')?.value || '').toLowerCase().trim();
+  const q2 = (document.getElementById('items-search2')?.value || '').toLowerCase().trim();
+  let rows = items;
+  if (q1) rows = rows.filter(it => itemMatchesQuery(it, q1));
+  if (q2) rows = rows.filter(it => itemMatchesQuery(it, q2));
+  return rows;
 }
 function exportItemsExcel() {
   const rows = getVisibleItems();
