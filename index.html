@@ -366,7 +366,7 @@
     <div class="home-card" onclick="showPage('items')">
       <div class="home-icon">🗃️</div>
       <div class="home-label">物品清單</div>
-      <div class="home-desc">型號、單價、市價、尺寸、Excel 匯入</div>
+      <div class="home-desc">型號、計用價、實進價、Excel 匯入</div>
     </div>
     <div class="home-card" onclick="showPage('card')">
       <div class="home-icon">📋</div>
@@ -455,15 +455,15 @@
         <input id="f-brand" list="brand-dl" placeholder="輸入或選擇廠牌" oninput="buildModelList()">
       </div>
       <div class="form-group" style="grid-column:span 2">
-        <label>簡稱 <span style="color:var(--red)">*</span></label>
-        <input id="f-model" placeholder="簡稱（與物品清單共用）" list="model-list">
+        <label>通稱 <span style="color:var(--red)">*</span></label>
+        <input id="f-model" placeholder="通稱（與物品清單共用）" list="model-list">
       </div>
       <div class="form-group">
         <label>類別</label>
         <input id="f-cat" list="cat-dl" placeholder="輸入或選擇類別" oninput="buildModelList()">
       </div>
       <div class="form-group">
-        <label>單價（元）</label>
+        <label>計用價（元）</label>
         <input id="f-price" type="number" placeholder="0" min="0">
       </div>
     </div>
@@ -491,20 +491,20 @@
         </tr></thead>
         <tbody>
           <tr><td style="padding:5px 8px;border:1px solid var(--border)">廠牌</td><td style="padding:5px 8px;border:1px solid var(--border)">廠牌、brand</td><td style="padding:5px 8px;border:1px solid var(--border)">否</td></tr>
-          <tr><td style="padding:5px 8px;border:1px solid var(--border)"><strong>簡稱</strong></td><td style="padding:5px 8px;border:1px solid var(--border)">簡稱、型號、規格、model、spec</td><td style="padding:5px 8px;border:1px solid var(--border)"><strong style="color:var(--red)">是</strong></td></tr>
+          <tr><td style="padding:5px 8px;border:1px solid var(--border)"><strong>通稱</strong></td><td style="padding:5px 8px;border:1px solid var(--border)">通稱、簡稱、型號、規格、model、spec</td><td style="padding:5px 8px;border:1px solid var(--border)"><strong style="color:var(--red)">是</strong></td></tr>
           <tr><td style="padding:5px 8px;border:1px solid var(--border)">類別</td><td style="padding:5px 8px;border:1px solid var(--border)">類別、分類、cat</td><td style="padding:5px 8px;border:1px solid var(--border)">否</td></tr>
-          <tr><td style="padding:5px 8px;border:1px solid var(--border)">單價</td><td style="padding:5px 8px;border:1px solid var(--border)">單價、價格、price</td><td style="padding:5px 8px;border:1px solid var(--border)">否</td></tr>
+          <tr><td style="padding:5px 8px;border:1px solid var(--border)">計用價</td><td style="padding:5px 8px;border:1px solid var(--border)">計用價、單價、價格、price</td><td style="padding:5px 8px;border:1px solid var(--border)">否</td></tr>
         </tbody>
       </table>
-      <p style="margin-top:6px">⚠️ 若欄位名稱都不符，系統會依順序當作：<strong>廠牌、簡稱、類別、單價</strong></p>
-      <p>⚠️ 相同廠牌＋簡稱的資料會自動跳過，不會重複匯入</p>
+      <p style="margin-top:6px">⚠️ 若欄位名稱都不符，系統會依順序當作：<strong>廠牌、通稱、類別、計用價</strong></p>
+      <p>⚠️ 相同廠牌＋通稱的資料會自動跳過，不會重複匯入</p>
       <p style="margin-top:6px">📎 支援格式：<strong>.xlsx</strong>、<strong>.xls</strong>、<strong>.csv</strong></p>
     </div>
   </div>
 
   <!-- 搜尋列 -->
   <div class="search-row">
-    <input id="search" placeholder="搜尋廠牌、簡稱…" oninput="debounceRender()">
+    <input id="search" placeholder="搜尋廠牌、通稱…" oninput="debounceRender()">
     <div class="filter-row" id="filter-row"></div>
     <span id="mat-count"></span>
   </div>
@@ -515,9 +515,9 @@
       <thead>
         <tr>
           <th style="width:90px">廠牌</th>
-          <th>簡稱</th>
+          <th>通稱</th>
           <th style="width:95px">類別</th>
-          <th style="width:75px">單價</th>
+          <th style="width:75px">計用價</th>
           <th style="width:60px">庫存</th>
           <th style="width:185px"></th>
         </tr>
@@ -538,25 +538,17 @@
   <div class="card">
     <div class="card-title">新增物品</div>
     <div class="form-grid" style="grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px">
-      <div class="form-group"><label>型號 <span style="color:var(--red)">*</span></label><input id="f-new-item-model" placeholder="型號" list="item-model-list"></div>
-      <div class="form-group"><label>品名</label><input id="f-new-item-name" placeholder="品名" list="item-name-list"></div>
-      <div class="form-group"><label>簡稱</label><input id="f-new-item-alias" placeholder="簡稱"></div>
-      <div class="form-group"><label>類別</label><input id="f-new-item-category" list="cat-dl" placeholder="輸入或選擇類別" oninput="buildItemDatalists()"></div>
-      <div class="form-group"><label>單位</label><input id="f-new-item-unit" placeholder="單位"></div>
-      <div class="form-group"><label>單價</label><input id="f-new-item-cost" type="number" placeholder="0" min="0"></div>
-      <div class="form-group"><label>市價</label><input id="f-new-item-market" type="number" placeholder="0" min="0"></div>
+      <div class="form-group"><label>最新進貨日</label><input id="f-new-item-last" type="date"></div>
       <div class="form-group"><label>廠牌</label><input id="f-new-item-brand" list="brand-dl" placeholder="輸入或選擇廠牌" oninput="buildItemDatalists()"></div>
-      <div class="form-group"><label>最近進貨</label><input id="f-new-item-last" type="date"></div>
-      <div class="form-group"><label>供應商</label><input id="f-new-item-supplier" placeholder="供應商"></div>
-      <div class="form-group"><label>備注一</label><input id="f-new-item-note1" placeholder="備注一"></div>
-      <div class="form-group"><label>備注二</label><input id="f-new-item-note2" placeholder="備注二"></div>
-      <div class="form-group"><label>備注三</label><input id="f-new-item-note3" placeholder="備注三"></div>
-      <div class="form-group"><label>備注四</label><input id="f-new-item-note4" placeholder="備注四"></div>
-      <div class="form-group"><label>備注五</label><input id="f-new-item-note5" placeholder="備注五"></div>
-      <div class="form-group"><label>經濟批量</label><input id="f-new-item-eco" type="number" placeholder="0" min="0"></div>
-      <div class="form-group"><label>長度</label><input id="f-new-item-length" type="number" placeholder="0" min="0"></div>
-      <div class="form-group"><label>寬度</label><input id="f-new-item-width" type="number" placeholder="0" min="0"></div>
-      <div class="form-group"><label>高度</label><input id="f-new-item-height" type="number" placeholder="0" min="0"></div>
+      <div class="form-group"><label>型號 <span style="color:var(--red)">*</span></label><input id="f-new-item-model" placeholder="型號" list="item-model-list"></div>
+      <div class="form-group"><label>品名規格</label><input id="f-new-item-name" placeholder="品名規格" list="item-name-list"></div>
+      <div class="form-group"><label>計用價</label><input id="f-new-item-cost" type="number" placeholder="0" min="0"></div>
+      <div class="form-group"><label>實進價</label><input id="f-new-item-market" type="number" placeholder="0" min="0"></div>
+      <div class="form-group"><label>廠商</label><input id="f-new-item-supplier" placeholder="廠商" list="supp-list"></div>
+      <div class="form-group"><label>通稱</label><input id="f-new-item-alias" placeholder="通稱"></div>
+      <div class="form-group"><label>類別</label><input id="f-new-item-category" list="cat-dl" placeholder="輸入或選擇類別" oninput="buildItemDatalists()"></div>
+      <div class="form-group"><label>備註1</label><input id="f-new-item-note1" placeholder="備註1"></div>
+      <div class="form-group"><label>備註2</label><input id="f-new-item-note2" placeholder="備註2"></div>
     </div>
     <datalist id="item-model-list"></datalist>
     <datalist id="item-name-list"></datalist>
@@ -576,7 +568,7 @@
         <button class="btn btn-sm" onclick="document.getElementById('items-import-help').style.display='none'" style="padding:2px 8px">✕</button>
       </div>
       <p>Excel 第一列為欄位名稱，系統會自動辨識下列欄位（順序不限）：</p>
-      <p style="margin:6px 0"><strong>型號、品名、簡稱、類別、單位、單價、市價、廠牌、最近進貨、供應商、備注一～備注五、經濟批量、長度、寬度、高度</strong></p>
+      <p style="margin:6px 0"><strong>最新進貨日、廠牌、型號、品名規格、計用價、實進價、廠商、通稱、類別、備註1、備註2</strong></p>
       <p>⚠️ 若欄位名稱都不符，系統會依「上述順序」對應欄位</p>
       <p>⚠️ 型號相同的資料會自動跳過，不重複匯入</p>
       <p style="margin-top:6px">📎 支援格式：<strong>.xlsx</strong>、<strong>.xls</strong>、<strong>.csv</strong></p>
@@ -585,7 +577,7 @@
 
   <!-- 搜尋列 -->
   <div class="search-row">
-    <input id="items-search" placeholder="搜尋型號、品名、簡稱、類別、廠牌、供應商…" oninput="renderItemsPage()">
+    <input id="items-search" placeholder="搜尋型號、品名規格、通稱、類別、廠牌、廠商…" oninput="renderItemsPage()">
     <span id="items-count" style="font-size:12px;color:var(--text-3);margin-left:auto"></span>
   </div>
 
@@ -595,25 +587,17 @@
     <table>
       <thead>
         <tr>
-          <th style="min-width:120px">型號</th>
-          <th style="min-width:130px">品名</th>
-          <th style="min-width:80px">簡稱</th>
-          <th style="min-width:80px">類別</th>
-          <th style="min-width:55px">單位</th>
-          <th style="min-width:70px">單價</th>
-          <th style="min-width:70px">市價</th>
+          <th style="min-width:110px">最新進貨日</th>
           <th style="min-width:90px">廠牌</th>
-          <th style="min-width:110px">最近進貨</th>
-          <th style="min-width:100px">供應商</th>
-          <th style="min-width:90px">備注一</th>
-          <th style="min-width:90px">備注二</th>
-          <th style="min-width:90px">備注三</th>
-          <th style="min-width:90px">備注四</th>
-          <th style="min-width:90px">備注五</th>
-          <th style="min-width:70px">經濟批量</th>
-          <th style="min-width:60px">長度</th>
-          <th style="min-width:60px">寬度</th>
-          <th style="min-width:60px">高度</th>
+          <th style="min-width:120px">型號</th>
+          <th style="min-width:130px">品名規格</th>
+          <th style="min-width:70px">計用價</th>
+          <th style="min-width:70px">實進價</th>
+          <th style="min-width:100px">廠商</th>
+          <th style="min-width:80px">通稱</th>
+          <th style="min-width:80px">類別</th>
+          <th style="min-width:90px">備註1</th>
+          <th style="min-width:90px">備註2</th>
           <th style="width:90px"></th>
         </tr>
       </thead>
@@ -1244,13 +1228,13 @@
 <div id="material-picker-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)hideMaterialPicker()">
   <div class="modal-content">
     <div class="card-title">從材料主檔選取</div>
-    <input id="picker-search" placeholder="搜尋廠牌、簡稱…" oninput="filterPickerMaterials()" style="width:100%;margin-bottom:1rem">
+    <input id="picker-search" placeholder="搜尋廠牌、通稱…" oninput="filterPickerMaterials()" style="width:100%;margin-bottom:1rem">
     <div class="table-wrap" style="max-height:50vh;overflow-y:auto">
       <table>
         <thead>
           <tr>
             <th>廠牌</th>
-            <th>簡稱</th>
+            <th>通稱</th>
             <th style="width:55px"></th>
           </tr>
         </thead>
@@ -1641,10 +1625,11 @@ let suppliers = migrateToObj(JSON.parse(localStorage.getItem(STORAGE_KEY_SUPPS) 
 // 員工（單純姓名字串清單）
 let employees = (JSON.parse(localStorage.getItem(STORAGE_KEY_EMPS) || 'null') || []).filter(Boolean);
 // 物品清單
-const ITEM_KEYS = ['model','name','alias','category','unit','cost','market','brand','lastPurchase','supplier','note1','note2','note3','note4','note5','ecoQty','length','width','height'];
-const ITEM_HEADERS = ['型號','品名','簡稱','類別','單位','單價','市價','廠牌','最近進貨','供應商','備注一','備注二','備注三','備注四','備注五','經濟批量','長度','寬度','高度'];
-const ITEM_NUM_KEYS = ['cost','market','ecoQty','length','width','height'];
-const ITEM_FORM_SUFFIX = { model:'model', name:'name', alias:'alias', category:'category', unit:'unit', cost:'cost', market:'market', brand:'brand', lastPurchase:'last', supplier:'supplier', note1:'note1', note2:'note2', note3:'note3', note4:'note4', note5:'note5', ecoQty:'eco', length:'length', width:'width', height:'height' };
+// 物品清單顯示格式（2026/8 改版）：舊欄位（單位/備注三～五/經濟批量/長寬高）仍保留在資料中，僅不顯示
+const ITEM_KEYS = ['lastPurchase','brand','model','name','cost','market','supplier','alias','category','note1','note2'];
+const ITEM_HEADERS = ['最新進貨日','廠牌','型號','品名規格','計用價','實進價','廠商','通稱','類別','備註1','備註2'];
+const ITEM_NUM_KEYS = ['cost','market'];
+const ITEM_FORM_SUFFIX = { lastPurchase:'last', brand:'brand', model:'model', name:'name', cost:'cost', market:'market', supplier:'supplier', alias:'alias', category:'category', note1:'note1', note2:'note2' };
 let items = JSON.parse(localStorage.getItem(STORAGE_KEY_ITEMS) || 'null') || [];
 let editingItemIdx = -1;
 
@@ -2056,7 +2041,9 @@ function readItemInput(id, key) {
 }
 function saveItemEdit(idx) {
   const prev = items[idx] || {};
-  const obj = { matId: prev.matId || '', stock: Number(prev.stock) || 0 };
+  const obj = Object.assign({}, prev);  // 保留未顯示的舊欄位（單位、備注三～五、經濟批量、長寬高）
+  obj.matId = prev.matId || '';
+  obj.stock = Number(prev.stock) || 0;
   ITEM_KEYS.forEach(k => { obj[k] = readItemInput('ei-' + k, k); });
   if (!obj.model && !obj.name && !obj.alias) { toast('請至少輸入型號或品名'); return; }
   if (!obj.matId) obj.matId = nextMatId();
@@ -2152,25 +2139,17 @@ function importItemsExcel(input) {
       const colMap = {};
       keys.forEach(k => {
         const kl = String(k).trim().toLowerCase();
-        if (/最近進貨|進貨日|進貨|last|purchase/i.test(kl)) { if (!colMap.lastPurchase) colMap.lastPurchase = k; }
+        if (/最新進貨|最近進貨|進貨日|last|purchase/i.test(kl)) { if (!colMap.lastPurchase) colMap.lastPurchase = k; }
+        else if (/品名|名稱|名称|品項|^name$/i.test(kl)) { if (!colMap.name) colMap.name = k; }  // 品名規格 → 品名（須在型號前判斷）
         else if (/型號|型号|規格|model|spec/i.test(kl)) { if (!colMap.model) colMap.model = k; }
-        else if (/品名|名稱|名称|品項|name/i.test(kl)) { if (!colMap.name) colMap.name = k; }
-        else if (/簡稱|简称|alias|abbr/i.test(kl)) { if (!colMap.alias) colMap.alias = k; }
+        else if (/通稱|通称|簡稱|简称|alias|abbr/i.test(kl)) { if (!colMap.alias) colMap.alias = k; }
         else if (/類別|类别|分類|分类|category|type/i.test(kl)) { if (!colMap.category) colMap.category = k; }
-        else if (/單位|单位|unit/i.test(kl)) { if (!colMap.unit) colMap.unit = k; }
-        else if (/單價|单价|成本|進價|cost/i.test(kl)) { if (!colMap.cost) colMap.cost = k; }
-        else if (/市價|市价|售價|售价|market|price/i.test(kl)) { if (!colMap.market) colMap.market = k; }
+        else if (/計用價|计用价|單價|单价|成本|cost/i.test(kl)) { if (!colMap.cost) colMap.cost = k; }
+        else if (/實進價|实进价|進價|进价|市價|市价|售價|售价|market/i.test(kl)) { if (!colMap.market) colMap.market = k; }
         else if (/廠牌|品牌|brand/i.test(kl)) { if (!colMap.brand) colMap.brand = k; }
         else if (/供應商|供应商|廠商|供货|supplier|vendor/i.test(kl)) { if (!colMap.supplier) colMap.supplier = k; }
-        else if (/備注一|備註一|备注一|備注1|note1/i.test(kl)) { if (!colMap.note1) colMap.note1 = k; }
-        else if (/備注二|備註二|备注二|備注2|note2/i.test(kl)) { if (!colMap.note2) colMap.note2 = k; }
-        else if (/備注三|備註三|备注三|備注3|note3/i.test(kl)) { if (!colMap.note3) colMap.note3 = k; }
-        else if (/備注四|備註四|备注四|備注4|note4/i.test(kl)) { if (!colMap.note4) colMap.note4 = k; }
-        else if (/備注五|備註五|备注五|備注5|note5/i.test(kl)) { if (!colMap.note5) colMap.note5 = k; }
-        else if (/經濟批量|经济批量|批量|eco|moq/i.test(kl)) { if (!colMap.ecoQty) colMap.ecoQty = k; }
-        else if (/長度|长度|length/i.test(kl)) { if (!colMap.length) colMap.length = k; }
-        else if (/寬度|宽度|width/i.test(kl)) { if (!colMap.width) colMap.width = k; }
-        else if (/高度|height/i.test(kl)) { if (!colMap.height) colMap.height = k; }
+        else if (/備注一|備註一|备注一|備註1|備注1|note1/i.test(kl)) { if (!colMap.note1) colMap.note1 = k; }
+        else if (/備注二|備註二|备注二|備註2|備注2|note2/i.test(kl)) { if (!colMap.note2) colMap.note2 = k; }
       });
 
       // 若完全沒對應到，依固定順序套用
@@ -2665,7 +2644,7 @@ function renderFilterBtns() {
 function addMaterial() {
   const brand = document.getElementById('f-brand').value;
   const model = document.getElementById('f-model').value.trim(); // 簡稱
-  if (!model) { toast('請填寫簡稱'); return; }
+  if (!model) { toast('請填寫通稱'); return; }
   const price = parseFloat(document.getElementById('f-price').value) || 0;
   const cat   = document.getElementById('f-cat').value;
   // 新增材料＝新增一筆物品（簡稱/廠牌/類別/成本），其餘物品欄位留空
@@ -2710,7 +2689,7 @@ function saveEdit(id) {
   const it = items.find(x => x.matId === id);
   if (!it) return;
   const model = editBuf.model ? editBuf.model.trim() : '';
-  if (!model) { toast('簡稱不能為空'); return; }
+  if (!model) { toast('通稱不能為空'); return; }
   // 直接改同一筆物品記錄，物品清單那邊自動同步
   it.brand    = editBuf.brand;
   it.alias    = model;
@@ -2822,7 +2801,7 @@ function exportMasterExcel() {
   const rows = filteredRows.length ? filteredRows : materials;
   if (!rows.length) { toast('沒有資料可匯出'); return; }
 
-  const header = ['料號', '廠牌', '簡稱', '類別', '單價', '庫存'];
+  const header = ['料號', '廠牌', '通稱', '類別', '計用價', '庫存'];
   const data = rows.map(m => [m.id || '', m.brand || '', m.model || '', m.cat || '', m.price || 0, m.stock || 0]);
   const wsData = [header, ...data];
   const ws = XLSX.utils.aoa_to_sheet(wsData);
@@ -2864,7 +2843,7 @@ function importExcel(input) {
       keys.forEach(k => {
         const kl = k.trim().toLowerCase();
         if (/廠牌|brand/i.test(kl)) colMap.brand = k;
-        else if (/簡稱|型號|規格|model|spec/i.test(kl)) colMap.model = k;
+        else if (/通稱|通称|簡稱|型號|規格|model|spec/i.test(kl)) colMap.model = k;
         else if (/類別|分類|cat/i.test(kl)) colMap.cat = k;
         else if (/單價|價格|price/i.test(kl)) colMap.price = k;
       });
@@ -2877,7 +2856,7 @@ function importExcel(input) {
         if (keys[3]) colMap.price = keys[3];
       }
 
-      if (!colMap.model) { toast('找不到簡稱欄位'); return; }
+      if (!colMap.model) { toast('找不到通稱欄位'); return; }
 
       let added = 0, skipped = 0;
       rows.forEach(row => {
