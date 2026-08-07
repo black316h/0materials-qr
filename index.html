@@ -648,10 +648,10 @@
       <thead>
         <tr>
           <th style="width:55px">序號</th>
-          <th style="width:150px">廠商</th>
+          <th style="width:150px">廠牌</th>
           <th>品名規格</th>
           <th style="width:50px">數量</th>
-          <th style="width:95px">金額</th>
+          <th style="width:95px">成本</th>
           <th style="width:210px">備註</th>
           <th style="width:28px"></th>
         </tr>
@@ -2913,11 +2913,11 @@ function addToCard(id) {
   if (!m) return;
   let idx = cardItems.findIndex(item => !item.supplier && !item.name && !item.qty && !item.amount);
   if (idx < 0) { idx = cardItems.length; cardItems.push({ supplier: '', name: '', qty: '', amount: '', note: '' }); }
-  const cardName = ((m.brand ? m.brand+' ' : '') + m.model + (m.cat ? ' '+m.cat : '')).trim();
-  cardItems[idx] = { supplier: '', name: cardName, qty: 1, amount: m.price || 0, note: '', matId: m.id, cat: m.cat || '' };
+  // 材料主檔 → 材料卡：廠牌→廠牌欄、通稱→品名規格、計用價→成本（不帶類別）
+  cardItems[idx] = { supplier: m.brand || '', name: m.model || '', qty: 1, amount: m.price || 0, note: '', matId: m.id };
   renderCardTable();
   calcCardTotal();
-  toast('已加入材料卡：' + (m.brand ? m.brand+' ' : '') + cardName);
+  toast('已加入材料卡：' + ((m.brand ? m.brand + ' ' : '') + (m.model || '')).trim());
 }
 
 function addToInvoice(id) {
@@ -2959,7 +2959,7 @@ function renderCardTable() {
   tbody.innerHTML = cardItems.map((item, i) => `
     <tr>
       <td style="text-align:center;color:var(--text-3);font-size:12px">${i + 1}</td>
-      <td><input class="card-inp" value="${esc(item.supplier || '')}" oninput="cardItems[${i}].supplier=this.value" list="supp-list" style="text-align:center"></td>
+      <td><input class="card-inp" value="${esc(item.supplier || '')}" oninput="cardItems[${i}].supplier=this.value" list="brand-dl" style="text-align:center"></td>
       <td><textarea class="card-inp" rows="1" oninput="cardItems[${i}].name=this.value;autoResize(this)">${esc(item.name||'')}</textarea></td>
       <td><input class="card-inp" type="number" value="${item.qty}" oninput="cardItems[${i}].qty=this.value;calcCardTotal()" style="text-align:center"></td>
       <td><input class="card-inp" type="number" value="${item.amount}" oninput="cardItems[${i}].amount=this.value;calcCardTotal()" style="text-align:center"></td>
@@ -3015,8 +3015,8 @@ async function loadQueuedItems() {
   let insertIdx = cardItems.findIndex(item => !item.supplier && !item.name && !item.qty && !item.amount);
   if (insertIdx < 0) insertIdx = cardItems.length;
   queue.forEach((item, i) => {
-    const qName = ((item.brand ? item.brand+' ' : '') + (item.model||'') + (item.cat ? ' '+item.cat : '')).trim();
-    const row = { supplier: '', name: qName || item.name || '', qty: item.qty || '', amount: item.amount || '', note: '' };
+    // 掃碼材料 → 材料卡：廠牌→廠牌欄、通稱→品名規格（不帶類別）
+    const row = { supplier: item.brand || '', name: item.model || item.name || '', qty: item.qty || '', amount: item.amount || '', note: '' };
     const idx = insertIdx + i;
     if (idx < cardItems.length) cardItems[idx] = row;
     else cardItems.push(row);
@@ -3063,7 +3063,7 @@ function printCard() {
     </table>
     <table class="print-items">
       <thead>
-        <tr><th style="width:45px">序號</th><th style="width:80px">廠商</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:80px">金額</th><th style="width:120px">備註</th></tr>
+        <tr><th style="width:45px">序號</th><th style="width:80px">廠牌</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:80px">成本</th><th style="width:120px">備註</th></tr>
       </thead>
       <tbody>
         ${rows.map(r => `<tr>
@@ -3102,7 +3102,7 @@ function exportCardExcel() {
     ['客戶名稱', customerName, '', '編號', cardNo, ''],
     ['訂單名稱', projectName, '', '日期', date, ''],
     [],
-    ['序號', '廠商', '品名規格', '數量', '金額', '備註']
+    ['序號', '廠牌', '品名規格', '數量', '成本', '備註']
   ];
   const itemData = items.map((item, i) => [
     i + 1, item.supplier || '', item.name || '',
@@ -3240,7 +3240,7 @@ function renderCardRecordsTable() {
       </div>
       <div class="table-wrap" style="margin-top:8px">
         <table>
-          <thead><tr><th style="width:45px;text-align:center">序號</th><th style="width:100px">廠商</th><th>品名規格</th><th style="width:60px;text-align:center">數量</th><th style="width:80px;text-align:right">金額</th><th>備註</th></tr></thead>
+          <thead><tr><th style="width:45px;text-align:center">序號</th><th style="width:100px">廠牌</th><th>品名規格</th><th style="width:60px;text-align:center">數量</th><th style="width:80px;text-align:right">成本</th><th>備註</th></tr></thead>
           <tbody>${items.map((it,i) => `
             <tr>
               <td style="text-align:center">${it.seq || (i+1)}</td>
@@ -3327,7 +3327,7 @@ function printSingleCardRecord(recordId) {
       <tr><td class="lbl">編號</td><td class="val">${esc(r['編號']||'')}</td><td class="lbl">日期</td><td class="val">${esc(fmtDate(r['日期']))}</td></tr>
     </table>
     <table class="print-items">
-      <thead><tr><th style="width:45px">序號</th><th style="width:90px">廠商</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th>備註</th></tr></thead>
+      <thead><tr><th style="width:45px">序號</th><th style="width:90px">廠牌</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">成本</th><th>備註</th></tr></thead>
       <tbody>${pRows.map(r => `<tr><td>${r.seq}</td><td>${esc(r.supplier)}</td><td class="left">${esc(r.name)}</td><td>${r.qty}</td><td class="right">${r.amount ? '$'+Number(r.amount).toLocaleString() : ''}</td><td class="left">${esc(r.note)}</td></tr>`).join('')}</tbody>
       <tfoot><tr><td colspan="3" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td><td style="border:none"></td></tr></tfoot>
     </table>
@@ -3353,7 +3353,7 @@ function printCardRecords() {
         <tr><td class="lbl">編號</td><td class="val">${esc(r['編號']||'')}</td><td class="lbl">日期</td><td class="val">${esc(fmtDate(r['日期']))}</td></tr>
       </table>
       <table class="print-items">
-        <thead><tr><th style="width:45px">序號</th><th style="width:90px">廠商</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">金額</th><th>備註</th></tr></thead>
+        <thead><tr><th style="width:45px">序號</th><th style="width:90px">廠牌</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:70px">成本</th><th>備註</th></tr></thead>
         <tbody>${pRows.map(r => `<tr><td>${r.seq}</td><td>${esc(r.supplier)}</td><td class="left">${esc(r.name)}</td><td>${r.qty}</td><td class="right">${r.amount ? '$'+Number(r.amount).toLocaleString() : ''}</td><td class="left">${esc(r.note)}</td></tr>`).join('')}</tbody>
         <tfoot><tr><td colspan="3" style="border:none"></td><td class="right" style="font-weight:700">合計</td><td class="right">$${total.toLocaleString()}</td><td style="border:none"></td></tr></tfoot>
       </table>
@@ -3374,7 +3374,7 @@ function exportCardRecordsExcel() {
       ['客戶名稱', r['客戶']||'', '', '編號', r['編號']||''],
       ['訂單名稱', r['訂單名稱']||'', '', '日期', fmtDate(r['日期'])],
       [],
-      ['序號', '廠商', '品名規格', '數量', '金額', '備註']
+      ['序號', '廠牌', '品名規格', '數量', '成本', '備註']
     ];
     const itemData = items.map((it, i) => [i+1, it.supplier||'', it.name||'', Number(it.qty)||0, Number(it.amount)||0, it.note||'']);
     const footerData = [[], ['', '', '', '', '合計', total]];
@@ -3743,11 +3743,11 @@ function pickMaterial(matId) {
   if (pickerTarget === 'card') {
     let idx = cardItems.findIndex(item => !item.supplier && !item.name && !item.qty && !item.amount);
     if (idx < 0) { idx = cardItems.length; cardItems.push({ supplier: '', name: '', qty: '', amount: '', note: '' }); }
-    const cName = ((m.brand ? m.brand+' ' : '') + m.model + (m.cat ? ' '+m.cat : '')).trim();
-    cardItems[idx] = { supplier: '', name: cName, qty: 1, amount: m.price || 0, note: '', matId: m.id, cat: m.cat || '' };
+    // 材料主檔 → 材料卡：廠牌→廠牌欄、通稱→品名規格、計用價→成本（不帶類別）
+    cardItems[idx] = { supplier: m.brand || '', name: m.model || '', qty: 1, amount: m.price || 0, note: '', matId: m.id };
     renderCardTable();
     calcCardTotal();
-    toast('已加入材料卡：' + cName);
+    toast('已加入材料卡：' + ((m.brand ? m.brand + ' ' : '') + (m.model || '')).trim());
   } else if (pickerTarget === 'costing') {
     addToCostingFromMat(m);
     toast('已加入成本試算：' + m.brand + ' ' + m.model);
@@ -4644,7 +4644,7 @@ function applySalePrice(unitPrice) {
 function cardToCosting() {
   const src = cardItems.filter(it => it.name && String(it.name).trim());
   if (!src.length) { toast('材料卡沒有品項可轉入'); return; }
-  if (!confirm('將材料卡品項轉入成本試算？\n（金額將作為單價，成數預設 1.5）')) return;
+  if (!confirm('將材料卡品項轉入成本試算？\n（成本將作為單價，成數預設 1.5）')) return;
   costingItems = src.map((it, i) => {
     const qty = Number(it.qty) || 0;
     const amount = Number(it.amount) || 0;
