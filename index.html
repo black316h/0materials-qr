@@ -677,7 +677,7 @@
           <th style="width:50px">數量</th>
           <th style="width:95px">成本</th>
           <th style="width:210px">備註</th>
-          <th style="width:28px"></th>
+          <th style="width:80px"></th>
         </tr>
       </thead>
       <tbody id="card-tbody"></tbody>
@@ -3119,9 +3119,23 @@ function renderCardTable() {
       <td><input class="card-inp" type="number" value="${item.qty}" oninput="cardItems[${i}].qty=this.value;calcCardTotal()" style="text-align:center"></td>
       <td><input class="card-inp" type="number" value="${item.amount}" oninput="cardItems[${i}].amount=this.value;calcCardTotal()" style="text-align:center"></td>
       <td><textarea class="card-inp" rows="1" oninput="cardItems[${i}].note=this.value;autoResize(this)" style="text-align:center">${esc(item.note||'')}</textarea></td>
-      <td style="text-align:center"><button onclick="removeCardRow(${i})" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;opacity:0.4" title="清除此行">×</button></td>
+      <td style="text-align:center;white-space:nowrap">
+        <button onclick="moveCardRow(${i},-1)" ${i === 0 ? 'disabled' : ''} style="background:none;border:none;cursor:pointer;color:var(--text-2);font-size:13px;padding:0 2px;${i === 0 ? 'opacity:0.15;cursor:default' : 'opacity:0.6'}" title="上移">▲</button>
+        <button onclick="moveCardRow(${i},1)" ${i === cardItems.length - 1 ? 'disabled' : ''} style="background:none;border:none;cursor:pointer;color:var(--text-2);font-size:13px;padding:0 2px;${i === cardItems.length - 1 ? 'opacity:0.15;cursor:default' : 'opacity:0.6'}" title="下移">▼</button>
+        <button onclick="removeCardRow(${i})" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;padding:0 2px;opacity:0.4" title="清除此行">×</button>
+      </td>
     </tr>`).join('');
   initAutoResize(tbody);
+}
+
+// 材料卡列上移/下移（整列內容互換，序號自動跟著變）
+function moveCardRow(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= cardItems.length) return;
+  const tmp = cardItems[i];
+  cardItems[i] = cardItems[j];
+  cardItems[j] = tmp;
+  renderCardTable();
 }
 
 function calcCardTotal() {
