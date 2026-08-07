@@ -556,13 +556,14 @@
       <div class="form-group"><label>計用價</label><input id="f-new-item-cost" type="number" placeholder="0" min="0"></div>
       <div class="form-group"><label>實進價</label><input id="f-new-item-market" type="number" placeholder="0" min="0"></div>
       <div class="form-group"><label>廠商</label><input id="f-new-item-supplier" placeholder="廠商" list="supp-list"></div>
-      <div class="form-group"><label>通稱</label><input id="f-new-item-alias" placeholder="通稱"></div>
+      <div class="form-group"><label>通稱</label><input id="f-new-item-alias" placeholder="通稱" list="item-alias-list"></div>
       <div class="form-group"><label>類別</label><input id="f-new-item-category" list="cat-dl" placeholder="輸入或選擇類別" oninput="buildItemDatalists()"></div>
       <div class="form-group"><label>備註1</label><input id="f-new-item-note1" placeholder="備註1"></div>
       <div class="form-group"><label>備註2</label><input id="f-new-item-note2" placeholder="備註2"></div>
     </div>
     <datalist id="item-model-list"></datalist>
     <datalist id="item-name-list"></datalist>
+    <datalist id="item-alias-list"></datalist>
     <div class="btn-row">
       <button class="btn btn-primary btn-sm" onclick="addItem()">＋ 新增物品</button>
       <button class="btn btn-sm" onclick="clearItemForm()">清除</button>
@@ -1845,7 +1846,8 @@ function setFilter(cat, btn) {
 function buildItemDatalists() {
   const mdl = document.getElementById('item-model-list');
   const nl  = document.getElementById('item-name-list');
-  if (!mdl && !nl) return;
+  const al  = document.getElementById('item-alias-list');
+  if (!mdl && !nl && !al) return;
   const selBrand = (document.getElementById('f-new-item-brand')    || {}).value || '';
   const selCat   = (document.getElementById('f-new-item-category') || {}).value || '';
   const filtered = items.filter(it => {
@@ -1864,6 +1866,12 @@ function buildItemDatalists() {
     nl.innerHTML = filtered
       .filter(it => it.name && !seen2.has(it.name) && seen2.add(it.name))
       .map(it => `<option value="${esc(it.name)}" label="${esc((it.brand ? it.brand + ' ' : '') + it.name)}">`).join('');
+  }
+  if (al) {
+    const seen3 = new Set();
+    al.innerHTML = filtered
+      .filter(it => it.alias && !seen3.has(it.alias) && seen3.add(it.alias))
+      .map(it => `<option value="${esc(it.alias)}" label="${esc((it.brand ? it.brand + ' ' : '') + it.alias)}">`).join('');
   }
 }
 
@@ -2046,6 +2054,8 @@ function renderItemsPage() {
       return '<tr class="editing">' + ITEM_KEYS.map(k => {
         if (k === 'brand')    return '<td><input class="edit-inp" id="ei-brand" value="' + esc(it.brand == null ? '' : it.brand) + '" list="brand-dl"></td>';
         if (k === 'category') return '<td><input class="edit-inp" id="ei-category" value="' + esc(it.category == null ? '' : it.category) + '" list="cat-dl"></td>';
+        if (k === 'supplier') return '<td><input class="edit-inp" id="ei-supplier" value="' + esc(it.supplier == null ? '' : it.supplier) + '" list="supp-list"></td>';
+        if (k === 'alias')    return '<td><input class="edit-inp" id="ei-alias" value="' + esc(it.alias == null ? '' : it.alias) + '" list="item-alias-list"></td>';
         const type = ITEM_NUM_KEYS.includes(k) ? 'number' : 'text';
         return '<td><input class="edit-inp" id="ei-' + k + '" type="' + type + '" value="' + esc(it[k] == null ? '' : it[k]) + '"></td>';
       }).join('') +
