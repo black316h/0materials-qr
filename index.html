@@ -172,6 +172,17 @@
   .items-table-wrap tr.editing td:last-child { background: #fffdf5; }
   .items-table-wrap thead th:last-child { background: var(--bg); z-index: 3; }
 
+  /* ── 受限帳號（user01）：只留材料主檔/材料卡，隱藏所有價格 ── */
+  body.role-user .home-card { display: none; }
+  body.role-user .home-card.allow-user { display: block; }
+  body.role-user .admin-only { display: none !important; }
+  body.role-user #page-master .table-wrap th:nth-child(4),
+  body.role-user #page-master .table-wrap td:nth-child(4) { display: none; }   /* 材料主檔 計用價欄 */
+  body.role-user .price-field { display: none; }                               /* 計用價輸入欄位 */
+  body.role-user #page-card .table-wrap th:nth-child(5),
+  body.role-user #page-card .table-wrap td:nth-child(5) { display: none; }     /* 材料卡 成本欄 */
+  body.role-user #page-card tfoot { display: none; }                           /* 材料卡 合計列 */
+
   .toast {
     position: fixed; bottom: 2rem; right: 2rem;
     background: var(--text); color: #fff; padding: 10px 18px;
@@ -358,7 +369,7 @@
 <div id="page-home" class="page active">
   <div class="page-title">功能目錄</div>
   <div class="home-grid">
-    <div class="home-card" onclick="showPage('master')">
+    <div class="home-card allow-user" onclick="showPage('master')">
       <div class="home-icon">📦</div>
       <div class="home-label">材料主檔</div>
       <div class="home-desc">管理材料、廠牌、類別、庫存</div>
@@ -368,7 +379,7 @@
       <div class="home-label">物品清單</div>
       <div class="home-desc">型號、計用價、實進價、Excel 匯入</div>
     </div>
-    <div class="home-card" onclick="showPage('card')">
+    <div class="home-card allow-user" onclick="showPage('card')">
       <div class="home-icon">📋</div>
       <div class="home-label">材料卡</div>
       <div class="home-desc">材料卡片管理</div>
@@ -473,7 +484,7 @@
         <label>類別</label>
         <input id="f-cat" list="cat-dl" placeholder="輸入或選擇類別" oninput="buildModelList()">
       </div>
-      <div class="form-group">
+      <div class="form-group price-field">
         <label>計用價（元）</label>
         <input id="f-price" type="number" placeholder="0" min="0">
       </div>
@@ -481,10 +492,10 @@
     <div class="btn-row">
       <button class="btn btn-primary" onclick="addMaterial()">＋ 新增</button>
       <button class="btn" onclick="clearForm()">清除</button>
-      <button class="btn" onclick="exportMasterExcel()" style="margin-left:auto;background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
-      <button class="btn" onclick="document.getElementById('excel-file').click()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📥 匯入 Excel</button>
-      <button class="btn btn-sm" onclick="showImportHelp()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light);padding:8px 10px" title="匯入格式說明">❓</button>
-      <button class="btn btn-sm" onclick="clearItemsAll()" style="background:var(--red);color:#fff;border-color:var(--red)">🗑️ 一鍵清空</button>
+      <button class="btn admin-only" onclick="exportMasterExcel()" style="margin-left:auto;background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
+      <button class="btn admin-only" onclick="document.getElementById('excel-file').click()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📥 匯入 Excel</button>
+      <button class="btn btn-sm admin-only" onclick="showImportHelp()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light);padding:8px 10px" title="匯入格式說明">❓</button>
+      <button class="btn btn-sm admin-only" onclick="clearItemsAll()" style="background:var(--red);color:#fff;border-color:var(--red)">🗑️ 一鍵清空</button>
       <input type="file" id="excel-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(this)">
     </div>
     <!-- 匯入格式說明 -->
@@ -648,7 +659,7 @@
       <button class="btn btn-primary" onclick="saveCard()">💾 儲存</button>
       <button class="btn btn-primary" onclick="printCard()">🖨️ 列印</button>
       <button class="btn" onclick="exportCardExcel()" style="background:var(--blue-light);color:var(--blue-text);border-color:var(--blue-light)">📤 匯出 Excel</button>
-      <button class="btn" onclick="cardToCosting()" style="background:#8e44ad;color:#fff">📊 轉入成本試算</button>
+      <button class="btn admin-only" onclick="cardToCosting()" style="background:#8e44ad;color:#fff">📊 轉入成本試算</button>
       <!-- <button class="btn btn-primary" onclick="createCardSheet()">建立 Google Sheet</button> -->
       <!-- <a class="btn" href="https://drive.google.com/drive/folders/1XdVo2Io5cXgqZpL3KWpCDit0wiZOd-_3" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px">📁 材料卡資料夾</a> -->
       <span id="card-status" style="font-size:12px;color:var(--text-3);align-self:center;margin-left:auto"></span>
@@ -1331,6 +1342,18 @@ const AUTH_SESSION_KEY = 'auth_session';
 const AUTH_SESSION_DAYS = 7;
 const DEFAULT_USER = 'admin';
 const DEFAULT_HASH = '9af15b336e6a9619928537df30b2e6a2376569fcf9d7e773eccede65606529a0'; // SHA-256 of '0000'
+// 受限帳號 user01：只能用材料主檔/材料卡，看不到價格
+const AUTH_ROLE_KEY = 'auth_role';
+const AUTH_HASH_U1_KEY = 'auth_pwdhash_user01';
+const USER01_NAME = 'user01';
+const USER01_DEFAULT_PASS = '2381';
+const USER_ALLOWED_PAGES = ['home', 'master', 'card'];
+
+function currentRole() { return localStorage.getItem(AUTH_ROLE_KEY) === 'user01' ? 'user01' : 'admin'; }
+function isUserRole() { return currentRole() === 'user01'; }
+function applyRole() {
+  document.body.classList.toggle('role-user', isUserRole());
+}
 
 async function sha256(str) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
@@ -1346,6 +1369,7 @@ function initAuth() {
   if (session) {
     const ts = parseInt(session);
     if (Date.now() - ts < AUTH_SESSION_DAYS * 86400000) {
+      applyRole();
       document.getElementById('login-screen').style.display = 'none';
       return;
     }
@@ -1360,12 +1384,23 @@ async function doLogin() {
   const errEl = document.getElementById('login-err');
   if (!user || !pass) { errEl.textContent = '請輸入帳號和密碼'; return; }
 
-  const storedUser = localStorage.getItem(AUTH_USER_KEY) || DEFAULT_USER;
-  const storedHash = localStorage.getItem(AUTH_HASH_KEY) || DEFAULT_HASH;
   const inputHash = await sha256(pass);
+  let ok = false, role = 'admin';
+  if (user === USER01_NAME) {
+    const storedU1 = localStorage.getItem(AUTH_HASH_U1_KEY) || await sha256(USER01_DEFAULT_PASS);
+    ok = inputHash === storedU1;
+    role = 'user01';
+  } else {
+    const storedUser = localStorage.getItem(AUTH_USER_KEY) || DEFAULT_USER;
+    const storedHash = localStorage.getItem(AUTH_HASH_KEY) || DEFAULT_HASH;
+    ok = user === storedUser && inputHash === storedHash;
+  }
 
-  if (user === storedUser && inputHash === storedHash) {
+  if (ok) {
     localStorage.setItem(AUTH_SESSION_KEY, String(Date.now()));
+    localStorage.setItem(AUTH_ROLE_KEY, role);
+    applyRole();
+    if (role === 'user01') showPage('home');
     document.getElementById('login-screen').style.display = 'none';
     errEl.textContent = '';
     toast('登入成功');
@@ -1407,14 +1442,18 @@ async function doChangePwd() {
   if (newPass !== confirmPass) { errEl.textContent = '新密碼與確認密碼不一致'; return; }
   if (newPass.length < 4) { errEl.textContent = '新密碼至少 4 個字元'; return; }
 
-  const storedHash = localStorage.getItem(AUTH_HASH_KEY) || DEFAULT_HASH;
+  // 修改的是「目前登入帳號」的密碼（admin 或 user01）
+  const isU1 = isUserRole();
+  const storedHash = isU1
+    ? (localStorage.getItem(AUTH_HASH_U1_KEY) || await sha256(USER01_DEFAULT_PASS))
+    : (localStorage.getItem(AUTH_HASH_KEY) || DEFAULT_HASH);
   const oldHash = await sha256(oldPass);
   if (oldHash !== storedHash) { errEl.textContent = '目前密碼錯誤'; return; }
 
   const newHash = await sha256(newPass);
-  localStorage.setItem(AUTH_HASH_KEY, newHash);
+  localStorage.setItem(isU1 ? AUTH_HASH_U1_KEY : AUTH_HASH_KEY, newHash);
   hideChangePwd();
-  toast('密碼已修改');
+  toast('密碼已修改（帳號：' + (isU1 ? USER01_NAME : (localStorage.getItem(AUTH_USER_KEY) || DEFAULT_USER)) + '）');
 }
 
 // ── 危險操作密碼確認 ─────────────────────────────────
@@ -1814,6 +1853,7 @@ function toast(msg, duration) {
 
 // ── 頁面切換 ──────────────────────────────────────────
 function showPage(name) {
+  if (isUserRole() && !USER_ALLOWED_PAGES.includes(name)) { toast('此帳號沒有使用該功能的權限'); return; }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   const isHome = name === 'home';
@@ -2820,8 +2860,8 @@ function renderTableRows() {
         <button class="btn btn-sm" onclick="startEdit('${m.id}')">編輯</button>
         <button class="btn btn-danger btn-sm" onclick="deleteMat('${m.id}')">刪除</button>
         <button class="btn btn-sm" style="background:var(--accent);color:#fff" onclick="addToCard('${m.id}')">材料卡</button>
-        <button class="btn btn-sm" style="background:var(--blue);color:#fff" onclick="addToInvoice('${m.id}')">出貨單</button>
-        <button class="btn btn-sm" style="background:#8e44ad;color:#fff" onclick="addToPurchase('${m.id}')">進貨單</button>
+        <button class="btn btn-sm admin-only" style="background:var(--blue);color:#fff" onclick="addToInvoice('${m.id}')">出貨單</button>
+        <button class="btn btn-sm admin-only" style="background:#8e44ad;color:#fff" onclick="addToPurchase('${m.id}')">進貨單</button>
       </td>
     </tr>`;
   }).join('');
@@ -3107,7 +3147,7 @@ function printCard() {
     </table>
     <table class="print-items">
       <thead>
-        <tr><th style="width:45px">序號</th><th style="width:80px">廠牌</th><th>品名規格</th><th style="width:55px">數量</th><th style="width:80px">成本</th><th style="width:120px">備註</th></tr>
+        <tr><th style="width:45px">序號</th><th style="width:80px">廠牌</th><th>品名規格</th><th style="width:55px">數量</th>${isUserRole() ? '' : '<th style="width:80px">成本</th>'}<th style="width:120px">備註</th></tr>
       </thead>
       <tbody>
         ${rows.map(r => `<tr>
@@ -3115,17 +3155,17 @@ function printCard() {
           <td class="left">${esc(r.supplier)}</td>
           <td class="left">${esc(r.name)}</td>
           <td>${r.qty}</td>
-          <td class="right">${r.amount ? '$' + Number(r.amount).toLocaleString() : ''}</td>
+          ${isUserRole() ? '' : '<td class="right">' + (r.amount ? '$' + Number(r.amount).toLocaleString() : '') + '</td>'}
           <td class="left">${esc(r.note)}</td>
         </tr>`).join('')}
       </tbody>
-      <tfoot>
+      ${isUserRole() ? '' : `<tfoot>
         <tr>
           <td colspan="4" style="border:none"></td>
           <td class="right">合計</td>
           <td class="right">$${total.toLocaleString()}</td>
         </tr>
-      </tfoot>
+      </tfoot>`}
     </table>
     </div>
   `;
@@ -3142,29 +3182,25 @@ function exportCardExcel() {
 
   const total = items.reduce((s, item) => s + (Number(item.amount) || 0), 0);
 
+  const hideCost = isUserRole();  // 受限帳號：不含成本欄與合計
   const headerData = [
     ['客戶名稱', customerName, '', '編號', cardNo, ''],
     ['訂單名稱', projectName, '', '日期', date, ''],
     [],
-    ['序號', '廠牌', '品名規格', '數量', '成本', '備註']
+    hideCost ? ['序號', '廠牌', '品名規格', '數量', '備註']
+             : ['序號', '廠牌', '品名規格', '數量', '成本', '備註']
   ];
-  const itemData = items.map((item, i) => [
-    i + 1, item.supplier || '', item.name || '',
-    Number(item.qty) || 0, Number(item.amount) || 0, item.note || ''
-  ]);
-  const footerData = [[], ['', '', '', '', '合計', total]];
+  const itemData = items.map((item, i) => hideCost
+    ? [i + 1, item.supplier || '', item.name || '', Number(item.qty) || 0, item.note || '']
+    : [i + 1, item.supplier || '', item.name || '', Number(item.qty) || 0, Number(item.amount) || 0, item.note || '']);
+  const footerData = hideCost ? [] : [[], ['', '', '', '', '合計', total]];
 
   const wsData = [...headerData, ...itemData, ...footerData];
   const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-  ws['!cols'] = [
-    { wch: 6 },  // 序號
-    { wch: 12 }, // 廠商
-    { wch: 30 }, // 品名規格
-    { wch: 8 },  // 數量
-    { wch: 10 }, // 金額
-    { wch: 15 }  // 備註
-  ];
+  ws['!cols'] = hideCost
+    ? [{ wch: 6 }, { wch: 12 }, { wch: 30 }, { wch: 8 }, { wch: 15 }]
+    : [{ wch: 6 }, { wch: 12 }, { wch: 30 }, { wch: 8 }, { wch: 10 }, { wch: 15 }];
   ws['!merges'] = [
     { s: { r: 0, c: 1 }, e: { r: 0, c: 2 } },
     { s: { r: 1, c: 1 }, e: { r: 1, c: 2 } }
